@@ -1,0 +1,1 @@
+# Configuración raíz de Pinia

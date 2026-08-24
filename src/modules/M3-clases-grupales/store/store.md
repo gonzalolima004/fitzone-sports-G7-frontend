@@ -1,0 +1,1 @@
+# Estado de Pinia para clases-grupales

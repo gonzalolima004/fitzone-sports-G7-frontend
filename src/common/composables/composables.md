@@ -1,0 +1,1 @@
+# Tola la logica reutilizable.

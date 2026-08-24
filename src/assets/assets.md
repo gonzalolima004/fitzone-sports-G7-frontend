@@ -1,0 +1,1 @@
+ # Imágenes, logos, estilos globales (CSS)

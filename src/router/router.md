@@ -1,0 +1,1 @@
+# Configuración de Vue Router (separado por módulos).
