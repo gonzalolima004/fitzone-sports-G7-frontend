@@ -7,21 +7,21 @@
 
 ----
 
-#### XX/XX/2026
+#### 02/10/2026
 #### Gonzalo Lima | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  - Configuración e integración inicial de Vue Router con definición de rutas para cada módulo y manejo de ruta no encontrada (404).
+  - Creación del cliente HTTP con Axios, interceptores para adjuntar token Bearer y redirección automática al login en respuestas 401.
+  - Configuración del pipeline de calidad: ESLint Flat Config para Vue 3 + TypeScript, Prettier, Vitest y scripts de validación.
 - **Decisiones:**
-  - 
-  - 
+  - Integrar ESLint Flat Config y excluir archivos .md para evitar formateos no deseados en la documentación compartida.
 - **Dificultades:** Ninguna.
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  - `feat(router): vue router y rutas iniciales`
+  - `feat(api): axios para conexión http`
+  - `feat(api): comprobación de conexión al backend e instalación de pinia`
+  - `feat: configuración de prettier y formateador + fixes de ambos`
 
 ----
 

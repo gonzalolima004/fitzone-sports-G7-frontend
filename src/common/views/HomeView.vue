@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import axios from 'axios'
 import http from '../api/http'
 
 const resultado = ref<string>('')
@@ -12,8 +13,14 @@ async function probarConexion() {
   try {
     const res = await http.get('/sedes')
     resultado.value = 'Conexión exitosa: ' + JSON.stringify(res.data)
-  } catch (error: any) {
-    resultado.value = 'Error al consultar /sedes: ' + (error.response?.data?.message || error.message || 'Error de conexión')
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      resultado.value =
+        'Error al consultar /sedes: ' +
+        (error.response?.data?.message || error.message || 'Error de conexión')
+    } else {
+      resultado.value = 'Error al consultar /sedes: ' + String(error)
+    }
   } finally {
     cargando.value = false
   }

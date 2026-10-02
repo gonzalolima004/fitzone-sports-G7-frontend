@@ -26,7 +26,8 @@ http.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response?.status
-    const message = error.response?.data?.message || error.message || 'Error de conexión'
+    const message =
+      error.response?.data?.message || error.message || 'Error de conexión'
 
     console.error(`[HTTP ${status ?? 'Network Error'}]:`, message)
 

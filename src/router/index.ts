@@ -19,7 +19,8 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/clases',
     name: 'clases',
-    component: () => import('../modules/M3-clases-grupales/views/ClasesView.vue'),
+    component: () =>
+      import('../modules/M3-clases-grupales/views/ClasesView.vue'),
   },
   {
     path: '/canchas',
