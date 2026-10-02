@@ -25,39 +25,37 @@
 
 ----
 
-#### XX/XX/2026
+#### 02/10/2026
 #### Gonzalo Lima | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  - Creación del layout principal  dividiendo en header, sidebar y área de contenido.
+  - Integración de Pinia y consumo del endpoint GET /sedes para la selección de sede.
+  - Filtrado y presentación de rutas de navegación dinámicas según el rol del usuario obtenido desde la sesión.
 - **Decisiones:**
-  - 
-  - 
+  - Persistir el ID de sede seleccionada en localStorage para preservar el contexto de navegación ante recargas de página.
+  - El rol proviene exclusivamente de la autenticación del backend.
 - **Dificultades:** Ninguna.
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  - `feat: layout principal y sidebar`
+  - `feat: navegación según rol y selector de sede`
 
 ----
 
-#### XX/XX/2026
+#### 02/10/2026
 #### Gonzalo Lima | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  - Creación de componentes compartidos atómicos reutilizables.
+  - Reemplazo de alertas estáticas por notificaciones Toast mediante la integración de vue3-toastify.
+  - Documentación  en src/common/components/README.md detallando como se usan estos componentes.
 - **Decisiones:**
-  - 
-  - 
+  - Adoptar vue3-toastify para ofrecer una experiencia idéntica a React-Toastify en Vue 3 con tema claro, evitando alertas fijas intrusivas y centralizando el feedback al usuario en 3 segundos.
 - **Dificultades:** Ninguna.
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  - `feat(components): base para botones e inputs compartidos`
+  - `feat(components): base para modal compartido e implementación de vue3 toastify`
+  - `feat(components): aplicación de los estilos del maquetado + configs varias`
 
 ----
 

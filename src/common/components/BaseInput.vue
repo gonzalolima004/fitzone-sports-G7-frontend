@@ -32,7 +32,12 @@ const emit = defineEmits<{
 }>()
 
 const inputId = computed(() => {
-  return props.id || (props.label ? 'input-' + props.label.toLowerCase().replace(/\s+/g, '-') : undefined)
+  return (
+    props.id ||
+    (props.label
+      ? 'input-' + props.label.toLowerCase().replace(/\s+/g, '-')
+      : undefined)
+  )
 })
 
 function handleInput(event: Event) {
@@ -64,13 +69,15 @@ function handleInput(event: Event) {
         :placeholder="placeholder"
         :disabled="disabled"
         :required="required"
+        class="w-full px-3.5 py-2.5 bg-white border rounded-xl text-sm text-slate-800 placeholder-slate-400 transition-all duration-200 focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+        :class="
+          error
+            ? 'border-[#F96167] focus:border-[#F96167] focus:ring-2 focus:ring-[#F96167]/20'
+            : 'border-slate-300 focus:border-[#202759] focus:ring-2 focus:ring-[#202759]/15'
+        "
         @input="handleInput"
         @blur="emit('blur', $event)"
         @focus="emit('focus', $event)"
-        class="w-full px-3.5 py-2.5 bg-white border rounded-xl text-sm text-slate-800 placeholder-slate-400 transition-all duration-200 focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-        :class="error
-          ? 'border-[#F96167] focus:border-[#F96167] focus:ring-2 focus:ring-[#F96167]/20'
-          : 'border-slate-300 focus:border-[#202759] focus:ring-2 focus:ring-[#202759]/15'"
       />
     </div>
 
@@ -79,17 +86,24 @@ function handleInput(event: Event) {
       v-if="error"
       class="text-xs text-[#F96167] font-medium flex items-center gap-1 mt-0.5"
     >
-      <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      <svg
+        class="w-3.5 h-3.5 flex-shrink-0"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+        />
       </svg>
       <span>{{ error }}</span>
     </p>
 
     <!-- Texto de ayuda opcional (hint) -->
-    <p
-      v-else-if="hint"
-      class="text-xs text-slate-400 font-normal mt-0.5"
-    >
+    <p v-else-if="hint" class="text-xs text-slate-400 font-normal mt-0.5">
       {{ hint }}
     </p>
   </div>

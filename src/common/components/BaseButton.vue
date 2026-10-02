@@ -2,7 +2,8 @@
 import { computed } from 'vue'
 
 interface Props {
-  variant?: 'primary' | 'secondary' | 'danger' | 'danger-outline' | 'outline' | 'ghost'
+  variant?:
+    'primary' | 'secondary' | 'danger' | 'danger-outline' | 'outline' | 'ghost'
   size?: 'sm' | 'md' | 'lg'
   type?: 'button' | 'submit' | 'reset'
   disabled?: boolean
@@ -61,9 +62,9 @@ const sizeClasses = computed(() => {
   <button
     :type="type"
     :disabled="disabled || loading"
-    @click="handleClick"
     class="inline-flex items-center justify-center select-none transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
     :class="[variantClasses, sizeClasses]"
+    @click="handleClick"
   >
     <!-- Spinner animado de carga -->
     <svg
@@ -88,7 +89,7 @@ const sizeClasses = computed(() => {
     </svg>
 
     <!-- Slot para ícono a la izquierda -->
-    <slot name="icon" v-if="!loading" />
+    <slot v-if="!loading" name="icon" />
 
     <!-- Contenido / Texto principal del botón -->
     <span>

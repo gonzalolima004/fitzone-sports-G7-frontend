@@ -98,7 +98,9 @@ const maxWidthClasses = computed(() => {
           aria-modal="true"
         >
           <!-- Encabezado del modal -->
-          <div class="px-6 py-4 border-b border-slate-100 flex items-start justify-between gap-4">
+          <div
+            class="px-6 py-4 border-b border-slate-100 flex items-start justify-between gap-4"
+          >
             <slot name="title">
               <div>
                 <h3 class="text-base sm:text-lg font-bold text-[#202759] m-0">
@@ -111,9 +113,9 @@ const maxWidthClasses = computed(() => {
             </slot>
             <button
               type="button"
-              @click="cerrar"
               class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-[#F96167] hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
               title="Cerrar"
+              @click="cerrar"
             >
               ✕
             </button>
