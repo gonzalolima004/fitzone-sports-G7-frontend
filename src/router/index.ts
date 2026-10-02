@@ -14,12 +14,14 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'accesos',
         name: 'accesos',
-        component: () => import('../modules/M2-accesos/views/CredencialView.vue'),
+        component: () =>
+          import('../modules/M2-accesos/views/CredencialView.vue'),
       },
       {
         path: 'clases',
         name: 'clases',
-        component: () => import('../modules/M3-clases-grupales/views/ClasesView.vue'),
+        component: () =>
+          import('../modules/M3-clases-grupales/views/ClasesView.vue'),
       },
       {
         path: 'canchas',
@@ -34,7 +36,8 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'reportes',
         name: 'reportes',
-        component: () => import('../modules/M6-reportes/views/ReportesView.vue'),
+        component: () =>
+          import('../modules/M6-reportes/views/ReportesView.vue'),
       },
     ],
   },
