@@ -2,6 +2,7 @@ import axios from 'axios'
 import router from '../../router'
 
 export const http = axios.create({
+  // Asegurate de tener VITE_API_URL="http://localhost:3000" en tu .env
   baseURL: import.meta.env.VITE_API_URL,
   headers: {
     'Content-Type': 'application/json',
@@ -12,7 +13,8 @@ export const http = axios.create({
 // Interceptor de solicitud: adjunta el token de sesión si existe en localStorage
 http.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token')
+    // CORRECCIÓN: Usar la misma clave que definimos en el useAuthStore
+    const token = localStorage.getItem('fitzone_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -33,7 +35,9 @@ http.interceptors.response.use(
 
     // Si la sesión no es válida o expiró, limpiamos y mandamos a login
     if (status === 401) {
-      localStorage.removeItem('token')
+      localStorage.removeItem('fitzone_token')
+      localStorage.removeItem('fitzone_user')
+
       if (router.currentRoute.value.path !== '/login') {
         router.push('/login')
       }
