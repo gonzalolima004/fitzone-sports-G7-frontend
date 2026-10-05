@@ -226,25 +226,61 @@ function handleListaEspera(idClase: number) {
     </div>
 
     <!-- Grilla de Clases -->
-    <div v-if="cargando" class="flex justify-center p-12">
+    <div
+      v-if="cargando"
+      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse"
+    >
       <div
-        class="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500"
-      ></div>
+        v-for="i in 3"
+        :key="i"
+        class="bg-white rounded-3xl p-6 h-[380px] border border-slate-100 shadow-sm flex flex-col justify-between"
+      >
+        <div class="flex justify-between items-center mb-5">
+          <div class="h-8 w-24 bg-slate-200 rounded-lg"></div>
+          <div class="h-4 w-32 bg-slate-200 rounded-full"></div>
+        </div>
+        <div class="mb-6 flex-grow">
+          <div class="h-6 w-3/4 bg-slate-200 rounded-md mb-3"></div>
+          <div class="h-4 w-1/2 bg-slate-100 rounded-md"></div>
+        </div>
+        <div class="mb-6">
+          <div class="flex justify-between mb-2">
+            <div class="h-4 w-20 bg-slate-200 rounded-md"></div>
+            <div class="h-4 w-16 bg-slate-200 rounded-md"></div>
+          </div>
+          <div class="h-2.5 w-full bg-slate-100 rounded-full mb-3"></div>
+          <div class="h-3 w-4/5 bg-slate-100 rounded-md"></div>
+        </div>
+        <div class="h-12 w-full bg-slate-200 rounded-xl"></div>
+      </div>
     </div>
 
     <div
       v-else-if="error"
-      class="bg-rose-50 text-rose-600 p-6 rounded-2xl text-center font-medium border border-rose-100"
+      class="bg-rose-50 rounded-3xl p-8 text-center border-2 border-rose-100 animate-fade-in shadow-sm"
     >
-      {{ error }}
+      <div class="text-4xl mb-4" role="img" aria-hidden="true">🔌</div>
+      <h3 class="text-xl font-bold text-rose-700 mb-2">
+        Oops, tuvimos un problema de conexión
+      </h3>
+      <p class="text-rose-600 font-medium mb-6 max-w-md mx-auto">{{ error }}</p>
+      <button
+        class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-md active:scale-95"
+        @click="cargarClases"
+      >
+        Volver a intentar
+      </button>
     </div>
 
     <div
       v-else-if="clasesAgendadas.length === 0"
-      class="text-center p-12 bg-slate-50 text-slate-400 border-2 border-dashed border-slate-200 rounded-3xl"
+      class="text-center p-16 bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl animate-fade-in flex flex-col items-center justify-center"
     >
-      <p class="font-medium">
-        No hay clases programadas para esta sede en la fecha seleccionada.
+      <div class="text-5xl mb-4 opacity-50 grayscale">📭</div>
+      <h3 class="text-xl font-bold text-slate-700 mb-2">Agenda despejada</h3>
+      <p class="text-slate-500 font-medium max-w-sm">
+        No hay clases grupales programadas para la Sede actual en la fecha que
+        seleccionaste.
       </p>
     </div>
 
