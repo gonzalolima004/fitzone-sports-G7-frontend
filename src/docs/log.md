@@ -221,21 +221,19 @@
 
 ----
 
-#### XX/XX/2026
+#### 05/10/2026
 #### Joaquín Ribarola | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  - Desarrollo de la vista principal de Clases Grupales (`ClasesView.vue`) estructurando la UI base.
+  - Implementación del indicador dinámico de Sede usando Pinia (`useSedeStore`).
+  - Creación de un filtro dinámico de fechas, calculando automáticamente los próximos 5 días con formateo legible y de datos.
 - **Decisiones:**
-  - 
-  - 
+  - Generar el listado de los próximos días en el frontend en lugar de consultarlos, para agilizar la interacción.
+  - Utilizar un diseño premium con micro-animaciones en TailwindCSS respetando estrictamente la estética de la maqueta (RF-07).
 - **Dificultades:** Ninguna.
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  - `feat(clases): crea interfaz y filtros de agenda (US-04-01)`
 
 ----
 
