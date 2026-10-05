@@ -92,7 +92,7 @@ const handleLogin = async () => {
 
   try {
     await authStore.login({ email: email.value, password: password.value })
-    router.push('/dashboard') // Redirige al layout principal tras el éxito
+    router.push({ name: 'home' }); // Redirige al layout principal tras el éxito
   } catch (error: any) {
     errorMessage.value =
       error.response?.data?.message ||
