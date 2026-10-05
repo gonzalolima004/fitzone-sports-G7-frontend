@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useSedeStore } from '@/store/sede'
 import axios from 'axios'
 import { clasesService, type ClaseResponse } from '../services/clases.service'
+import ClaseCard, { type ClaseCardProps } from '../components/ClaseCard.vue'
 
 const sedeStore = useSedeStore()
 
@@ -14,6 +15,50 @@ const fechasDisponibles = ref<
 const clases = ref<ClaseResponse[]>([])
 const cargando = ref(false)
 const error = ref<string | null>(null)
+
+// Mapeo dinámico para simular los datos que faltan en el backend
+const clasesAgendadas = computed<ClaseCardProps[]>(() => {
+  return clases.value.map((clase, index) => {
+    // Generamos datos simulados basados en el ID para mantener consistencia
+    const esSpinning = clase.nombre.toLowerCase().includes('spinning')
+    const esYoga = clase.nombre.toLowerCase().includes('yoga')
+
+    let tipo = 'CROSSFIT'
+    let icono = '🏋️'
+    if (esSpinning) {
+      tipo = 'SPINNING'
+      icono = '🚴‍♂️'
+    } else if (esYoga) {
+      tipo = 'YOGA VINYASA'
+      icono = '🧘‍♀️'
+    }
+
+    const cuposOcupados =
+      index % 3 === 0
+        ? clase.capacidad_maxima
+        : Math.floor(clase.capacidad_maxima * 0.7)
+    const estado =
+      cuposOcupados >= clase.capacidad_maxima ? 'COMPLETO' : 'DISPONIBLE'
+
+    // Horarios simulados secuenciales
+    const horaInicio = 8 + index * 2
+    const horario = `${horaInicio.toString().padStart(2, '0')}:30 - ${(horaInicio + 1).toString().padStart(2, '0')}:15 hs`
+
+    return {
+      id: clase.id_clase,
+      nombre: clase.nombre,
+      tipo,
+      icono,
+      horario,
+      profesor: `Prof. ${['Laura Méndez', 'Martín Sosa', 'Juan Pablo Rossi'][index % 3]}`,
+      sala: esSpinning ? 'Sala 1' : esYoga ? 'Sala Zen' : 'Box Central',
+      capacidadMaxima: clase.capacidad_maxima,
+      cuposOcupados,
+      enListaEspera: estado === 'COMPLETO' ? 3 : 0,
+      estado,
+    }
+  })
+})
 
 onMounted(() => {
   generarFechas()
@@ -87,6 +132,16 @@ function generarFechas() {
 
 function seleccionarFecha(fechaStr: string) {
   fechaSeleccionada.value = fechaStr
+}
+
+function handleReservar(idClase: number) {
+  console.log('Reservar clase:', idClase)
+  // Próximamente: Llamar endpoint de reserva
+}
+
+function handleListaEspera(idClase: number) {
+  console.log('Anotarse en lista de espera:', idClase)
+  // Próximamente: Llamar endpoint de lista de espera
 }
 </script>
 
@@ -170,14 +225,40 @@ function seleccionarFecha(fechaStr: string) {
       </button>
     </div>
 
-    <!-- Placeholder para las tarjetas (Tarea 1.3) -->
+    <!-- Grilla de Clases -->
+    <div v-if="cargando" class="flex justify-center p-12">
+      <div
+        class="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500"
+      ></div>
+    </div>
+
     <div
-      class="text-center p-12 bg-slate-50 text-slate-400 border-2 border-dashed border-slate-200 rounded-3xl animate-pulse"
+      v-else-if="error"
+      class="bg-rose-50 text-rose-600 p-6 rounded-2xl text-center font-medium border border-rose-100"
+    >
+      {{ error }}
+    </div>
+
+    <div
+      v-else-if="clasesAgendadas.length === 0"
+      class="text-center p-12 bg-slate-50 text-slate-400 border-2 border-dashed border-slate-200 rounded-3xl"
     >
       <p class="font-medium">
-        Las clases de la fecha seleccionada se mostrarán aquí en el siguiente
-        paso.
+        No hay clases programadas para esta sede en la fecha seleccionada.
       </p>
+    </div>
+
+    <div
+      v-else
+      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in"
+    >
+      <ClaseCard
+        v-for="clase in clasesAgendadas"
+        :key="clase.id"
+        :clase="clase"
+        @reservar="handleReservar"
+        @lista-espera="handleListaEspera"
+      />
     </div>
   </div>
 </template>

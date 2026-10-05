@@ -237,21 +237,20 @@
 
 ----
 
-#### XX/XX/2026
+#### 05/10/2026
 #### Joaquín Ribarola | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  - Desarrollo del servicio `clases.service.ts` conectando el endpoint `GET /clases` (Tipado con interfaces `ClaseResponse`).
+  - Creación del componente reutilizable `ClaseCard.vue` con diseño estético premium y cálculo dinámico de porcentajes de ocupación.
+  - Integración de `ClaseCard` en `ClasesView` generando un mapeo dinámico reactivo (`computed`) para simular los horarios e instructores faltantes en la API actual.
 - **Decisiones:**
-  - 
-  - 
-- **Dificultades:** Ninguna.
+  - Simular datos de agenda en el frontend (horarios, profesores, sala) para avanzar con el maquetado sin bloquearnos por la falta de implementación de esos campos en el backend.
+  - Centralizar y reutilizar estilos globales de estado (DISPONIBLE/COMPLETO) para dar coherencia visual.
+- **Dificultades:** Ninguna (Se resolvió un problema menor del compilador TS actualizando el `tsconfig.app.json` con `target: ES2022`).
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  - `feat(clases): conecta api y define tipados para consultar catálogo (E4 Tarea 1.2)`
+  - `feat(clases): crea componente ClaseCard e integra horarios e información simulada (E4 Tarea 1.3)`
 
 ----
 
