@@ -23,7 +23,7 @@
           Ingresa tus credenciales para acceder al ecosistema FitZone.
         </p>
 
-        <form @submit.prevent="handleLogin" class="login-form">
+        <form class="login-form" @submit.prevent="handleLogin">
           <div class="form-group">
             <label for="email">Correo Electrónico</label>
             <input
@@ -93,11 +93,10 @@ const handleLogin = async () => {
   try {
     await authStore.login({ email: email.value, password: password.value })
     router.push({ name: 'home' })
-  } catch (error: any) {
-    const apiMessage = error.response?.data?.message
-
-    // Si NestJS devuelve un arreglo de errores (ej. validaciones del DTO), los unimos con una coma
-    // Si es un string simple (ej. "Credenciales incorrectas"), lo mostramos tal cual
+  } catch (error: unknown) {
+    // Safe handling of unknown error objects
+    const err = error as { response?: { data?: { message?: string } } }
+    const apiMessage = err.response?.data?.message
     if (Array.isArray(apiMessage)) {
       errorMessage.value = apiMessage.join(', ')
     } else {

@@ -81,8 +81,10 @@ const handleRegistro = async () => {
     }
 
     router.push('/login')
-  } catch (error: any) {
-    const apiMessage = error.response?.data?.message
+  } catch (error: unknown) {
+    // Safe handling of unknown error objects
+    const err = error as { response?: { data?: { message?: string } } }
+    const apiMessage = err.response?.data?.message
     errorMessage.value = Array.isArray(apiMessage)
       ? apiMessage.join(', ')
       : apiMessage || 'Error al procesar el registro.'
@@ -116,7 +118,7 @@ const handleRegistro = async () => {
           Completa tus datos para ingresar al ecosistema FitZone.
         </p>
 
-        <form @submit.prevent="handleRegistro" class="space-y-6">
+        <form class="space-y-6" @submit.prevent="handleRegistro">
           <div
             v-if="errorMessage"
             class="p-3 bg-red-100 text-red-700 rounded-md text-sm"
@@ -132,13 +134,13 @@ const handleRegistro = async () => {
             <div class="grid grid-cols-2 gap-4">
               <button
                 type="button"
-                @click="form.tipoPerfil = 'socio'"
+                class="border rounded-xl p-4 text-center transition-all"
                 :class="
                   form.tipoPerfil === 'socio'
                     ? 'border-[#F96167] ring-1 ring-[#F96167] bg-[#F96167]/10'
                     : 'border-gray-200 hover:bg-gray-50'
                 "
-                class="border rounded-xl p-4 text-center transition-all"
+                @click="form.tipoPerfil = 'socio'"
               >
                 <div class="text-2xl mb-2">🏋️</div>
                 <div class="font-bold text-sm text-[#202759]">
@@ -150,13 +152,13 @@ const handleRegistro = async () => {
               </button>
               <button
                 type="button"
-                @click="form.tipoPerfil = 'cliente'"
+                class="border rounded-xl p-4 text-center transition-all"
                 :class="
                   form.tipoPerfil === 'cliente'
                     ? 'border-[#F96167] ring-1 ring-[#F96167] bg-[#F96167]/10'
                     : 'border-gray-200 hover:bg-gray-50'
                 "
-                class="border rounded-xl p-4 text-center transition-all"
+                @click="form.tipoPerfil = 'cliente'"
               >
                 <div class="text-2xl mb-2">⚽</div>
                 <div class="font-bold text-sm text-[#202759]">
@@ -201,14 +203,14 @@ const handleRegistro = async () => {
               </p>
               <button
                 type="button"
-                @click="triggerFileInput"
                 class="text-xs border border-gray-300 rounded-md px-3 py-1.5 bg-white hover:bg-gray-100 font-medium text-[#202759]"
+                @click="triggerFileInput"
               >
                 Subir Fotografía
               </button>
               <input
-                type="file"
                 ref="fileInput"
+                type="file"
                 class="hidden"
                 accept="image/*"
                 @change="handleFotoUpload"
