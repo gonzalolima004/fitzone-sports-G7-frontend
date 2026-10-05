@@ -83,30 +83,31 @@ const router = useRouter()
 
 const handleLogin = async () => {
   if (!email.value || !password.value) {
-    errorMessage.value = 'Por favor, completa todos los campos.';
-    return;
+    errorMessage.value = 'Por favor, completa todos los campos.'
+    return
   }
 
-  isLoading.value = true;
-  errorMessage.value = '';
+  isLoading.value = true
+  errorMessage.value = ''
 
   try {
-    await authStore.login({ email: email.value, password: password.value });
-    router.push({ name: 'home' }); 
+    await authStore.login({ email: email.value, password: password.value })
+    router.push({ name: 'home' })
   } catch (error: any) {
-    const apiMessage = error.response?.data?.message;
-    
+    const apiMessage = error.response?.data?.message
+
     // Si NestJS devuelve un arreglo de errores (ej. validaciones del DTO), los unimos con una coma
     // Si es un string simple (ej. "Credenciales incorrectas"), lo mostramos tal cual
     if (Array.isArray(apiMessage)) {
-      errorMessage.value = apiMessage.join(', ');
+      errorMessage.value = apiMessage.join(', ')
     } else {
-      errorMessage.value = apiMessage || 'Credenciales incorrectas o error de conexión.';
+      errorMessage.value =
+        apiMessage || 'Credenciales incorrectas o error de conexión.'
     }
   } finally {
-    isLoading.value = false;
+    isLoading.value = false
   }
-};
+}
 </script>
 
 <style scoped>
