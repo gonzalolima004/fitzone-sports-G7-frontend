@@ -11,12 +11,6 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true }, // Protege a MainLayout y TODAS sus rutas hijas
     children: [
       {
-        path: '/registro',
-        name: 'registro',
-        component: RegistroView,
-        meta: { requiresAuth: false }, // Ruta pública
-      },
-      {
         path: 'perfil',
         name: 'perfil',
         component: PerfilView,
@@ -62,6 +56,12 @@ const routes: RouteRecordRaw[] = [
     name: 'login',
     component: () => import('../modules/M1-usuarios/views/LoginView.vue'),
     meta: { requiresAuth: false }, // Ruta explícitamente pública
+  },
+  {
+    path: '/registro',
+    name: 'registro',
+    component: RegistroView,
+    meta: { requiresAuth: false }, // Ruta explícitamente pública y fuera del layout
   },
   {
     // Ruta comodín para manejar direcciones inexistentes (404)

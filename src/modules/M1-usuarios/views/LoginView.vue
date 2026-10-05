@@ -95,7 +95,9 @@ const handleLogin = async () => {
     router.push({ name: 'home' })
   } catch (error: unknown) {
     // Safe handling of unknown error objects
-    const err = error as { response?: { data?: { message?: string } } }
+    const err = error as {
+      response?: { data?: { message?: string | string[] } }
+    }
     const apiMessage = err.response?.data?.message
     if (Array.isArray(apiMessage)) {
       errorMessage.value = apiMessage.join(', ')
