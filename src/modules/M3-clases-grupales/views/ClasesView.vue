@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useSedeStore } from '@/store/sede'
+import axios from 'axios'
+import { clasesService, type ClaseResponse } from '../services/clases.service'
 
 const sedeStore = useSedeStore()
 
@@ -9,9 +11,46 @@ const fechasDisponibles = ref<
   { fecha: Date; label: string; shortLabel: string }[]
 >([])
 
+const clases = ref<ClaseResponse[]>([])
+const cargando = ref(false)
+const error = ref<string | null>(null)
+
 onMounted(() => {
   generarFechas()
+  if (sedeStore.idSedeSeleccionada) {
+    cargarClases()
+  }
 })
+
+watch(
+  () => sedeStore.idSedeSeleccionada,
+  (nuevoId) => {
+    if (nuevoId) {
+      cargarClases()
+    } else {
+      clases.value = []
+    }
+  }
+)
+
+async function cargarClases() {
+  if (!sedeStore.idSedeSeleccionada) return
+  cargando.value = true
+  error.value = null
+  try {
+    clases.value = await clasesService.obtenerClasesPorSede(
+      sedeStore.idSedeSeleccionada
+    )
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      error.value = err.response?.data?.message || 'Error al cargar las clases.'
+    } else {
+      error.value = 'Error al cargar las clases.'
+    }
+  } finally {
+    cargando.value = false
+  }
+}
 
 function generarFechas() {
   const fechas = []
@@ -48,7 +87,6 @@ function generarFechas() {
 
 function seleccionarFecha(fechaStr: string) {
   fechaSeleccionada.value = fechaStr
-  // Próximamente: aquí se emitirá o disparará la consulta a la API de clases
 }
 </script>
 
