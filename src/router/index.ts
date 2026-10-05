@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import MainLayout from '../common/layouts/MainLayout.vue'
 import { useAuthStore } from '../store/auth' // Agregamos la importación del store
+import RegistroView from '@/modules/M1-usuarios/views/RegistroView.vue'
+import PerfilView from '@/modules/M1-usuarios/views/PerfilView.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -8,6 +10,18 @@ const routes: RouteRecordRaw[] = [
     component: MainLayout,
     meta: { requiresAuth: true }, // Protege a MainLayout y TODAS sus rutas hijas
     children: [
+      {
+        path: '/registro',
+        name: 'registro',
+        component: RegistroView,
+        meta: { requiresAuth: false }, // Ruta pública
+      },
+      {
+        path: 'perfil',
+        name: 'perfil',
+        component: PerfilView,
+        meta: { requiresAuth: true }, // Ruta protegida
+      },
       {
         path: '',
         name: 'home',
