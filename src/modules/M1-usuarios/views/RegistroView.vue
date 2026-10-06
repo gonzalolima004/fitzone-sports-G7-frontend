@@ -2,10 +2,12 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { usuariosService } from '../services/usuarios.service'
+import BaseInput from '@/common/components/BaseInput.vue'
+import BaseButton from '@/common/components/BaseButton.vue'
+import { toast } from '@/common/utils/toast'
 
 const router = useRouter()
 const isLoading = ref(false)
-const errorMessage = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
 const fotoPreview = ref<string | null>(null)
 const fotoFile = ref<File | null>(null)
@@ -34,33 +36,28 @@ const handleFotoUpload = (event: Event) => {
 }
 
 const handleRegistro = async () => {
-  errorMessage.value = ''
-
   if (form.contrasenia !== form.confirmarContrasenia) {
-    errorMessage.value = 'Las contraseñas no coinciden.'
+    toast.warning('Las contraseñas no coinciden.')
     return
   }
 
-  // Separar el nombre completo en nombre y apellido para el backend
   const partesNombre = form.nombreCompleto.trim().split(' ')
   const nombre = partesNombre[0] || ''
   const apellido = partesNombre.slice(1).join(' ') || ''
 
   if (!nombre || !apellido) {
-    errorMessage.value = 'Por favor, ingresa tanto tu nombre como tu apellido.'
+    toast.warning('Por favor, ingresa tanto tu nombre como tu apellido.')
     return
   }
 
   if (!fotoFile.value) {
-    errorMessage.value =
-      'La foto de perfil es obligatoria para el control de acceso.'
+    toast.warning('La foto de perfil es obligatoria para el control de acceso.')
     return
   }
 
   isLoading.value = true
 
   try {
-    // 1. Crear usuario
     const nuevoUsuario = await usuariosService.registrarUsuario({
       dni: form.dni,
       email: form.email,
@@ -68,12 +65,11 @@ const handleRegistro = async () => {
       nombre,
       apellido,
       telefono: form.telefono,
-      id_sede: String(form.id_sede), // <-- Convertido a string
-      foto_url: 'pendiente', // <-- Valor temporal para pasar la validación del backend
+      id_sede: String(form.id_sede),
+      foto_url: 'pendiente',
       roles: form.tipoPerfil === 'socio' ? [1] : [],
     })
 
-    // 2. Subir fotografía utilizando el ID retornado
     if (nuevoUsuario.id_usuario && fotoFile.value) {
       await usuariosService.subirFotoPerfil(
         nuevoUsuario.id_usuario,
@@ -81,14 +77,16 @@ const handleRegistro = async () => {
       )
     }
 
+    toast.success('¡Cuenta creada con éxito!')
     router.push('/login')
   } catch (error: unknown) {
-    // Safe handling of unknown error objects
     const err = error as { response?: { data?: { message?: string } } }
     const apiMessage = err.response?.data?.message
-    errorMessage.value = Array.isArray(apiMessage)
+    const finalMessage = Array.isArray(apiMessage)
       ? apiMessage.join(', ')
       : apiMessage || 'Error al procesar el registro.'
+
+    toast.error(finalMessage)
   } finally {
     isLoading.value = false
   }
@@ -97,7 +95,7 @@ const handleRegistro = async () => {
 
 <template>
   <div class="min-h-screen flex">
-    <!-- Panel Izquierdo (Colores oficiales aplicados) -->
+    <!-- Panel Izquierdo -->
     <div
       class="hidden lg:flex lg:w-5/12 bg-[#202759] text-white p-12 flex-col justify-center relative"
     >
@@ -120,16 +118,10 @@ const handleRegistro = async () => {
         </p>
 
         <form class="space-y-6" @submit.prevent="handleRegistro">
-          <div
-            v-if="errorMessage"
-            class="p-3 bg-red-100 text-red-700 rounded-md text-sm"
-          >
-            {{ errorMessage }}
-          </div>
-
           <!-- Tipo de Perfil -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2"
+            <label
+              class="block text-sm font-bold text-[#202759] tracking-wide mb-2"
               >Tipo de Perfil</label
             >
             <div class="grid grid-cols-2 gap-4">
@@ -196,19 +188,16 @@ const handleRegistro = async () => {
               </svg>
             </div>
             <div>
-              <label class="block text-sm font-bold text-gray-900"
-                >Foto de Perfil (Obligatoria para Control de Acceso)</label
+              <label
+                class="block text-sm font-bold text-[#202759] tracking-wide"
+                >Foto de Perfil</label
               >
               <p class="text-xs text-gray-500 mb-2">
-                Se utilizará para validar tu identidad en el ingreso a sedes.
+                Obligatoria para Control de Acceso en sedes.
               </p>
-              <button
-                type="button"
-                class="text-xs border border-gray-300 rounded-md px-3 py-1.5 bg-white hover:bg-gray-100 font-medium text-[#202759]"
-                @click="triggerFileInput"
-              >
+              <BaseButton variant="outline" size="sm" @click="triggerFileInput">
                 Subir Fotografía
-              </button>
+              </BaseButton>
               <input
                 ref="fileInput"
                 type="file"
@@ -221,114 +210,88 @@ const handleRegistro = async () => {
 
           <!-- Grilla de Inputs -->
           <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1"
-                >Nombre y Apellido</label
-              >
-              <input
-                v-model="form.nombreCompleto"
-                type="text"
-                class="w-full border border-gray-300 rounded-md p-2 focus:ring-[#F96167] focus:border-[#F96167] outline-none"
-                placeholder="Gonzalo Morales"
-                required
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1"
-                >DNI / Documento</label
-              >
-              <input
-                v-model="form.dni"
-                type="text"
-                class="w-full border border-gray-300 rounded-md p-2 focus:ring-[#F96167] focus:border-[#F96167] outline-none"
-                placeholder="38.945.120"
-                required
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1"
-                >Correo Electrónico</label
-              >
-              <input
-                v-model="form.email"
-                type="email"
-                class="w-full border border-gray-300 rounded-md p-2 focus:ring-[#F96167] focus:border-[#F96167] outline-none"
-                placeholder="gonzalo.morales@email.com"
-                required
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1"
-                >Teléfono de Contacto</label
-              >
-              <input
-                v-model="form.telefono"
-                type="text"
-                class="w-full border border-gray-300 rounded-md p-2 focus:ring-[#F96167] focus:border-[#F96167] outline-none"
-                placeholder="+54 343 5123456"
-                required
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1"
-                >Contraseña</label
-              >
-              <input
-                v-model="form.contrasenia"
-                type="password"
-                class="w-full border border-gray-300 rounded-md p-2 focus:ring-[#F96167] focus:border-[#F96167] outline-none"
-                placeholder="********"
-                required
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1"
-                >Confirmar Contraseña</label
-              >
-              <input
-                v-model="form.confirmarContrasenia"
-                type="password"
-                class="w-full border border-gray-300 rounded-md p-2 focus:ring-[#F96167] focus:border-[#F96167] outline-none"
-                placeholder="********"
-                required
-              />
-            </div>
+            <BaseInput
+              v-model="form.nombreCompleto"
+              label="Nombre y Apellido"
+              placeholder="Gonzalo Morales"
+              required
+            />
+            <BaseInput
+              v-model="form.dni"
+              label="DNI / Documento"
+              placeholder="38.945.120"
+              required
+            />
+            <BaseInput
+              v-model="form.email"
+              type="email"
+              label="Correo Electrónico"
+              placeholder="gonzalo.morales@email.com"
+              required
+            />
+            <BaseInput
+              v-model="form.telefono"
+              label="Teléfono de Contacto"
+              placeholder="+54 343 5123456"
+              required
+            />
+            <BaseInput
+              v-model="form.contrasenia"
+              type="password"
+              label="Contraseña"
+              placeholder="********"
+              required
+            />
+            <BaseInput
+              v-model="form.confirmarContrasenia"
+              type="password"
+              label="Confirmar Contraseña"
+              placeholder="********"
+              required
+            />
           </div>
 
-          <!-- Sede -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1"
-              >Sede de Preferencia / Registro</label
+          <!-- Sede (Manteniendo estilo para coincidir con BaseInput) -->
+          <div class="flex flex-col gap-1.5 w-full text-left">
+            <label
+              class="text-xs font-bold text-[#202759] tracking-wide flex items-center justify-between"
             >
+              <span
+                >Sede de Preferencia / Registro
+                <span class="text-[#F96167] ml-0.5">*</span></span
+              >
+            </label>
             <select
               v-model="form.id_sede"
-              class="w-full border border-gray-300 rounded-md p-2 focus:ring-[#F96167] focus:border-[#F96167] outline-none bg-white"
+              class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm text-slate-800 transition-all duration-200 focus:outline-none focus:border-[#202759] focus:ring-2 focus:ring-[#202759]/15"
               required
             >
               <option value="1">Sede Central - Paraná Centro</option>
               <option value="2">Sede Norte - Concordia</option>
             </select>
-            <p class="text-xs text-gray-500 mt-1">
-              * Podrás acceder a cualquiera de las 25+ sedes sin restricciones
-              (RF-03).
+            <p class="text-xs text-slate-400 font-normal mt-0.5">
+              Podrás acceder a cualquiera de las 25+ sedes sin restricciones.
             </p>
           </div>
 
-          <button
+          <BaseButton
             type="submit"
-            :disabled="isLoading"
-            class="w-full bg-[#F96167] text-white font-bold py-3 px-4 rounded-md hover:opacity-90 transition-opacity disabled:opacity-50"
+            variant="secondary"
+            size="lg"
+            class="w-full"
+            :loading="isLoading"
           >
-            {{ isLoading ? 'Procesando...' : 'Completar Registro y Continuar' }}
-          </button>
+            Completar Registro y Continuar
+          </BaseButton>
 
           <p class="text-center text-sm text-gray-600 mt-4">
             ¿Ya tienes cuenta?
             <router-link
               to="/login"
               class="font-bold text-[#202759] hover:underline"
-              >Iniciar Sesión</router-link
             >
+              Iniciar Sesión
+            </router-link>
           </p>
         </form>
       </div>
