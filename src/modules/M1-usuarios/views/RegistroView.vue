@@ -60,7 +60,7 @@ const handleRegistro = async () => {
   isLoading.value = true
 
   try {
-    // 1. Crear usuario (Se envía id_rol = 1 solo si selecciona Socio)
+    // 1. Crear usuario
     const nuevoUsuario = await usuariosService.registrarUsuario({
       dni: form.dni,
       email: form.email,
@@ -68,7 +68,8 @@ const handleRegistro = async () => {
       nombre,
       apellido,
       telefono: form.telefono,
-      id_sede: Number(form.id_sede),
+      id_sede: String(form.id_sede), // <-- Convertido a string
+      foto_url: 'pendiente', // <-- Valor temporal para pasar la validación del backend
       roles: form.tipoPerfil === 'socio' ? [1] : [],
     })
 

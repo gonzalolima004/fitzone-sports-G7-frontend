@@ -7,7 +7,8 @@ export interface RegistroPayload {
   nombre: string
   apellido: string
   telefono: string
-  id_sede: number
+  id_sede: string
+  foto_url: string
   roles?: number[]
 }
 
@@ -24,7 +25,9 @@ export const usuariosService = {
 
   async subirFotoPerfil(id_usuario: number, foto: File) {
     const formData = new FormData()
-    formData.append('file', foto)
+
+    // Cambiamos 'file' por 'foto' para coincidir con la expectativa del backend
+    formData.append('foto', foto)
 
     const response = await apiClient.post(
       `/usuarios/${id_usuario}/foto`,
