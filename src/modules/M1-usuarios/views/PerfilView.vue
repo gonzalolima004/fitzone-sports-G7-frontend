@@ -2,11 +2,12 @@
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/store/auth'
 import { usuariosService } from '../services/usuarios.service'
+import BaseInput from '@/common/components/BaseInput.vue'
+import BaseButton from '@/common/components/BaseButton.vue'
+import { toast } from '@/common/utils/toast'
 
 const authStore = useAuthStore()
 const isLoading = ref(false)
-const successMessage = ref('')
-const errorMessage = ref('')
 
 const form = ref({
   nombre: '',
@@ -23,25 +24,27 @@ onMounted(() => {
 
 const handleUpdate = async () => {
   isLoading.value = true
-  successMessage.value = ''
-  errorMessage.value = ''
 
   try {
     if (authStore.usuario?.id) {
       await usuariosService.actualizarPerfil(authStore.usuario.id, form.value)
-      successMessage.value = 'Perfil actualizado correctamente.'
+
+      // Notificación de éxito usando Toastify
+      toast.success('Perfil actualizado correctamente.')
 
       // Actualizar el estado local de Pinia
       authStore.usuario.nombre = form.value.nombre
       authStore.usuario.apellido = form.value.apellido
     }
   } catch (error: unknown) {
-    // Safe handling of unknown error objects
     const err = error as { response?: { data?: { message?: string } } }
     const apiMessage = err.response?.data?.message
-    errorMessage.value = Array.isArray(apiMessage)
+    const finalMessage = Array.isArray(apiMessage)
       ? apiMessage.join(', ')
       : apiMessage || 'Error al actualizar el perfil.'
+
+    // Notificación de error usando Toastify
+    toast.error(finalMessage)
   } finally {
     isLoading.value = false
   }
@@ -50,65 +53,24 @@ const handleUpdate = async () => {
 
 <template>
   <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-sm p-8 mt-8">
-    <h2 class="text-2xl font-bold text-gray-900 mb-6">Mi Perfil</h2>
-
-    <div
-      v-if="successMessage"
-      class="mb-4 p-3 bg-green-100 text-green-700 rounded-md text-sm"
-    >
-      {{ successMessage }}
-    </div>
-    <div
-      v-if="errorMessage"
-      class="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm"
-    >
-      {{ errorMessage }}
-    </div>
+    <h2 class="text-2xl font-bold text-[#202759] mb-6">Mi Perfil</h2>
 
     <form class="space-y-4" @submit.prevent="handleUpdate">
       <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1"
-            >Nombre</label
-          >
-          <input
-            v-model="form.nombre"
-            type="text"
-            class="w-full border border-gray-300 rounded-md p-2 focus:ring-[#ff5a5f] focus:border-[#ff5a5f]"
-            required
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1"
-            >Apellido</label
-          >
-          <input
-            v-model="form.apellido"
-            type="text"
-            class="w-full border border-gray-300 rounded-md p-2 focus:ring-[#ff5a5f] focus:border-[#ff5a5f]"
-            required
-          />
-        </div>
+        <BaseInput v-model="form.nombre" label="Nombre" required />
+        <BaseInput v-model="form.apellido" label="Apellido" required />
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"
-          >Teléfono</label
-        >
-        <input
+        <BaseInput
           v-model="form.telefono"
-          type="text"
-          class="w-full border border-gray-300 rounded-md p-2 focus:ring-[#ff5a5f] focus:border-[#ff5a5f]"
+          label="Teléfono"
           placeholder="Opcional"
         />
       </div>
       <div class="pt-4">
-        <button
-          type="submit"
-          :disabled="isLoading"
-          class="bg-[#ff5a5f] text-white font-bold py-2 px-6 rounded-md hover:bg-red-500 transition-colors disabled:opacity-50"
-        >
-          {{ isLoading ? 'Guardando...' : 'Guardar Cambios' }}
-        </button>
+        <BaseButton type="submit" variant="secondary" :loading="isLoading">
+          Guardar Cambios
+        </BaseButton>
       </div>
     </form>
   </div>
