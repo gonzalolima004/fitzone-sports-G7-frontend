@@ -113,39 +113,65 @@
 
 ----
 
-#### XX/XX/2026
+#### 03/10/2026 - 05/10/2026
 #### Matías Sillen | Rol: Desarrollador Frontend
 
-- **Actividades:**
-  - 
-  - 
-  - 
-- **Decisiones:**
-  - 
-  - 
-- **Dificultades:** Ninguna.
-- **Commits:**
-  - ``
-  - ``
-  - ``
+* **Actividades:**
+* Maquetado e implementación de la pantalla de inicio de sesión (`LoginView.vue`) con validaciones visuales.
+* Configuración del estado global de la sesión utilizando Pinia y protección de rutas privadas mediante Navigation Guards en Vue Router.
+* Implementación de la conexión HTTP configurando Axios con interceptores para adjuntar automáticamente el token JWT.
+
+
+* **Decisiones:**
+* Mantener la sintaxis de Composition API (Setup Store) en Pinia para conservar la lógica previa de roles y persistencia en `localStorage`.
+* Formatear e interceptar los errores de validación devueltos por NestJS (en formato array) para mostrarlos como cadenas de texto limpias en la interfaz del usuario.
+* Redirigir al usuario autenticado directamente a la ruta raíz (`home`) tras un login exitoso, adaptándose a la estructura del `MainLayout` existente.
+
+
+* **Dificultades:**
+* Problemas iniciales de conexión (errores 404) debido a variables de entorno no configuradas (`VITE_API_URL`) y a que la ruta de login no existía inicialmente en el servidor.
+* Advertencias del compilador de TypeScript por el uso de promesas nativas y Vite, solucionadas actualizando el `tsconfig.json` a `ES2022`.
+
+
+* **Commits:**
+* `feat(usuarios): crear servicio http para inicio de sesión`
+* `feat(auth): integrar login con api manteniendo estructura de pinia setup`
+* `feat(usuarios): maquetar pantalla de inicio de sesión con validaciones`
+* `feat(router): proteger rutas del MainLayout con guard de autenticación`
+* `fix(login): corregir redireccion a ruta home tras inicio de sesion`
+* `fix(login): formatear correctamente los mensajes de error de validacion del array de nestjs`
 
 ----
 
-#### XX/XX/2026
+#### 05/10/2026
 #### Matías Sillen | Rol: Desarrollador Frontend
 
-- **Actividades:**
-  - 
-  - 
-  - 
-- **Decisiones:**
-  - 
-  - 
-- **Dificultades:** Ninguna.
-- **Commits:**
-  - ``
-  - ``
-  - ``
+* **Actividades:**
+* Maquetado e implementación de las pantallas de `RegistroView.vue` y `PerfilView.vue` siguiendo la identidad visual (azul noche y coral).
+* Integración del servicio de API (Axios) para registrar nuevos usuarios, subir fotos de perfil en formato `FormData` y editar datos personales.
+* Refactorización de las vistas para utilizar los componentes UI compartidos del equipo (`BaseInput`, `BaseButton`, `BaseModal`) y notificaciones mediante `Toastify`.
+* Configuración del Vue Router para exponer la ruta pública de registro y la ruta privada de edición de perfil.
+
+
+* **Decisiones:**
+* Asignar automáticamente el rol `[1]` (Socio) o `[]` (Cliente Externo) según la selección visual del usuario en el formulario.
+* Enviar el valor `"pendiente"` de forma temporal en el campo `foto_url` al crear el usuario para cumplir con las exigencias de validación del backend, para luego reemplazarlo al subir la imagen con el ID generado.
+
+
+* **Dificultades:**
+* El guard de navegación de Vue Router generaba un bloqueo de renderizado al intentar cargar el registro público dentro del `MainLayout` (que exige autenticación); se resolvió extrayendo la ruta `/registro` al nivel raíz.
+* El DTO del backend rechazaba el registro por tipado estricto, obligando a mapear el `id_sede` como `string` y dividir el nombre completo en el frontend antes de enviar la petición.
+
+
+* **Commits:**
+* `feat(usuarios): crear servicio para registro, edicion y carga de fotos de perfil`
+* `feat(usuarios): maquetar e implementar pantalla de registro aplicando identidad visual`
+* `feat(usuarios): crear pantalla de edicion de perfil de usuario`
+* `feat(router): registrar rutas publica de registro y privada de perfil`
+* `fix(router): extraer ruta de registro del mainlayout para evitar bloqueo del guard y errores de renderizado`
+* `fix(usuarios): agregar foto_url temporal y tipar id_sede como string para cumplir con validacion del DTO`
+* `refactor(usuarios): migrar PerfilView a componentes BaseInput, BaseButton y Toastify`
+* `refactor(usuarios): aplicar shared components e integrar toastify en RegistroView`
 
 ----
 
