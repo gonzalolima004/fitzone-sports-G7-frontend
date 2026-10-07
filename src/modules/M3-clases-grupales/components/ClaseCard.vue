@@ -12,7 +12,7 @@ export interface ClaseCardProps {
   capacidadMaxima: number
   cuposOcupados: number
   enListaEspera: number
-  estado: 'DISPONIBLE' | 'COMPLETO' | 'MISMA_RESERVA'
+  estado: 'DISPONIBLE' | 'COMPLETO' | 'MISMA_RESERVA' | 'EN_ESPERA'
 }
 
 const props = defineProps<{
@@ -127,6 +127,14 @@ const estaCompleto = computed(() => props.clase.estado === 'COMPLETO')
       @click="emit('reservar', clase.id)"
     >
       Reservar Lugar
+    </button>
+
+    <button
+      v-else-if="clase.estado === 'EN_ESPERA'"
+      class="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-slate-100 text-slate-500 border-2 border-slate-200 cursor-not-allowed"
+      disabled
+    >
+      En Lista de Espera
     </button>
 
     <button

@@ -22,6 +22,14 @@ export interface ReservaResponse {
   estado: string
 }
 
+export interface ListaEsperaResponse {
+  id_lista: number
+  id_usuario: number
+  id_clase: number
+  fecha: string
+  estado: string
+}
+
 export const clasesService = {
   /**
    * Obtiene el catálogo de clases activas para una sede específica.
@@ -51,5 +59,20 @@ export const clasesService = {
    */
   async cancelarReserva(id_reserva: number): Promise<void> {
     await http.delete(`/reservas-clases/${id_reserva}`)
+  },
+
+  /**
+   * Inscribe al usuario en la lista de espera para una clase completa.
+   * @param data Datos de la clase y fecha
+   * @returns La inscripción creada
+   */
+  async inscribirListaEspera(
+    data: CreateReservaRequest
+  ): Promise<ListaEsperaResponse> {
+    const response = await http.post<ListaEsperaResponse>(
+      '/lista-espera/inscribir',
+      data
+    )
+    return response.data
   },
 }
