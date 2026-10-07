@@ -4,6 +4,9 @@ import { useSedeStore } from '@/store/sede'
 import axios from 'axios'
 import { clasesService, type ClaseResponse } from '../services/clases.service'
 import ClaseCard, { type ClaseCardProps } from '../components/ClaseCard.vue'
+import BaseModal from '@/common/components/BaseModal.vue'
+import BaseButton from '@/common/components/BaseButton.vue'
+import { toast } from '@/common/utils/toast'
 
 const sedeStore = useSedeStore()
 
@@ -134,9 +137,46 @@ function seleccionarFecha(fechaStr: string) {
   fechaSeleccionada.value = fechaStr
 }
 
+// ESTADO MODAL RESERVA
+const modalReservaVisible = ref(false)
+const claseAReservar = ref<ClaseCardProps | null>(null)
+const reservando = ref(false)
+
 function handleReservar(idClase: number) {
-  console.log('Reservar clase:', idClase)
-  // Próximamente: Llamar endpoint de reserva
+  const clase = clasesAgendadas.value.find((c) => c.id === idClase)
+  if (clase) {
+    claseAReservar.value = clase
+    modalReservaVisible.value = true
+  }
+}
+
+async function confirmarReserva() {
+  if (!claseAReservar.value) return
+
+  reservando.value = true
+  try {
+    await clasesService.reservarClase({
+      id_clase: claseAReservar.value.id,
+      fecha: fechaSeleccionada.value,
+    })
+
+    toast.success(`Reserva confirmada para ${claseAReservar.value.nombre}`)
+    modalReservaVisible.value = false
+
+    // Opcional: Recargar clases para actualizar los cupos
+    await cargarClases()
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      toast.error(
+        err.response?.data?.message ||
+          'Ocurrió un error al intentar reservar la clase.'
+      )
+    } else {
+      toast.error('Ocurrió un error inesperado.')
+    }
+  } finally {
+    reservando.value = false
+  }
 }
 
 function handleListaEspera(idClase: number) {
@@ -296,6 +336,54 @@ function handleListaEspera(idClase: number) {
         @lista-espera="handleListaEspera"
       />
     </div>
+
+    <!-- Modal de Confirmación de Reserva -->
+    <BaseModal
+      v-model="modalReservaVisible"
+      title="Confirmar Reserva"
+      :subtitle="
+        claseAReservar
+          ? `¿Deseas reservar un cupo para ${claseAReservar.nombre}?`
+          : ''
+      "
+    >
+      <div
+        v-if="claseAReservar"
+        class="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-2"
+      >
+        <ul class="space-y-3 text-sm text-slate-700">
+          <li class="flex items-center gap-2">
+            <span class="font-semibold w-20">Clase:</span>
+            <span>{{ claseAReservar.nombre }}</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="font-semibold w-20">Horario:</span>
+            <span>{{ claseAReservar.horario }}</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="font-semibold w-20">Día:</span>
+            <span>{{ fechaSeleccionada }}</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="font-semibold w-20">Profesor:</span>
+            <span>{{ claseAReservar.profesor }}</span>
+          </li>
+        </ul>
+      </div>
+
+      <template #actions>
+        <BaseButton variant="outline" @click="modalReservaVisible = false">
+          Cancelar
+        </BaseButton>
+        <BaseButton
+          variant="primary"
+          :loading="reservando"
+          @click="confirmarReserva"
+        >
+          Confirmar Reserva
+        </BaseButton>
+      </template>
+    </BaseModal>
   </div>
 </template>
 

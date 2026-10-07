@@ -9,6 +9,19 @@ export interface ClaseResponse {
   activo: boolean
 }
 
+export interface CreateReservaRequest {
+  id_clase: number
+  fecha: string // Formato YYYY-MM-DD
+}
+
+export interface ReservaResponse {
+  id_reserva: number
+  id_usuario: number
+  id_clase: number
+  fecha: string
+  estado: string
+}
+
 export const clasesService = {
   /**
    * Obtiene el catálogo de clases activas para una sede específica.
@@ -19,6 +32,16 @@ export const clasesService = {
     const response = await http.get<ClaseResponse[]>('/clases', {
       params: { id_sede },
     })
+    return response.data
+  },
+
+  /**
+   * Genera una reserva para una clase grupal.
+   * @param data Datos de la reserva (clase y fecha)
+   * @returns La reserva creada
+   */
+  async reservarClase(data: CreateReservaRequest): Promise<ReservaResponse> {
+    const response = await http.post<ReservaResponse>('/reservas-clases', data)
     return response.data
   },
 }
