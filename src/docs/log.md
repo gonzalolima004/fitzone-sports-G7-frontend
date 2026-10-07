@@ -175,6 +175,29 @@
 
 ----
 
+#### 07/10/2026
+#### Matías Sillen | Rol: Desarrollador Frontend
+
+* **Actividades:**
+* Creación de la rama `refactor/login-ui-tailwind` para aislar los cambios de la interfaz.
+* Refactorización completa de la vista de inicio de sesión (`LoginView.vue`), eliminando el bloque de estilos CSS puro (`scoped`) y migrando la estructura a Tailwind CSS.
+* Implementación de los componentes reutilizables de la UI base (`BaseInput` y `BaseButton`) en el formulario de login para estandarizar el diseño con el resto de la plataforma.
+* Sustitución de los mensajes de error en línea por el sistema de notificaciones globales utilizando `vue3-toastify`.
+
+
+* **Decisiones:**
+* Aislar esta refactorización en una rama nueva para mantener un historial de control de versiones limpio y estructurado, separando el desarrollo funcional original de las mejoras visuales.
+* Aplicar directamente los colores hexadecimales de la identidad visual oficial (`#202759` y `#F96167`) mediante clases utilitarias de Tailwind para asegurar la consistencia total con las pantallas de Registro y Perfil.
+
+
+* **Dificultades:**
+* Ninguna significativa. La adaptación de la estructura HTML que dependía de clases locales al uso de los nuevos componentes atómicos y utilidades de Tailwind se realizó de forma fluida.
+
+
+* **Commits:**
+* `refactor(login): migrar UI a tailwind, implementar BaseInput/BaseButton e integrar toastify`
+
+---
 #### XX/XX/2026
 #### Matías Sillen | Rol: Desarrollador Frontend
 
