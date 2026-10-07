@@ -149,11 +149,13 @@ function seleccionarFecha(fechaStr: string) {
 const modalReservaVisible = ref(false)
 const claseAReservar = ref<ClaseCardProps | null>(null)
 const reservando = ref(false)
+const errorReserva = ref<string | null>(null)
 
 function handleReservar(idClase: number) {
   const clase = clasesAgendadas.value.find((c) => c.id === idClase)
   if (clase) {
     claseAReservar.value = clase
+    errorReserva.value = null
     modalReservaVisible.value = true
   }
 }
@@ -177,12 +179,11 @@ async function confirmarReserva() {
     await cargarClases()
   } catch (err: unknown) {
     if (axios.isAxiosError(err)) {
-      toast.error(
+      errorReserva.value =
         err.response?.data?.message ||
-          'Ocurrió un error al intentar reservar la clase.'
-      )
+        'Ocurrió un error al intentar reservar la clase.'
     } else {
-      toast.error('Ocurrió un error inesperado.')
+      errorReserva.value = 'Ocurrió un error inesperado.'
     }
   } finally {
     reservando.value = false
@@ -198,11 +199,13 @@ function handleListaEspera(idClase: number) {
 const modalCancelacionVisible = ref(false)
 const cancelando = ref(false)
 const claseACancelar = ref<ClaseCardProps | null>(null)
+const errorCancelacion = ref<string | null>(null)
 
 function handleCancelar(idClase: number) {
   const clase = clasesAgendadas.value.find((c) => c.id === idClase)
   if (clase) {
     claseACancelar.value = clase
+    errorCancelacion.value = null
     modalCancelacionVisible.value = true
   }
 }
@@ -223,11 +226,10 @@ async function confirmarCancelacion() {
     await cargarClases()
   } catch (err: unknown) {
     if (axios.isAxiosError(err)) {
-      toast.error(
+      errorCancelacion.value =
         err.response?.data?.message || 'Error al cancelar la reserva.'
-      )
     } else {
-      toast.error('Ocurrió un error inesperado al cancelar.')
+      errorCancelacion.value = 'Ocurrió un error inesperado al cancelar.'
     }
   } finally {
     cancelando.value = false
@@ -422,6 +424,14 @@ async function confirmarCancelacion() {
         </ul>
       </div>
 
+      <div
+        v-if="errorReserva"
+        class="bg-rose-50 text-rose-700 p-3 rounded-lg text-sm border border-rose-200 mt-4 flex gap-2 items-start"
+      >
+        <span>⚠️</span>
+        <p class="font-medium">{{ errorReserva }}</p>
+      </div>
+
       <template #actions>
         <BaseButton variant="outline" @click="modalReservaVisible = false">
           Cancelar
@@ -450,6 +460,14 @@ async function confirmarCancelacion() {
         Si cancelas, liberarás tu lugar. Tené en cuenta que si querés volver a
         anotarte, estarás sujeto a la disponibilidad de cupos en ese momento.
       </p>
+
+      <div
+        v-if="errorCancelacion"
+        class="bg-rose-50 text-rose-700 p-3 rounded-lg text-sm border border-rose-200 mt-2 mb-4 flex gap-2 items-start"
+      >
+        <span>⚠️</span>
+        <p class="font-medium">{{ errorCancelacion }}</p>
+      </div>
 
       <template #actions>
         <BaseButton variant="outline" @click="modalCancelacionVisible = false">
