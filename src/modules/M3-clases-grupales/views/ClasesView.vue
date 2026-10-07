@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useSedeStore } from '@/store/sede'
 import axios from 'axios'
 import { clasesService, type ClaseResponse } from '../services/clases.service'
@@ -7,6 +7,8 @@ import ClaseCard, { type ClaseCardProps } from '../components/ClaseCard.vue'
 import BaseModal from '@/common/components/BaseModal.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import { toast } from '@/common/utils/toast'
+import { useAuthStore } from '@/store/auth'
+import { supabase } from '@/common/utils/supabase'
 
 const sedeStore = useSedeStore()
 
@@ -18,6 +20,7 @@ const fechasDisponibles = ref<
 const clases = ref<ClaseResponse[]>([])
 const cargando = ref(false)
 const error = ref<string | null>(null)
+const authStore = useAuthStore()
 
 // Diccionario local para rastrear id_clase -> id_reserva en esta sesión
 const misReservasLocal = ref<Record<number, number>>({})
@@ -74,10 +77,48 @@ const clasesAgendadas = computed<ClaseCardProps[]>(() => {
   })
 })
 
+// Escuchar cambios en tiempo real desde Supabase para aviso de vacantes
+let vacantesSubscription: ReturnType<typeof supabase.channel> | null = null
+
+function setupRealtimeNotifications() {
+  if (!authStore.usuario?.id) return
+
+  // Suscribirnos a la tabla lista_espera buscando cuando nuestro estado cambie a NOTIFICADO
+  vacantesSubscription = supabase
+    .channel('lista-espera-vacantes')
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'lista_espera',
+        filter: `id_usuario=eq.${authStore.usuario.id}`,
+      },
+      (payload) => {
+        const newData = payload.new as { estado: string }
+        if (newData.estado === 'NOTIFICADO') {
+          toast.success(
+            `¡Se ha liberado un lugar en tu clase! Revisa tus notificaciones para confirmar la reserva.`,
+            { autoClose: false } // No auto-cerrar para que lo vea seguro
+          )
+          cargarClases()
+        }
+      }
+    )
+    .subscribe()
+}
+
 onMounted(() => {
   generarFechas()
   if (sedeStore.idSedeSeleccionada) {
     cargarClases()
+  }
+  setupRealtimeNotifications()
+})
+
+onUnmounted(() => {
+  if (vacantesSubscription) {
+    supabase.removeChannel(vacantesSubscription)
   }
 })
 
