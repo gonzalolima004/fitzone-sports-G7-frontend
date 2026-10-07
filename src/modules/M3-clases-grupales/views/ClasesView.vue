@@ -175,8 +175,6 @@ async function confirmarReserva() {
 
     toast.success(`Reserva confirmada para ${claseAReservar.value.nombre}`)
     modalReservaVisible.value = false
-
-    await cargarClases()
   } catch (err: unknown) {
     if (axios.isAxiosError(err)) {
       errorReserva.value =
@@ -187,6 +185,7 @@ async function confirmarReserva() {
     }
   } finally {
     reservando.value = false
+    await cargarClases()
   }
 }
 
@@ -222,8 +221,6 @@ async function confirmarCancelacion() {
 
     toast.info(`Reserva de ${claseACancelar.value.nombre} cancelada.`)
     modalCancelacionVisible.value = false
-
-    await cargarClases()
   } catch (err: unknown) {
     if (axios.isAxiosError(err)) {
       errorCancelacion.value =
@@ -233,6 +230,7 @@ async function confirmarCancelacion() {
     }
   } finally {
     cancelando.value = false
+    await cargarClases()
   }
 }
 </script>
