@@ -44,4 +44,12 @@ export const clasesService = {
     const response = await http.post<ReservaResponse>('/reservas-clases', data)
     return response.data
   },
+
+  /**
+   * Cancela una reserva existente.
+   * @param id_reserva ID de la reserva a cancelar
+   */
+  async cancelarReserva(id_reserva: number): Promise<void> {
+    await http.delete(`/reservas-clases/${id_reserva}`)
+  },
 }

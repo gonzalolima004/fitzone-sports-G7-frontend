@@ -22,6 +22,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'reservar', id: number): void
   (e: 'lista-espera', id: number): void
+  (e: 'cancelar', id: number): void
 }>()
 
 const porcentajeOcupacion = computed(() => {
@@ -106,9 +107,17 @@ const estaCompleto = computed(() => props.clase.estado === 'COMPLETO')
       </div>
     </div>
 
-    <!-- Botón de Acción -->
+    <!-- Botones de Acción -->
     <button
-      v-if="!estaCompleto"
+      v-if="clase.estado === 'MISMA_RESERVA'"
+      class="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition-all active:scale-95 bg-white text-slate-700 hover:bg-slate-50 border-2 border-slate-200 shadow-sm"
+      @click="emit('cancelar', clase.id)"
+    >
+      Cancelar mi Reserva
+    </button>
+
+    <button
+      v-else-if="!estaCompleto"
       class="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition-all active:scale-95 text-white shadow-md"
       :class="
         clase.tipo.includes('CROSSFIT') || clase.tipo.includes('FUNCIONAL')

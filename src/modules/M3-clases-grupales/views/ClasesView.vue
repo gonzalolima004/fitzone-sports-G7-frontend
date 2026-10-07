@@ -19,6 +19,9 @@ const clases = ref<ClaseResponse[]>([])
 const cargando = ref(false)
 const error = ref<string | null>(null)
 
+// Diccionario local para rastrear id_clase -> id_reserva en esta sesión
+const misReservasLocal = ref<Record<number, number>>({})
+
 // Mapeo dinámico para simular los datos que faltan en el backend
 const clasesAgendadas = computed<ClaseCardProps[]>(() => {
   return clases.value.map((clase, index) => {
@@ -40,8 +43,13 @@ const clasesAgendadas = computed<ClaseCardProps[]>(() => {
       index % 3 === 0
         ? clase.capacidad_maxima
         : Math.floor(clase.capacidad_maxima * 0.7)
-    const estado =
+
+    let estado: ClaseCardProps['estado'] =
       cuposOcupados >= clase.capacidad_maxima ? 'COMPLETO' : 'DISPONIBLE'
+
+    if (misReservasLocal.value[clase.id_clase]) {
+      estado = 'MISMA_RESERVA'
+    }
 
     // Horarios simulados secuenciales
     const horaInicio = 8 + index * 2
@@ -155,15 +163,17 @@ async function confirmarReserva() {
 
   reservando.value = true
   try {
-    await clasesService.reservarClase({
+    const res = await clasesService.reservarClase({
       id_clase: claseAReservar.value.id,
       fecha: fechaSeleccionada.value,
     })
 
+    // Guardar en el estado local el id_reserva
+    misReservasLocal.value[claseAReservar.value.id] = res.id_reserva
+
     toast.success(`Reserva confirmada para ${claseAReservar.value.nombre}`)
     modalReservaVisible.value = false
 
-    // Opcional: Recargar clases para actualizar los cupos
     await cargarClases()
   } catch (err: unknown) {
     if (axios.isAxiosError(err)) {
@@ -182,6 +192,46 @@ async function confirmarReserva() {
 function handleListaEspera(idClase: number) {
   console.log('Anotarse en lista de espera:', idClase)
   // Próximamente: Llamar endpoint de lista de espera
+}
+
+// ESTADO MODAL CANCELACIÓN
+const modalCancelacionVisible = ref(false)
+const cancelando = ref(false)
+const claseACancelar = ref<ClaseCardProps | null>(null)
+
+function handleCancelar(idClase: number) {
+  const clase = clasesAgendadas.value.find((c) => c.id === idClase)
+  if (clase) {
+    claseACancelar.value = clase
+    modalCancelacionVisible.value = true
+  }
+}
+
+async function confirmarCancelacion() {
+  if (!claseACancelar.value) return
+  const idReserva = misReservasLocal.value[claseACancelar.value.id]
+  if (!idReserva) return
+
+  cancelando.value = true
+  try {
+    await clasesService.cancelarReserva(idReserva)
+    delete misReservasLocal.value[claseACancelar.value.id]
+
+    toast.info(`Reserva de ${claseACancelar.value.nombre} cancelada.`)
+    modalCancelacionVisible.value = false
+
+    await cargarClases()
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      toast.error(
+        err.response?.data?.message || 'Error al cancelar la reserva.'
+      )
+    } else {
+      toast.error('Ocurrió un error inesperado al cancelar.')
+    }
+  } finally {
+    cancelando.value = false
+  }
 }
 </script>
 
@@ -334,6 +384,7 @@ function handleListaEspera(idClase: number) {
         :clase="clase"
         @reservar="handleReservar"
         @lista-espera="handleListaEspera"
+        @cancelar="handleCancelar"
       />
     </div>
 
@@ -381,6 +432,35 @@ function handleListaEspera(idClase: number) {
           @click="confirmarReserva"
         >
           Confirmar Reserva
+        </BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- Modal de Confirmación de Cancelación -->
+    <BaseModal
+      v-model="modalCancelacionVisible"
+      title="Cancelar Reserva"
+      :subtitle="
+        claseACancelar
+          ? `¿Estás seguro que deseas cancelar tu lugar en ${claseACancelar.nombre}?`
+          : ''
+      "
+    >
+      <p class="text-slate-600 mb-4">
+        Si cancelas, liberarás tu lugar. Tené en cuenta que si querés volver a
+        anotarte, estarás sujeto a la disponibilidad de cupos en ese momento.
+      </p>
+
+      <template #actions>
+        <BaseButton variant="outline" @click="modalCancelacionVisible = false">
+          Volver
+        </BaseButton>
+        <BaseButton
+          variant="danger"
+          :loading="cancelando"
+          @click="confirmarCancelacion"
+        >
+          Sí, Cancelar Reserva
         </BaseButton>
       </template>
     </BaseModal>
