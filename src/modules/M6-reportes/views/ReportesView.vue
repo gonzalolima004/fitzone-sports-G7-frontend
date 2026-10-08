@@ -1,12 +1,21 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useSedeStore } from '@/store/sede'
+import axios from 'axios'
+import {
+  obtenerIngresos,
+  type ConsultaIngresos,
+  type ReporteIngresos,
+} from '../services/reportes.service'
 
 const fechaDesde = ref('')
 const fechaHasta = ref('')
 const concepto = ref<'' | 'cancha' | 'membresia'>('')
 const sedeStore = useSedeStore()
 const idSedeReporte = ref<number | null>(null)
+const cargandoReporte = ref(false)
+const errorReporte = ref('')
+const reporte = ref<ReporteIngresos | null>(null)
 
 const rangoInvalido = computed(() => {
   if (!fechaDesde.value || !fechaHasta.value) {
@@ -15,6 +24,61 @@ const rangoInvalido = computed(() => {
 
   return fechaDesde.value > fechaHasta.value
 })
+
+async function consultarReporte() {
+  errorReporte.value = ''
+  reporte.value = null
+
+  if (!fechaDesde.value || !fechaHasta.value) {
+    errorReporte.value = 'Seleccioná las dos fechas.'
+    return
+  }
+
+  if (rangoInvalido.value) {
+    errorReporte.value = 'Revisá el rango de fechas.'
+    return
+  }
+
+  const filtros: ConsultaIngresos = {
+    fecha_desde: fechaDesde.value,
+    fecha_hasta: fechaHasta.value,
+  }
+
+  if (idSedeReporte.value !== null) {
+    filtros.id_sede = idSedeReporte.value
+  }
+
+  if (concepto.value !== '') {
+    filtros.concepto = concepto.value
+  }
+
+  cargandoReporte.value = true
+
+  try {
+    reporte.value = await obtenerIngresos(filtros)
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error)) {
+      const mensaje = error.response?.data?.message
+
+      errorReporte.value = Array.isArray(mensaje)
+        ? mensaje.join(', ')
+        : typeof mensaje === 'string'
+          ? mensaje
+          : 'No se pudo consultar el reporte. Revisá la conexión.'
+    } else {
+      errorReporte.value = 'Ocurrió un error al consultar el reporte.'
+    }
+  } finally {
+    cargandoReporte.value = false
+  }
+}
+
+function formatearMoneda(importe: number): string {
+  return new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+  }).format(importe)
+}
 </script>
 
 <template>
@@ -130,6 +194,60 @@ const rangoInvalido = computed(() => {
       <p class="mt-2 text-sm text-slate-600">
         Concepto: {{ concepto || 'Todos los conceptos' }}
       </p>
+    </div>
+
+    <button
+      type="button"
+      :disabled="cargandoReporte"
+      class="mt-6 rounded-lg bg-[#202759] px-4 py-2 text-white disabled:opacity-50"
+      @click="consultarReporte"
+    >
+      {{ cargandoReporte ? 'Consultando...' : 'Consultar' }}
+    </button>
+
+    <p v-if="errorReporte" role="alert" class="mt-3 text-sm text-red-600">
+      {{ errorReporte }}
+    </p>
+
+    <div v-if="reporte" class="rounded-xl border border-slate-200 bg-white p-6">
+      <h2 class="text-lg font-bold text-slate-800">Resultado del reporte</h2>
+
+      <p class="mt-2 text-sm text-slate-600">
+        Período consultado: {{ reporte.fecha_desde }} al
+        {{ reporte.fecha_hasta }}
+      </p>
+
+      <p class="mt-4 text-2xl font-bold text-slate-800">
+        Total: {{ formatearMoneda(reporte.total_ingresos) }}
+      </p>
+
+      <p v-if="reporte.sedes.length === 0" class="mt-4 text-slate-600">
+        No se encontraron ingresos para los filtros seleccionados.
+      </p>
+
+      <div v-else class="mt-6 overflow-x-auto">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="border-b border-slate-200">
+              <th scope="col" class="px-3 py-3">Sede</th>
+              <th scope="col" class="px-3 py-3 text-right">Ingresos</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr
+              v-for="sede in reporte.sedes"
+              :key="sede.id_sede"
+              class="border-b border-slate-100"
+            >
+              <td class="px-3 py-3">{{ sede.nombre_sede }}</td>
+              <td class="px-3 py-3 text-right">
+                {{ formatearMoneda(sede.total_ingresos) }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </section>
 </template>
