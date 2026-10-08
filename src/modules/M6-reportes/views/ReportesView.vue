@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useSedeStore } from '@/store/sede'
 
 const fechaDesde = ref('')
 const fechaHasta = ref('')
+const concepto = ref<'' | 'cancha' | 'membresia'>('')
+const sedeStore = useSedeStore()
+const idSedeReporte = ref<number | null>(null)
 
 const rangoInvalido = computed(() => {
   if (!fechaDesde.value || !fechaHasta.value) {
@@ -50,9 +54,66 @@ const rangoInvalido = computed(() => {
         class="rounded-lg border border-slate-300 px-3 py-2"
       />
 
+      <label
+        for="sede-reporte"
+        class="mb-2 mt-4 block font-medium text-slate-700"
+      >
+        Sede
+      </label>
+
+      <select
+        id="sede-reporte"
+        v-model="idSedeReporte"
+        :disabled="sedeStore.cargando"
+        class="rounded-lg border border-slate-300 bg-white px-3 py-2"
+      >
+        <option :value="null">Todas las sedes</option>
+
+        <option
+          v-for="sede in sedeStore.sedes"
+          :key="sede.id_sede"
+          :value="sede.id_sede"
+        >
+          {{ sede.nombre }}
+        </option>
+      </select>
+
+      <p v-if="sedeStore.cargando" class="mt-2 text-sm text-slate-600">
+        Cargando sedes...
+      </p>
+
+      <p
+        v-else-if="sedeStore.error"
+        role="alert"
+        class="mt-2 text-sm text-red-600"
+      >
+        No se pudieron cargar las sedes: {{ sedeStore.error }}
+      </p>
+
+      <p
+        v-else-if="sedeStore.sedes.length === 0"
+        class="mt-2 text-sm text-slate-600"
+      >
+        No hay sedes cargadas.
+      </p>
+
+      <label for="concepto" class="mb-2 mt-4 block font-medium text-slate-700">
+        Concepto
+      </label>
+
+      <select
+        id="concepto"
+        v-model="concepto"
+        class="rounded-lg border border-slate-300 bg-white px-3 py-2"
+      >
+        <option value="">Todos los conceptos</option>
+        <option value="cancha">Canchas</option>
+        <option value="membresia">Membresías</option>
+      </select>
+
       <p v-if="rangoInvalido" role="alert" class="mt-3 text-sm text-red-600">
-  La fecha desde no puede ser posterior a la fecha hasta.
-</p>
+        La fecha desde no puede ser posterior a la fecha hasta.
+      </p>
 
       <p class="mt-4 text-sm text-slate-600">
         Desde: {{ fechaDesde || 'Sin seleccionar' }}
@@ -60,6 +121,14 @@ const rangoInvalido = computed(() => {
 
       <p class="mt-2 text-sm text-slate-600">
         Hasta: {{ fechaHasta || 'Sin seleccionar' }}
+      </p>
+
+      <p class="mt-2 text-sm text-slate-600">
+        ID de sede del reporte: {{ idSedeReporte ?? 'Todas las sedes' }}
+      </p>
+
+      <p class="mt-2 text-sm text-slate-600">
+        Concepto: {{ concepto || 'Todos los conceptos' }}
       </p>
     </div>
   </section>
