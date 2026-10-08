@@ -1,9 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useSedeStore } from '@/store/sede'
 import axios from 'axios'
 import { clasesService, type ClaseResponse } from '../services/clases.service'
 import ClaseCard, { type ClaseCardProps } from '../components/ClaseCard.vue'
+import BaseModal from '@/common/components/BaseModal.vue'
+import BaseButton from '@/common/components/BaseButton.vue'
+import { toast } from '@/common/utils/toast'
+import { useAuthStore } from '@/store/auth'
+import { supabase } from '@/common/utils/supabase'
 
 const sedeStore = useSedeStore()
 
@@ -15,6 +20,11 @@ const fechasDisponibles = ref<
 const clases = ref<ClaseResponse[]>([])
 const cargando = ref(false)
 const error = ref<string | null>(null)
+const authStore = useAuthStore()
+
+// Diccionario local para rastrear id_clase -> id_reserva en esta sesión
+const misReservasLocal = ref<Record<number, number>>({})
+const misListasEsperaLocal = ref<Record<number, number>>({})
 
 // Mapeo dinámico para simular los datos que faltan en el backend
 const clasesAgendadas = computed<ClaseCardProps[]>(() => {
@@ -37,8 +47,15 @@ const clasesAgendadas = computed<ClaseCardProps[]>(() => {
       index % 3 === 0
         ? clase.capacidad_maxima
         : Math.floor(clase.capacidad_maxima * 0.7)
-    const estado =
+
+    let estado: ClaseCardProps['estado'] =
       cuposOcupados >= clase.capacidad_maxima ? 'COMPLETO' : 'DISPONIBLE'
+
+    if (misReservasLocal.value[clase.id_clase]) {
+      estado = 'MISMA_RESERVA'
+    } else if (misListasEsperaLocal.value[clase.id_clase]) {
+      estado = 'EN_ESPERA'
+    }
 
     // Horarios simulados secuenciales
     const horaInicio = 8 + index * 2
@@ -60,10 +77,48 @@ const clasesAgendadas = computed<ClaseCardProps[]>(() => {
   })
 })
 
+// Escuchar cambios en tiempo real desde Supabase para aviso de vacantes
+let vacantesSubscription: ReturnType<typeof supabase.channel> | null = null
+
+function setupRealtimeNotifications() {
+  if (!authStore.usuario?.id) return
+
+  // Suscribirnos a la tabla lista_espera buscando cuando nuestro estado cambie a NOTIFICADO
+  vacantesSubscription = supabase
+    .channel('lista-espera-vacantes')
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'lista_espera',
+        filter: `id_usuario=eq.${authStore.usuario.id}`,
+      },
+      (payload) => {
+        const newData = payload.new as { estado: string }
+        if (newData.estado === 'NOTIFICADO') {
+          toast.success(
+            `¡Se ha liberado un lugar en tu clase! Revisa tus notificaciones para confirmar la reserva.`,
+            { autoClose: false } // No auto-cerrar para que lo vea seguro
+          )
+          cargarClases()
+        }
+      }
+    )
+    .subscribe()
+}
+
 onMounted(() => {
   generarFechas()
   if (sedeStore.idSedeSeleccionada) {
     cargarClases()
+  }
+  setupRealtimeNotifications()
+})
+
+onUnmounted(() => {
+  if (vacantesSubscription) {
+    supabase.removeChannel(vacantesSubscription)
   }
 })
 
@@ -134,14 +189,130 @@ function seleccionarFecha(fechaStr: string) {
   fechaSeleccionada.value = fechaStr
 }
 
+// ESTADO MODAL RESERVA
+const modalReservaVisible = ref(false)
+const claseAReservar = ref<ClaseCardProps | null>(null)
+const reservando = ref(false)
+const errorReserva = ref<string | null>(null)
+
 function handleReservar(idClase: number) {
-  console.log('Reservar clase:', idClase)
-  // Próximamente: Llamar endpoint de reserva
+  const clase = clasesAgendadas.value.find((c) => c.id === idClase)
+  if (clase) {
+    claseAReservar.value = clase
+    errorReserva.value = null
+    modalReservaVisible.value = true
+  }
 }
 
+async function confirmarReserva() {
+  if (!claseAReservar.value) return
+
+  reservando.value = true
+  try {
+    const res = await clasesService.reservarClase({
+      id_clase: claseAReservar.value.id,
+      fecha: fechaSeleccionada.value,
+    })
+
+    // Guardar en el estado local el id_reserva
+    misReservasLocal.value[claseAReservar.value.id] = res.id_reserva
+
+    toast.success(`Reserva confirmada para ${claseAReservar.value.nombre}`)
+    modalReservaVisible.value = false
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      errorReserva.value =
+        err.response?.data?.message ||
+        'Ocurrió un error al intentar reservar la clase.'
+    } else {
+      errorReserva.value = 'Ocurrió un error inesperado.'
+    }
+  } finally {
+    reservando.value = false
+    await cargarClases()
+  }
+}
+
+// ESTADO MODAL LISTA DE ESPERA
+const modalEsperaVisible = ref(false)
+const claseAEsperar = ref<ClaseCardProps | null>(null)
+const esperando = ref(false)
+const errorEspera = ref<string | null>(null)
+
 function handleListaEspera(idClase: number) {
-  console.log('Anotarse en lista de espera:', idClase)
-  // Próximamente: Llamar endpoint de lista de espera
+  const clase = clasesAgendadas.value.find((c) => c.id === idClase)
+  if (clase) {
+    claseAEsperar.value = clase
+    errorEspera.value = null
+    modalEsperaVisible.value = true
+  }
+}
+
+async function confirmarListaEspera() {
+  if (!claseAEsperar.value) return
+
+  esperando.value = true
+  try {
+    const res = await clasesService.inscribirListaEspera({
+      id_clase: claseAEsperar.value.id,
+      fecha: fechaSeleccionada.value,
+    })
+
+    misListasEsperaLocal.value[claseAEsperar.value.id] = res.id_lista
+
+    toast.success(`Estás en lista de espera para ${claseAEsperar.value.nombre}`)
+    modalEsperaVisible.value = false
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      errorEspera.value =
+        err.response?.data?.message || 'Error al anotarse en lista de espera.'
+    } else {
+      errorEspera.value = 'Ocurrió un error inesperado al anotarse.'
+    }
+  } finally {
+    esperando.value = false
+    await cargarClases()
+  }
+}
+
+// ESTADO MODAL CANCELACIÓN
+const modalCancelacionVisible = ref(false)
+const cancelando = ref(false)
+const claseACancelar = ref<ClaseCardProps | null>(null)
+const errorCancelacion = ref<string | null>(null)
+
+function handleCancelar(idClase: number) {
+  const clase = clasesAgendadas.value.find((c) => c.id === idClase)
+  if (clase) {
+    claseACancelar.value = clase
+    errorCancelacion.value = null
+    modalCancelacionVisible.value = true
+  }
+}
+
+async function confirmarCancelacion() {
+  if (!claseACancelar.value) return
+  const idReserva = misReservasLocal.value[claseACancelar.value.id]
+  if (!idReserva) return
+
+  cancelando.value = true
+  try {
+    await clasesService.cancelarReserva(idReserva)
+    delete misReservasLocal.value[claseACancelar.value.id]
+
+    toast.info(`Reserva de ${claseACancelar.value.nombre} cancelada.`)
+    modalCancelacionVisible.value = false
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      errorCancelacion.value =
+        err.response?.data?.message || 'Error al cancelar la reserva.'
+    } else {
+      errorCancelacion.value = 'Ocurrió un error inesperado al cancelar.'
+    }
+  } finally {
+    cancelando.value = false
+    await cargarClases()
+  }
 }
 </script>
 
@@ -294,8 +465,140 @@ function handleListaEspera(idClase: number) {
         :clase="clase"
         @reservar="handleReservar"
         @lista-espera="handleListaEspera"
+        @cancelar="handleCancelar"
       />
     </div>
+
+    <!-- Modal de Confirmación de Reserva -->
+    <BaseModal
+      v-model="modalReservaVisible"
+      title="Confirmar Reserva"
+      :subtitle="
+        claseAReservar
+          ? `¿Deseas reservar un cupo para ${claseAReservar.nombre}?`
+          : ''
+      "
+    >
+      <div
+        v-if="claseAReservar"
+        class="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-2"
+      >
+        <ul class="space-y-3 text-sm text-slate-700">
+          <li class="flex items-center gap-2">
+            <span class="font-semibold w-20">Clase:</span>
+            <span>{{ claseAReservar.nombre }}</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="font-semibold w-20">Horario:</span>
+            <span>{{ claseAReservar.horario }}</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="font-semibold w-20">Día:</span>
+            <span>{{ fechaSeleccionada }}</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="font-semibold w-20">Profesor:</span>
+            <span>{{ claseAReservar.profesor }}</span>
+          </li>
+        </ul>
+      </div>
+
+      <div
+        v-if="errorReserva"
+        class="bg-rose-50 text-rose-700 p-3 rounded-lg text-sm border border-rose-200 mt-4 flex gap-2 items-start"
+      >
+        <span>⚠️</span>
+        <p class="font-medium">{{ errorReserva }}</p>
+      </div>
+
+      <template #actions>
+        <BaseButton variant="outline" @click="modalReservaVisible = false">
+          Cancelar
+        </BaseButton>
+        <BaseButton
+          variant="primary"
+          :loading="reservando"
+          @click="confirmarReserva"
+        >
+          Confirmar Reserva
+        </BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- Modal de Confirmación de Cancelación -->
+    <BaseModal
+      v-model="modalCancelacionVisible"
+      title="Cancelar Reserva"
+      :subtitle="
+        claseACancelar
+          ? `¿Estás seguro que deseas cancelar tu lugar en ${claseACancelar.nombre}?`
+          : ''
+      "
+    >
+      <p class="text-slate-600 mb-4">
+        Si cancelas, liberarás tu lugar. Tené en cuenta que si querés volver a
+        anotarte, estarás sujeto a la disponibilidad de cupos en ese momento.
+      </p>
+
+      <div
+        v-if="errorCancelacion"
+        class="bg-rose-50 text-rose-700 p-3 rounded-lg text-sm border border-rose-200 mt-2 mb-4 flex gap-2 items-start"
+      >
+        <span>⚠️</span>
+        <p class="font-medium">{{ errorCancelacion }}</p>
+      </div>
+
+      <template #actions>
+        <BaseButton variant="outline" @click="modalCancelacionVisible = false">
+          Volver
+        </BaseButton>
+        <BaseButton
+          variant="danger"
+          :loading="cancelando"
+          @click="confirmarCancelacion"
+        >
+          Sí, Cancelar Reserva
+        </BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- Modal de Confirmación de Lista de Espera -->
+    <BaseModal
+      v-model="modalEsperaVisible"
+      title="Anotarse en Lista de Espera"
+      :subtitle="
+        claseAEsperar
+          ? `La clase ${claseAEsperar.nombre} está completa. ¿Deseas anotarte en la lista de espera?`
+          : ''
+      "
+    >
+      <p class="text-slate-600 mb-4">
+        Te avisaremos si se libera un lugar. Si se libera, tendrás un tiempo
+        limitado para confirmar tu asistencia antes de que el lugar pase al
+        siguiente socio en la lista.
+      </p>
+
+      <div
+        v-if="errorEspera"
+        class="bg-rose-50 text-rose-700 p-3 rounded-lg text-sm border border-rose-200 mt-2 mb-4 flex gap-2 items-start"
+      >
+        <span>⚠️</span>
+        <p class="font-medium">{{ errorEspera }}</p>
+      </div>
+
+      <template #actions>
+        <BaseButton variant="outline" @click="modalEsperaVisible = false">
+          Cancelar
+        </BaseButton>
+        <BaseButton
+          variant="primary"
+          :loading="esperando"
+          @click="confirmarListaEspera"
+        >
+          Anotarme
+        </BaseButton>
+      </template>
+    </BaseModal>
   </div>
 </template>
 

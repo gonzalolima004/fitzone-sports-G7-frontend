@@ -256,39 +256,40 @@
 
 ----
 
-#### XX/XX/2026
+#### 07/10/2026
 #### Joaquín Ribarola | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  - Desarrollo del flujo completo de reservas (Tarea 2.1) implementando `POST /reservas-clases` en el frontend, incluyendo modals de confirmación.
+  - Implementación del flujo de cancelación de reservas (Tarea 2.2) y consumo de `DELETE /reservas-clases/:id`, adaptando la UI con botones contextuales cuando la clase ya fue reservada por el usuario (estado local).
+  - Manejo integral de excepciones del backend (restricciones de horario, mora, ventana de reservas) reflejando los errores de la API visualmente dentro de los modals (Tarea 2.3).
+  - Integración de recarga automática de clases en bloque `finally` para asegurar actualización de cupos concurrentes tras cualquier intento exitoso o fallido (Tarea 2.4).
 - **Decisiones:**
-  - 
-  - 
+  - Administrar el rastreo de reservas de la sesión activa en un diccionario local en memoria (`misReservasLocal`) a falta de endpoint que exponga las reservas actuales del socio.
+  - Exponer los mensajes de error del backend en el modal y no solo en notificaciones globales para proveer mayor contexto (UX).
+  - Ejecutar la recarga de clases luego de intentar una reserva (incluso si falla) para garantizar que, si dos usuarios compiten por el último cupo, el que pierda vea inmediatamente que la clase pasó a estado "COMPLETO".
 - **Dificultades:** Ninguna.
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  - `feat(clases): implementa reservar clases`
+  - `feat(clases): implementa cancelacion de clases`
+  - `feat(clases): UI errores backend y refresh de cupos (Tareas 2.3 y 2.4)`
 
 ----
 
-#### XX/XX/2026
-#### Marcos Caravallo | Rol: Desarrollador Frontend
+#### 07/10/2026
+#### Joaquín Ribarola | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  - Desarrollo de la inscripción a Lista de Espera (Tarea 3.1) mediante el endpoint `POST /lista-espera/inscribir` integrando su respectivo modal de confirmación en la UI.
+  - Implementación visual del estado de inscripción (Tarea 3.2) almacenando temporalmente la inscripción en la sesión activa y deshabilitando el botón de acción en las tarjetas (`ClaseCard.vue`).
+  - Integración de Supabase Realtime (Tarea 3.3) configurando `.env` e inicializando el cliente JS. Suscripción a la tabla `lista_espera` para detectar vacantes en vivo (filtro: `estado=NOTIFICADO`) y alertar al socio mediante una notificación Toast permanente y un auto-refresco del catálogo.
 - **Decisiones:**
-  - 
-  - 
+  - Utilizar el ecosistema nativo de Supabase Realtime directamente desde el Frontend en vez de depender de WebSockets puros, simplificando la arquitectura y garantizando entrega inmediata sin polling.
+  - El modal de reserva ahora cambia su botón por un estado visual inactivo "En Lista de Espera" evitando llamadas duplicadas al backend de forma robusta en la UI.
 - **Dificultades:** Ninguna.
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  - `feat(clases): inscripcion a lista de espera`
+  - `feat(clases): integracion notificaciones vacantes supabase realtime`
 
 ----
 
