@@ -427,21 +427,37 @@
 #### Facundo Agüero | Rol: Team Leader
 
 - **Actividades:**
-  - Seguimiento de la planificación frontend para los seis integrantes, organizada en Trello con estimaciones en horas y subtareas.
-  - Revisión inicial de los siete PR abiertos y de su destino a dev.
-  - Identificación de cambios compartidos entre los PR de usuarios y entre los de clases, para ordenar su revisión e integración.
-  - Revisión de los bloqueos de la prueba de reportes y de los avisos de dependencias detectados por npm audit.
+  - Revisión e integración en dev de los PR de usuarios, clases y reporte de ingresos.
+  - Actualización del repositorio local y comprobación del código integrado.
+  - Prueba de carga de clases por sede, pantalla sin resultados y recuperación ante errores de conexión.
+  - Revisión de npm audit y del check GitGuardian del PR de credencial QR.
+  - Creación y asignación de cinco tarjetas de corrección en Trello, con estimaciones y subtareas:
+    - Gonzalo Lima: configuración de TypeScript (0,5 horas) y actualización de dependencias (1,5 horas).
+    - Matías Sillen: token y cierre de sesión (2 horas).
+    - Joaquín Ribarola: agenda y estado de reservas de clases (5 horas).
+    - Angelina Viale: revisión de alerta GitGuardian del QR (2 horas).
+
 - **Decisiones:**
-  - Priorizar la corrección y revisión del login antes de integrar los cambios de registro y perfil.
-  - Integrar los PR de forma gradual y volver a revisar las ramas que modifican archivos comunes después de cada merge.
-  - Mantener la actualización de dependencias separada de la tarea de reportes.
-  - Coordinar los datos de prueba antes de modificar la base compartida.
+  - Distribuir las correcciones entre los responsables de los módulos.
+  - Realizar los arreglos mediante ramas y PR hacia dev.
+  - Mantener pendiente el merge del PR #4 hasta resolver o justificar los hallazgos de GitGuardian y verificar la credencial QR.
+  - Repetir las verificaciones después de integrar cambios, porque la ausencia de conflictos de Git no garantiza que la aplicación funcione.
+  - Conservar en stash las correcciones locales de integración hasta revisar si siguen siendo necesarias.
+
 - **Dificultades:**
-  - El PR #5 guarda el token con una clave y lo busca con otra en el cliente HTTP; requiere corrección y comprobación de sesión.
-  - El PR #4 presentó una comprobación fallida de GitGuardian en la revisión inicial; falta resolver o explicar su resultado.
-  - El PR #6 utiliza datos simulados de agenda; queda pendiente su integración con datos reales.
-  - La revisión inicial no equivale a una aprobación ni a pruebas de ejecución de las ramas. No se realizaron nuevos merges en esta sesión.
-- **Commits:** No corresponde para la revisión y coordinación. Los cambios de documentación se registrarán en su propio commit.
+  - ESLint pasó en el dev actualizado, pero el build falló por propiedades duplicadas en tsconfig.app.json.
+  - El store guarda token y usuario con claves diferentes de las utilizadas por el cliente HTTP.
+  - La agenda conserva datos simulados; el selector de fecha no filtra las clases y el estado de reservas se mantiene solo en memoria.
+  - npm audit reportó tres paquetes afectados por dos avisos de severidad alta.
+  - GitGuardian continúa reportando dos posibles secretos en el PR #4; queda pendiente determinar si son credenciales reales o falsos positivos.
+  - Las correcciones quedaron organizadas y asignadas, pero todavía no están resueltas.
+
+- **Referencias:**
+  - [Configuración de TypeScript](https://trello.com/c/uhzPNA93)
+  - [Token y cierre de sesión](https://trello.com/c/vOFfK1Cs)
+  - [Agenda y reservas de clases](https://trello.com/c/A6FQAuR8)
+  - [Actualización de dependencias](https://trello.com/c/rxq6hcEG)
+  - [Alerta GitGuardian del QR](https://trello.com/c/LyyrNbDx)
 
 #### XX/XX/2026
 #### Facundo Agüero | Rol: Team Leader
