@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
+import { PhBicycle, PhPlug, PhTray, PhWarning } from '@phosphor-icons/vue'
 import { useSedeStore } from '@/store/sede'
 import axios from 'axios'
 import { clasesService, type ClaseResponse } from '../services/clases.service'
@@ -34,13 +35,13 @@ const clasesAgendadas = computed<ClaseCardProps[]>(() => {
     const esYoga = clase.nombre.toLowerCase().includes('yoga')
 
     let tipo = 'CROSSFIT'
-    let icono = '🏋️'
+    let icono = 'barbell'
     if (esSpinning) {
       tipo = 'SPINNING'
-      icono = '🚴‍♂️'
+      icono = 'bicycle'
     } else if (esYoga) {
       tipo = 'YOGA VINYASA'
-      icono = '🧘‍♀️'
+      icono = 'lotus'
     }
 
     const cuposOcupados =
@@ -323,7 +324,7 @@ async function confirmarCancelacion() {
       class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4"
     >
       <div class="flex items-center gap-3">
-        <span class="text-3xl" role="img" aria-label="Bicicleta">🚴‍♂️</span>
+        <PhBicycle :size="32" weight="duotone" class="text-rose-500" />
         <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">
           Agenda de Clases Grupales
         </h1>
@@ -430,7 +431,7 @@ async function confirmarCancelacion() {
       v-else-if="error"
       class="bg-rose-50 rounded-3xl p-8 text-center border-2 border-rose-100 animate-fade-in shadow-sm"
     >
-      <div class="text-4xl mb-4" role="img" aria-hidden="true">🔌</div>
+      <PhPlug :size="48" weight="duotone" class="text-rose-500 mx-auto mb-4" />
       <h3 class="text-xl font-bold text-rose-700 mb-2">
         Oops, tuvimos un problema de conexión
       </h3>
@@ -447,7 +448,7 @@ async function confirmarCancelacion() {
       v-else-if="clasesAgendadas.length === 0"
       class="text-center p-16 bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl animate-fade-in flex flex-col items-center justify-center"
     >
-      <div class="text-5xl mb-4 opacity-50 grayscale">📭</div>
+      <PhTray :size="52" weight="duotone" class="text-slate-400 mx-auto mb-4" />
       <h3 class="text-xl font-bold text-slate-700 mb-2">Agenda despejada</h3>
       <p class="text-slate-500 font-medium max-w-sm">
         No hay clases grupales programadas para la Sede actual en la fecha que
@@ -507,7 +508,11 @@ async function confirmarCancelacion() {
         v-if="errorReserva"
         class="bg-rose-50 text-rose-700 p-3 rounded-lg text-sm border border-rose-200 mt-4 flex gap-2 items-start"
       >
-        <span>⚠️</span>
+        <PhWarning
+          :size="20"
+          weight="fill"
+          class="shrink-0 text-rose-500 mt-0.5"
+        />
         <p class="font-medium">{{ errorReserva }}</p>
       </div>
 
@@ -544,7 +549,11 @@ async function confirmarCancelacion() {
         v-if="errorCancelacion"
         class="bg-rose-50 text-rose-700 p-3 rounded-lg text-sm border border-rose-200 mt-2 mb-4 flex gap-2 items-start"
       >
-        <span>⚠️</span>
+        <PhWarning
+          :size="20"
+          weight="fill"
+          class="shrink-0 text-rose-500 mt-0.5"
+        />
         <p class="font-medium">{{ errorCancelacion }}</p>
       </div>
 
@@ -582,7 +591,11 @@ async function confirmarCancelacion() {
         v-if="errorEspera"
         class="bg-rose-50 text-rose-700 p-3 rounded-lg text-sm border border-rose-200 mt-2 mb-4 flex gap-2 items-start"
       >
-        <span>⚠️</span>
+        <PhWarning
+          :size="20"
+          weight="fill"
+          class="shrink-0 text-rose-500 mt-0.5"
+        />
         <p class="font-medium">{{ errorEspera }}</p>
       </div>
 

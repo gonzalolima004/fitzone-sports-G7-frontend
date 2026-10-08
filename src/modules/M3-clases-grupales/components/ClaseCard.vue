@@ -1,5 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import {
+  PhFire,
+  PhBell,
+  PhBarbell,
+  PhBicycle,
+  PhFlowerLotus,
+} from '@phosphor-icons/vue'
 
 export interface ClaseCardProps {
   id: number
@@ -53,7 +60,17 @@ const estaCompleto = computed(() => props.clase.estado === 'COMPLETO')
       <div
         class="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 tracking-wider uppercase"
       >
-        <span role="img" aria-hidden="true">{{ clase.icono }}</span>
+        <PhBicycle
+          v-if="clase.icono === 'bicycle' || clase.tipo === 'SPINNING'"
+          :size="16"
+          weight="bold"
+        />
+        <PhFlowerLotus
+          v-else-if="clase.icono === 'lotus' || clase.tipo.includes('YOGA')"
+          :size="16"
+          weight="bold"
+        />
+        <PhBarbell v-else :size="16" weight="bold" />
         {{ clase.tipo }}
       </div>
       <div
@@ -98,8 +115,12 @@ const estaCompleto = computed(() => props.clase.estado === 'COMPLETO')
 
       <!-- Mensaje inferior -->
       <div class="text-xs font-semibold h-4">
-        <span v-if="estaCompleto" class="text-rose-500 flex items-center gap-1">
-          🔥 {{ clase.enListaEspera }} socios en lista de espera actualmente.
+        <span
+          v-if="estaCompleto"
+          class="text-rose-500 flex items-center gap-1.5"
+        >
+          <PhFire :size="15" weight="fill" class="shrink-0" />
+          {{ clase.enListaEspera }} socios en lista de espera actualmente.
         </span>
         <span v-else class="text-slate-500">
           Quedan {{ lugaresDisponibles }} lugares disponibles.
@@ -139,10 +160,11 @@ const estaCompleto = computed(() => props.clase.estado === 'COMPLETO')
 
     <button
       v-else
-      class="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition-all active:scale-95 bg-rose-50 text-rose-600 hover:bg-rose-100 border-2 border-rose-200"
+      class="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition-all active:scale-95 bg-rose-50 text-rose-600 hover:bg-rose-100 border-2 border-rose-200 flex items-center justify-center gap-2"
       @click="emit('lista-espera', clase.id)"
     >
-      🔔 Anotarme en Lista de Espera
+      <PhBell :size="18" weight="bold" />
+      Anotarme en Lista de Espera
     </button>
   </div>
 </template>

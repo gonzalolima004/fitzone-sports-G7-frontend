@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { PhBarbell, PhSoccerBall } from '@phosphor-icons/vue'
 import { usuariosService } from '../services/usuarios.service'
 import BaseInput from '@/common/components/BaseInput.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
@@ -135,7 +136,9 @@ const handleRegistro = async () => {
                 "
                 @click="form.tipoPerfil = 'socio'"
               >
-                <div class="text-2xl mb-2">🏋️</div>
+                <div class="mb-2 flex justify-center text-[#202759]">
+                  <PhBarbell :size="28" weight="duotone" />
+                </div>
                 <div class="font-bold text-sm text-[#202759]">
                   Socio FitZone
                 </div>
@@ -153,7 +156,9 @@ const handleRegistro = async () => {
                 "
                 @click="form.tipoPerfil = 'cliente'"
               >
-                <div class="text-2xl mb-2">⚽</div>
+                <div class="mb-2 flex justify-center text-[#202759]">
+                  <PhSoccerBall :size="28" weight="duotone" />
+                </div>
                 <div class="font-bold text-sm text-[#202759]">
                   Cliente Externo
                 </div>
