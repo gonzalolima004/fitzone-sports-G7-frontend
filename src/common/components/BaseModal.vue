@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, watch, onMounted, onUnmounted } from 'vue'
+import { PhX } from '@phosphor-icons/vue'
 
 interface Props {
   modelValue?: boolean
@@ -117,7 +118,7 @@ const maxWidthClasses = computed(() => {
               title="Cerrar"
               @click="cerrar"
             >
-              ✕
+              <PhX :size="18" weight="bold" />
             </button>
           </div>
 
