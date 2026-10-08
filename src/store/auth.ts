@@ -1,11 +1,16 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import {
+  authService,
+  type LoginPayload,
+} from '@/modules/M1-usuarios/services/auth.service'
 
 export type RolUsuario = 'socio' | 'recepcion' | 'gerente' | 'admin'
 
 export interface Usuario {
   id?: number
   nombre?: string
+  apellido?: string // Agregado para compatibilidad con la respuesta de la API
   email?: string
   rol?: RolUsuario
 }
@@ -57,6 +62,24 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // NUEVO: Función para realizar el inicio de sesión contra el backend
+  async function login(credenciales: LoginPayload) {
+    // 1. Llama al servicio HTTP
+    const data = await authService.login(credenciales)
+
+    // 2. Mapea la respuesta a tu interfaz Usuario
+    const nuevoUsuario: Usuario = {
+      id: data.usuario.id_usuario,
+      nombre: data.usuario.nombre,
+      apellido: data.usuario.apellido,
+      email: data.usuario.email,
+      rol: data.usuario.rol as RolUsuario,
+    }
+
+    // 3. Utiliza tu función existente para guardar todo
+    setUsuario(nuevoUsuario, data.token)
+  }
+
   function logout() {
     usuario.value = null
     token.value = null
@@ -72,6 +95,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     setRol,
     setUsuario,
+    login, // Exportamos la nueva función
     logout,
   }
 })
