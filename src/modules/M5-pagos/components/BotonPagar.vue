@@ -1,0 +1,294 @@
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import {
+  PhCreditCard,
+  PhLockKey,
+  PhSoccerBall,
+  PhIdentificationCard,
+  PhWarningCircle,
+  PhArrowSquareOut,
+} from '@phosphor-icons/vue'
+import BaseButton from '@/common/components/BaseButton.vue'
+import BaseModal from '@/common/components/BaseModal.vue'
+import type { IniciarPagoRequest } from '../services/pagos.service'
+
+interface Props {
+  /**
+   * Título o descripción del concepto a pagar (ej. "Reserva Cancha Pádel 1")
+   */
+  concepto: string
+
+  /**
+   * Monto total a abonar en Pesos Argentinos (ARS)
+   */
+  monto: number
+
+  /**
+   * ID de la reserva de cancha (excluyente con idMembresia)
+   */
+  idCanchaReserva?: number
+
+  /**
+   * ID de la membresía (excluyente con idCanchaReserva)
+   */
+  idMembresia?: number
+
+  /**
+   * Email del pagador para precargar en Mercado Pago
+   */
+  emailPagador?: string
+
+  /**
+   * Detalle contextual opcional (ej. horario, sede, vigencia)
+   */
+  detalle?: string
+
+  /**
+   * Deshabilita la interacción
+   */
+  disabled?: boolean
+
+  /**
+   * Estado de carga
+   */
+  loading?: boolean
+
+  /**
+   * Texto del botón disparador
+   */
+  buttonText?: string
+
+  /**
+   * Estilo visual del botón disparador (usa BaseButton)
+   */
+  buttonVariant?:
+    | 'primary'
+    | 'secondary'
+    | 'outline'
+    | 'danger'
+    | 'danger-outline'
+    | 'ghost'
+
+  /**
+   * Tamaño del botón
+   */
+  buttonSize?: 'sm' | 'md' | 'lg'
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  idCanchaReserva: undefined,
+  idMembresia: undefined,
+  emailPagador: undefined,
+  detalle: undefined,
+  disabled: false,
+  loading: false,
+  buttonText: 'Pagar con Mercado Pago',
+  buttonVariant: 'secondary',
+  buttonSize: 'md',
+})
+
+const emit = defineEmits<{
+  (e: 'pagar', payload: IniciarPagoRequest): void
+  (e: 'cancelar'): void
+}>()
+
+const modalAbierto = ref(false)
+
+const tieneCancha = computed(
+  () => props.idCanchaReserva !== undefined && props.idCanchaReserva !== null
+)
+const tieneMembresia = computed(
+  () => props.idMembresia !== undefined && props.idMembresia !== null
+)
+
+// Regla de negocio: exactamente un concepto debe estar presente
+const conceptoValido = computed(() => {
+  return (
+    (tieneCancha.value && !tieneMembresia.value) ||
+    (!tieneCancha.value && tieneMembresia.value)
+  )
+})
+
+const tipoConcepto = computed<'cancha' | 'membresia' | 'general'>(() => {
+  if (tieneCancha.value) return 'cancha'
+  if (tieneMembresia.value) return 'membresia'
+  return 'general'
+})
+
+const tipoEtiqueta = computed(() => {
+  if (tipoConcepto.value === 'cancha') {
+    return `Reserva de Cancha #${props.idCanchaReserva}`
+  }
+  if (tipoConcepto.value === 'membresia') {
+    return `Membresía #${props.idMembresia}`
+  }
+  return 'Pago General'
+})
+
+const montoFormateado = computed(() => {
+  return new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(props.monto)
+})
+
+function cerrarModal() {
+  modalAbierto.value = false
+  emit('cancelar')
+}
+
+function handleConfirmarPago() {
+  if (!conceptoValido.value) return
+
+  modalAbierto.value = false
+  emit('pagar', {
+    monto: props.monto,
+    titulo: props.concepto,
+    id_cancha_reserva: props.idCanchaReserva,
+    id_membresia: props.idMembresia,
+    email_pagador: props.emailPagador,
+  })
+}
+</script>
+
+<template>
+  <div class="inline-block">
+    <!-- Botón activador que utiliza BaseButton -->
+    <BaseButton
+      :variant="buttonVariant"
+      :size="buttonSize"
+      :disabled="disabled"
+      :loading="loading"
+      @click="modalAbierto = true"
+    >
+      <template #icon>
+        <PhCreditCard :size="18" weight="bold" />
+      </template>
+      <slot>{{ buttonText }}</slot>
+    </BaseButton>
+
+    <!-- Modal de confirmación y presentación del concepto que utiliza BaseModal -->
+    <BaseModal
+      v-model="modalAbierto"
+      title="Confirmar Pago"
+      subtitle="Verifica el detalle de la operación antes de continuar a la pasarela"
+      max-width="md"
+      @close="cerrarModal"
+    >
+      <div class="space-y-4">
+        <!-- Advertencia si no cumple concepto único -->
+        <div
+          v-if="!conceptoValido"
+          class="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2.5 text-xs text-amber-800"
+        >
+          <PhWarningCircle :size="18" class="shrink-0 text-amber-600 mt-0.5" />
+          <div>
+            <p class="font-semibold m-0">Concepto inconsistente</p>
+            <p class="mt-0.5 m-0">
+              El pago debe asociarse exactamente a una reserva de cancha o a una
+              membresía.
+            </p>
+          </div>
+        </div>
+
+        <!-- Resumen del concepto a pagar -->
+        <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <span
+              v-if="tipoConcepto === 'cancha'"
+              class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800"
+            >
+              <PhSoccerBall :size="14" weight="bold" />
+              {{ tipoEtiqueta }}
+            </span>
+            <span
+              v-else-if="tipoConcepto === 'membresia'"
+              class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800"
+            >
+              <PhIdentificationCard :size="14" weight="bold" />
+              {{ tipoEtiqueta }}
+            </span>
+            <span
+              v-else
+              class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-200 text-slate-800"
+            >
+              <PhCreditCard :size="14" weight="bold" />
+              {{ tipoEtiqueta }}
+            </span>
+          </div>
+
+          <h4 class="text-base font-bold text-[#202759] m-0">
+            {{ concepto }}
+          </h4>
+          <p v-if="detalle" class="text-xs text-slate-500 mt-1 m-0">
+            {{ detalle }}
+          </p>
+
+          <p v-if="emailPagador" class="mt-2 text-xs text-slate-500 m-0">
+            <span class="font-medium text-slate-700">Email pagador:</span>
+            {{ emailPagador }}
+          </p>
+        </div>
+
+        <!-- Desglose de importe -->
+        <div
+          class="flex items-center justify-between p-4 rounded-2xl bg-gradient-to-br from-[#202759]/5 to-transparent border border-[#202759]/10"
+        >
+          <div>
+            <span class="text-xs font-medium text-slate-500 block">
+              Total a pagar
+            </span>
+            <span class="text-xs text-slate-400">Pesos Argentinos</span>
+          </div>
+          <div class="text-2xl font-black text-[#202759]">
+            {{ montoFormateado }}
+          </div>
+        </div>
+
+        <!-- Garantía de seguridad RNF-02 -->
+        <div
+          class="p-3.5 bg-slate-50 border border-slate-200/70 rounded-xl flex items-start gap-3 text-xs text-slate-600"
+        >
+          <PhLockKey
+            :size="18"
+            class="shrink-0 text-emerald-600 mt-0.5"
+            weight="duotone"
+          />
+          <p class="m-0 leading-relaxed">
+            Serás redirigido a la pasarela oficial de
+            <strong class="text-slate-800">Mercado Pago Checkout Pro</strong>.
+            FitZone <span class="font-medium">no almacena</span> datos de
+            tarjeta ni credenciales bancarias.
+          </p>
+        </div>
+      </div>
+
+      <!-- Acciones del modal usando BaseButton -->
+      <template #actions>
+        <BaseButton
+          variant="outline"
+          size="md"
+          :disabled="loading"
+          @click="cerrarModal"
+        >
+          Cancelar
+        </BaseButton>
+
+        <BaseButton
+          :variant="buttonVariant"
+          size="md"
+          :disabled="!conceptoValido"
+          :loading="loading"
+          @click="handleConfirmarPago"
+        >
+          <template #icon>
+            <PhArrowSquareOut :size="18" weight="bold" />
+          </template>
+          Confirmar y Pagar
+        </BaseButton>
+      </template>
+    </BaseModal>
+  </div>
+</template>
