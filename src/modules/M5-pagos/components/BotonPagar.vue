@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import axios from 'axios'
 import {
   PhCreditCard,
   PhLockKey,
@@ -10,7 +11,12 @@ import {
 } from '@phosphor-icons/vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import BaseModal from '@/common/components/BaseModal.vue'
-import type { IniciarPagoRequest } from '../services/pagos.service'
+import { toast } from '@/common/utils/toast'
+import {
+  pagosService,
+  type IniciarPagoRequest,
+  type PreferenciaPagoResponse,
+} from '../services/pagos.service'
 
 interface Props {
   /**
@@ -49,7 +55,7 @@ interface Props {
   disabled?: boolean
 
   /**
-   * Estado de carga
+   * Estado de carga externo
    */
   loading?: boolean
 
@@ -73,6 +79,11 @@ interface Props {
    * Tamaño del botón
    */
   buttonSize?: 'sm' | 'md' | 'lg'
+
+  /**
+   * Si es true, redirige automáticamente al checkout retornado por Mercado Pago
+   */
+  autoRedirect?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -85,14 +96,20 @@ const props = withDefaults(defineProps<Props>(), {
   buttonText: 'Pagar con Mercado Pago',
   buttonVariant: 'secondary',
   buttonSize: 'md',
+  autoRedirect: true,
 })
 
 const emit = defineEmits<{
   (e: 'pagar', payload: IniciarPagoRequest): void
+  (e: 'iniciado', respuesta: PreferenciaPagoResponse): void
+  (e: 'error', error: unknown): void
   (e: 'cancelar'): void
 }>()
 
 const modalAbierto = ref(false)
+const procesandoPago = ref(false)
+
+const estaCargando = computed(() => props.loading || procesandoPago.value)
 
 const tieneCancha = computed(
   () => props.idCanchaReserva !== undefined && props.idCanchaReserva !== null
@@ -135,32 +152,79 @@ const montoFormateado = computed(() => {
 })
 
 function cerrarModal() {
+  if (procesandoPago.value) return
   modalAbierto.value = false
   emit('cancelar')
 }
 
-function handleConfirmarPago() {
-  if (!conceptoValido.value) return
+async function handleConfirmarPago() {
+  if (!conceptoValido.value || estaCargando.value) return
 
-  modalAbierto.value = false
-  emit('pagar', {
+  procesandoPago.value = true
+
+  const payload: IniciarPagoRequest = {
     monto: props.monto,
     titulo: props.concepto,
     id_cancha_reserva: props.idCanchaReserva,
     id_membresia: props.idMembresia,
     email_pagador: props.emailPagador,
-  })
+  }
+
+  try {
+    // 1. Consumir el endpoint POST /pagos/iniciar-pago
+    const respuesta = await pagosService.iniciarPago(payload)
+
+    // 2. Persistir identificador del pago para seguimiento al retornar
+    if (respuesta.id_pago) {
+      localStorage.setItem(
+        'fitzone_pago_pendiente',
+        JSON.stringify({
+          id_pago: respuesta.id_pago,
+          preferenceId: respuesta.preferenceId,
+          fecha: new Date().toISOString(),
+        })
+      )
+    }
+
+    emit('pagar', payload)
+    emit('iniciado', respuesta)
+
+    // 3. Redirigir al Checkout Pro de Mercado Pago (Sandbox o Producción)
+    if (props.autoRedirect) {
+      const checkoutUrl = respuesta.sandboxInitPoint || respuesta.initPoint
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl
+        return
+      }
+    }
+
+    modalAbierto.value = false
+  } catch (error: unknown) {
+    let mensaje = 'No se pudo iniciar la operación de pago'
+    if (axios.isAxiosError(error)) {
+      const respData = error.response?.data
+      if (respData?.message) {
+        mensaje = Array.isArray(respData.message)
+          ? respData.message[0]
+          : respData.message
+      }
+    }
+    toast.error(mensaje)
+    emit('error', error)
+  } finally {
+    procesandoPago.value = false
+  }
 }
 </script>
 
 <template>
   <div class="inline-block">
-    <!-- Botón activador que utiliza BaseButton -->
+    <!-- Botón activador con BaseButton -->
     <BaseButton
       :variant="buttonVariant"
       :size="buttonSize"
       :disabled="disabled"
-      :loading="loading"
+      :loading="estaCargando"
       @click="modalAbierto = true"
     >
       <template #icon>
@@ -169,7 +233,7 @@ function handleConfirmarPago() {
       <slot>{{ buttonText }}</slot>
     </BaseButton>
 
-    <!-- Modal de confirmación y presentación del concepto que utiliza BaseModal -->
+    <!-- Modal de confirmación y presentación con BaseModal -->
     <BaseModal
       v-model="modalAbierto"
       title="Confirmar Pago"
@@ -270,7 +334,7 @@ function handleConfirmarPago() {
         <BaseButton
           variant="outline"
           size="md"
-          :disabled="loading"
+          :disabled="estaCargando"
           @click="cerrarModal"
         >
           Cancelar
@@ -279,8 +343,8 @@ function handleConfirmarPago() {
         <BaseButton
           :variant="buttonVariant"
           size="md"
-          :disabled="!conceptoValido"
-          :loading="loading"
+          :disabled="!conceptoValido || estaCargando"
+          :loading="estaCargando"
           @click="handleConfirmarPago"
         >
           <template #icon>
