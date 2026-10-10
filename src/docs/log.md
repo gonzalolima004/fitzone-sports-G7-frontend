@@ -167,21 +167,23 @@
 
 ----
 
-#### XX/XX/2026
+#### 09/10/2026
 #### Angelina Viale | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  - Desarrollo de la vista de credencial del socio para la generación y visualización dinámica del código QR de acceso.
+  - Creación del servicio accesos.service.ts para consumir el endpoint de generación de codigo qr, adjuntando la sesión activa del usuario.
+  - Implementación del composable useQr.ts para gestionar la lógica de cuenta regresiva, expiración del token y renovación automática de la credencial.
+  - Manejo de estados de carga, fallos de red y expiración de sesión para evitar mostrar códigos no válidos o desactualizados 
 - **Decisiones:**
-  - 
+  -Centralizar la lógica del temporizador y temporización de renovación dentro de un composable (useQr) para limpiar correctamente los intervalos al desmontar el componente y evitar fuga de memoria o llamadas innecesarias a la API. 
   - 
 - **Dificultades:** Ninguna.
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  - `feat(M2): interfases de qrResponse y appiError`
+  - `feat(M2): crear componente de QR`
+  - `feat(M2): implementar servicio y composable para QR`
+  - `feat(M2): bitacora y arreglos`
 
 ----
 
