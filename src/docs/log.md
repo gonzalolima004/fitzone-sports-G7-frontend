@@ -459,21 +459,19 @@
   - [Actualización de dependencias](https://trello.com/c/rxq6hcEG)
   - [Alerta GitGuardian del QR](https://trello.com/c/LyyrNbDx)
 
-#### XX/XX/2026
-#### Facundo Agüero | Rol: Team Leader
+#### 11/10/2026
+#### Joaquín Ribarola | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  - Relevamiento de contratos y dependencias del backend para la agenda de clases grupales y reservas.
+  - Actualización del servicio `clases.service.ts` integrando los nuevos DTOs del backend (`ClaseAgendaResponse`, `MiReservaClaseResponse`, `MiInscripcionListaEsperaResponse`).
+  - Incorporación de los métodos `obtenerMisReservas` y `obtenerMisInscripciones`, y soporte para el filtro opcional de `fecha` en `obtenerClasesPorSede`.
+  - Estandarización de los payloads de `reservarClase` e `inscribirListaEspera` para soportar horarios en formato ISO (`fecha_inicio` y `fecha_fin`).
 - **Decisiones:**
-  - 
-  - 
+  - Mantener compatibilidad hacia atrás en los DTOs de peticiones y respuestas para evitar roturas de compilación mientras se refactorizan las vistas y componentes.
 - **Dificultades:** Ninguna.
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  - `feat(clases): actualizar clases.service con contratos reales de agenda y reservas`
 
 ----
 
