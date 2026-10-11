@@ -13,8 +13,9 @@ export const http = axios.create({
 // Interceptor de solicitud: adjunta el token de sesión si existe en localStorage
 http.interceptors.request.use(
   (config) => {
-    // CORRECCIÓN: Usar la misma clave que definimos en el useAuthStore
-    const token = localStorage.getItem('fitzone_token')
+    // Compatibilidad: busca el token tanto bajo 'token' (useAuthStore) como 'fitzone_token'
+    const token =
+      localStorage.getItem('token') || localStorage.getItem('fitzone_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -35,8 +36,11 @@ http.interceptors.response.use(
 
     // Si la sesión no es válida o expiró, limpiamos y mandamos a login
     if (status === 401) {
+      localStorage.removeItem('token')
       localStorage.removeItem('fitzone_token')
+      localStorage.removeItem('usuario')
       localStorage.removeItem('fitzone_user')
+      localStorage.removeItem('rol')
 
       if (router.currentRoute.value.path !== '/login') {
         router.push('/login')

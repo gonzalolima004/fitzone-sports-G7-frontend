@@ -470,15 +470,18 @@
   - Adaptación del componente `ClaseCard.vue` para renderizar cupos y aforo reales sin depender de simulaciones, manejando fallbacks para instructor ('Sin profesor asignado') y sala ('Sala no especificada'), e indicando la posición en cola de lista de espera.
   - Conexión de `ClasesView.vue` con la agenda por fecha y sede, reactivando la consulta al backend al cambiar el selector de fecha. Eliminación del estado local en memoria en favor de la recuperación directa de reservas e inscripciones en espera del usuario autenticado.
   - Actualización de las operaciones de reserva, lista de espera y cancelación para utilizar las instancias horarias ISO reales, reflejando el estado consistente en pantalla tras cada operación.
+  - Corrección de la discrepancia de almacenamiento del token JWT entre el store global de autenticación (`useAuthStore`) y el cliente Axios (`http.ts`), garantizando el envío del header `Authorization: Bearer <token>` para llamadas autenticadas de reservas.
 - **Decisiones:**
   - Mantener compatibilidad hacia atrás en los DTOs de peticiones y respuestas para evitar roturas de compilación mientras se refactorizan las vistas y componentes.
   - Manejar valores no disponibles de forma explícita en la UI en lugar de generar valores ficticios, y extender `ClaseCardProps` de forma flexible para integrarse con la agenda por fecha.
   - Consultar en paralelo la agenda y el estado del usuario mediante `Promise.all` para optimizar el tiempo de respuesta, distinguiendo las reservas por fecha para evitar solapamientos visuales entre días.
+  - Sincronizar bidireccionalmente las claves `'token'` y `'fitzone_token'` tanto en el cliente Axios (`http.ts`) como en `useAuthStore` para evitar errores 401 y rebotes de redirección cuando la sesión del usuario está activa.
 - **Dificultades:** Ninguna.
 - **Commits:**
   - `feat(clases): actualizar clases.service con contratos reales de agenda y reservas`
   - `feat(clases): adaptar ClaseCard para datos reales de agenda y lista de espera`
   - `feat(clases): conectar agenda y estado de reservas del usuario por fecha`
+  - `fix(auth): sincronizar lectura y guardado de token jwt entre http y auth store`
 
 ----
 
