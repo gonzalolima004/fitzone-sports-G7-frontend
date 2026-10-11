@@ -14,11 +14,17 @@ export interface ClaseCardProps {
   tipo: string
   icono: string
   horario: string
-  profesor: string
-  sala: string
+  fecha_inicio?: string
+  fecha_fin?: string
+  profesor?: string | null
+  sala?: string | null
   capacidadMaxima: number
   cuposOcupados: number
+  cuposDisponibles?: number
   enListaEspera: number
+  ordenEnCola?: number
+  idReserva?: number
+  idListaEspera?: number
   estado: 'DISPONIBLE' | 'COMPLETO' | 'MISMA_RESERVA' | 'EN_ESPERA'
 }
 
@@ -33,6 +39,7 @@ const emit = defineEmits<{
 }>()
 
 const porcentajeOcupacion = computed(() => {
+  if (!props.clase.capacidadMaxima || props.clase.capacidadMaxima <= 0) return 0
   return Math.min(
     (props.clase.cuposOcupados / props.clase.capacidadMaxima) * 100,
     100
@@ -40,7 +47,10 @@ const porcentajeOcupacion = computed(() => {
 })
 
 const lugaresDisponibles = computed(() => {
-  return props.clase.capacidadMaxima - props.clase.cuposOcupados
+  return (
+    props.clase.cuposDisponibles ??
+    Math.max(0, props.clase.capacidadMaxima - props.clase.cuposOcupados)
+  )
 })
 
 const estaCompleto = computed(() => props.clase.estado === 'COMPLETO')
@@ -87,7 +97,8 @@ const estaCompleto = computed(() => props.clase.estado === 'COMPLETO')
         {{ clase.nombre }}
       </h3>
       <p class="text-slate-500 text-sm font-medium">
-        {{ clase.profesor }} &middot; {{ clase.sala }}
+        {{ clase.profesor || 'Sin profesor asignado' }} &middot;
+        {{ clase.sala || 'Sala no especificada' }}
       </p>
     </div>
 
@@ -120,7 +131,11 @@ const estaCompleto = computed(() => props.clase.estado === 'COMPLETO')
           class="text-rose-500 flex items-center gap-1.5"
         >
           <PhFire :size="15" weight="fill" class="shrink-0" />
-          {{ clase.enListaEspera }} socios en lista de espera actualmente.
+          {{
+            clase.enListaEspera > 0
+              ? `${clase.enListaEspera} socios en lista de espera actualmente.`
+              : 'Sin socios en espera actualmente.'
+          }}
         </span>
         <span v-else class="text-slate-500">
           Quedan {{ lugaresDisponibles }} lugares disponibles.
@@ -138,6 +153,16 @@ const estaCompleto = computed(() => props.clase.estado === 'COMPLETO')
     </button>
 
     <button
+      v-else-if="clase.estado === 'EN_ESPERA'"
+      class="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-slate-100 text-slate-600 border-2 border-slate-200 cursor-not-allowed flex items-center justify-center gap-2"
+      disabled
+    >
+      <PhBell :size="18" weight="fill" class="text-amber-500" />
+      En Lista de Espera
+      {{ clase.ordenEnCola ? `(#${clase.ordenEnCola})` : '' }}
+    </button>
+
+    <button
       v-else-if="!estaCompleto"
       class="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition-all active:scale-95 text-white shadow-md"
       :class="
@@ -148,14 +173,6 @@ const estaCompleto = computed(() => props.clase.estado === 'COMPLETO')
       @click="emit('reservar', clase.id)"
     >
       Reservar Lugar
-    </button>
-
-    <button
-      v-else-if="clase.estado === 'EN_ESPERA'"
-      class="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-slate-100 text-slate-500 border-2 border-slate-200 cursor-not-allowed"
-      disabled
-    >
-      En Lista de Espera
     </button>
 
     <button

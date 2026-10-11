@@ -467,11 +467,14 @@
   - Actualización del servicio `clases.service.ts` integrando los nuevos DTOs del backend (`ClaseAgendaResponse`, `MiReservaClaseResponse`, `MiInscripcionListaEsperaResponse`).
   - Incorporación de los métodos `obtenerMisReservas` y `obtenerMisInscripciones`, y soporte para el filtro opcional de `fecha` en `obtenerClasesPorSede`.
   - Estandarización de los payloads de `reservarClase` e `inscribirListaEspera` para soportar horarios en formato ISO (`fecha_inicio` y `fecha_fin`).
+  - Adaptación del componente `ClaseCard.vue` para renderizar cupos y aforo reales sin depender de simulaciones, manejando fallbacks para instructor ('Sin profesor asignado') y sala ('Sala no especificada'), e indicando la posición en cola de lista de espera.
 - **Decisiones:**
   - Mantener compatibilidad hacia atrás en los DTOs de peticiones y respuestas para evitar roturas de compilación mientras se refactorizan las vistas y componentes.
+  - Manejar valores no disponibles de forma explícita en la UI en lugar de generar valores ficticios, y extender `ClaseCardProps` de forma flexible para integrarse con la agenda por fecha.
 - **Dificultades:** Ninguna.
 - **Commits:**
   - `feat(clases): actualizar clases.service con contratos reales de agenda y reservas`
+  - `feat(clases): adaptar ClaseCard para datos reales de agenda y lista de espera`
 
 ----
 
