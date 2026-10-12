@@ -43,6 +43,17 @@ export interface PagoConceptoDto {
 }
 
 /**
+ * Concepto pendiente de abonar para el usuario autenticado (PagoPendienteResponseDto)
+ */
+export interface PagoPendiente {
+  tipo: Exclude<TipoConceptoPago, 'general'>
+  id_referencia: number
+  titulo: string
+  detalle: string
+  monto: number
+}
+
+/**
  * Detalle y trazabilidad de un pago registrado (PagoDetalleResponseDto)
  */
 export interface PagoDetalleResponse {
@@ -94,8 +105,22 @@ export const pagosService = {
    * Genera la preferencia en Mercado Pago Checkout Pro y registra la intención en FitZone
    * POST /pagos/iniciar-pago
    */
-  async iniciarPago(datos: IniciarPagoRequest): Promise<PreferenciaPagoResponse> {
-    const response = await apiClient.post<PreferenciaPagoResponse>('/pagos/iniciar-pago', datos)
+  async iniciarPago(
+    datos: IniciarPagoRequest
+  ): Promise<PreferenciaPagoResponse> {
+    const response = await apiClient.post<PreferenciaPagoResponse>(
+      '/pagos/iniciar-pago',
+      datos
+    )
+    return response.data
+  },
+
+  /**
+   * Lista la membresía vencida y las reservas de cancha pendientes de pago
+   * GET /pagos/pendientes
+   */
+  async obtenerPendientes(): Promise<PagoPendiente[]> {
+    const response = await apiClient.get<PagoPendiente[]>('/pagos/pendientes')
     return response.data
   },
 
@@ -104,7 +129,8 @@ export const pagosService = {
    * GET /pagos/mis-pagos
    */
   async obtenerMisPagos(): Promise<PagoDetalleResponse[]> {
-    const response = await apiClient.get<PagoDetalleResponse[]>('/pagos/mis-pagos')
+    const response =
+      await apiClient.get<PagoDetalleResponse[]>('/pagos/mis-pagos')
     return response.data
   },
 

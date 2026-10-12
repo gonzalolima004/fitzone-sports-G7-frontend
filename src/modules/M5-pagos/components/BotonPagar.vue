@@ -68,12 +68,7 @@ interface Props {
    * Estilo visual del botón disparador (usa BaseButton)
    */
   buttonVariant?:
-    | 'primary'
-    | 'secondary'
-    | 'outline'
-    | 'danger'
-    | 'danger-outline'
-    | 'ghost'
+    'primary' | 'secondary' | 'outline' | 'danger' | 'danger-outline' | 'ghost'
 
   /**
    * Tamaño del botón
@@ -108,7 +103,9 @@ const emit = defineEmits<{
 
 const modalAbierto = ref(false)
 const procesandoPago = ref(false)
+const errorMensaje = ref<string | null>(null)
 
+// Estado consolidado de carga: bloquea doble envío y desactiva controles
 const estaCargando = computed(() => props.loading || procesandoPago.value)
 
 const tieneCancha = computed(
@@ -151,16 +148,25 @@ const montoFormateado = computed(() => {
   }).format(props.monto)
 })
 
+function abrirModal() {
+  if (props.disabled || estaCargando.value) return
+  errorMensaje.value = null
+  modalAbierto.value = true
+}
+
 function cerrarModal() {
-  if (procesandoPago.value) return
+  if (estaCargando.value) return
   modalAbierto.value = false
+  errorMensaje.value = null
   emit('cancelar')
 }
 
 async function handleConfirmarPago() {
+  // Evitar envíos repetidos o con concepto inválido
   if (!conceptoValido.value || estaCargando.value) return
 
   procesandoPago.value = true
+  errorMensaje.value = null
 
   const payload: IniciarPagoRequest = {
     monto: props.monto,
@@ -201,17 +207,33 @@ async function handleConfirmarPago() {
     modalAbierto.value = false
   } catch (error: unknown) {
     let mensaje = 'No se pudo iniciar la operación de pago'
+
     if (axios.isAxiosError(error)) {
+      const status = error.response?.status
       const respData = error.response?.data
+
       if (respData?.message) {
         mensaje = Array.isArray(respData.message)
-          ? respData.message[0]
-          : respData.message
+          ? respData.message.join('. ')
+          : String(respData.message)
+      } else if (status === 400) {
+        mensaje = 'Datos de pago inválidos o violación de concepto único.'
+      } else if (status === 401) {
+        mensaje = 'Sesión expirada. Por favor vuelve a iniciar sesión.'
+      } else if (status === 404) {
+        mensaje = 'La reserva de cancha o membresía no fue encontrada.'
+      } else if (status === 500) {
+        mensaje = 'Error al comunicarse con Mercado Pago. Intenta más tarde.'
+      } else if (error.code === 'ECONNABORTED' || !error.response) {
+        mensaje = 'Error de conexión. Verifica tu conexión a internet.'
       }
     }
+
+    errorMensaje.value = mensaje
     toast.error(mensaje)
     emit('error', error)
   } finally {
+    // Liberar estado de carga si ocurrió error o no hubo redirección inmediata
     procesandoPago.value = false
   }
 }
@@ -223,9 +245,9 @@ async function handleConfirmarPago() {
     <BaseButton
       :variant="buttonVariant"
       :size="buttonSize"
-      :disabled="disabled"
+      :disabled="disabled || estaCargando"
       :loading="estaCargando"
-      @click="modalAbierto = true"
+      @click="abrirModal"
     >
       <template #icon>
         <PhCreditCard :size="18" weight="bold" />
@@ -239,6 +261,7 @@ async function handleConfirmarPago() {
       title="Confirmar Pago"
       subtitle="Verifica el detalle de la operación antes de continuar a la pasarela"
       max-width="md"
+      :close-on-backdrop="!estaCargando"
       @close="cerrarModal"
     >
       <div class="space-y-4">
@@ -254,6 +277,18 @@ async function handleConfirmarPago() {
               El pago debe asociarse exactamente a una reserva de cancha o a una
               membresía.
             </p>
+          </div>
+        </div>
+
+        <!-- Alerta visual si ocurrió un error en la solicitud -->
+        <div
+          v-if="errorMensaje"
+          class="p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2.5 text-xs text-red-700"
+        >
+          <PhWarningCircle :size="18" class="shrink-0 text-red-600 mt-0.5" />
+          <div>
+            <p class="font-semibold m-0">Problema al iniciar el pago</p>
+            <p class="mt-0.5 m-0">{{ errorMensaje }}</p>
           </div>
         </div>
 
@@ -321,10 +356,8 @@ async function handleConfirmarPago() {
             weight="duotone"
           />
           <p class="m-0 leading-relaxed">
-            Serás redirigido a la pasarela oficial de
-            <strong class="text-slate-800">Mercado Pago Checkout Pro</strong>.
-            FitZone <span class="font-medium">no almacena</span> datos de
-            tarjeta ni credenciales bancarias.
+            Serás redirigido a MercadoPago, FitZone no almacena datos de tarjeta
+            ni credenciales bancarias.
           </p>
         </div>
       </div>
@@ -350,7 +383,7 @@ async function handleConfirmarPago() {
           <template #icon>
             <PhArrowSquareOut :size="18" weight="bold" />
           </template>
-          Confirmar y Pagar
+          {{ estaCargando ? 'Iniciando...' : 'Confirmar y Pagar' }}
         </BaseButton>
       </template>
     </BaseModal>

@@ -59,21 +59,23 @@
 
 ----
 
-#### XX/XX/2026
+#### 12/10/2026
 #### Gonzalo Lima | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  - Creación del servicio de pagos para conectar la interfaz con la API de cobros.
+  - Creación del botón y modal de confirmación de pago con validación y estados de carga.
+  - Listado dinámico de conceptos pendientes (membresías adeudadas y reservas de canchas).
+  - Redirección al checkout de Mercado Pago al confirmar el pago.
 - **Decisiones:**
-  - 
-  - 
-- **Dificultades:** Ninguna.
+  - Reutilizar los componentes base del sistema (botones y modales) para mantener la consistencia visual.
+  - Mostrar mensajes de estado claros cuando el socio está al día con sus pagos.
+- **Dificultades:**
+  - Problema con el token de sesión en las peticiones que provocaba error de autenticación, resuelto unificando su lectura en el cliente HTTP.
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  - `feat(pagos): pago service y botón disparador de acción de pago`
+  - `feat(pagos): conectar service con api iniciar-pagos`
+  - `feat(pagos): integracion de conceptos pendientes e inicio de checkout`
 
 ----
 
