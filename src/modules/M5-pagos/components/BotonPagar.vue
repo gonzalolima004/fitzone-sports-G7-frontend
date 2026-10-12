@@ -306,7 +306,11 @@ async function handleConfirmarPago() {
       @click="abrirModal"
     >
       <template #icon>
-        <PhCreditCard :size="16" class="sm:w-[18px] sm:h-[18px]" weight="bold" />
+        <PhCreditCard
+          :size="16"
+          class="sm:w-[18px] sm:h-[18px]"
+          weight="bold"
+        />
       </template>
       <slot>{{ buttonText }}</slot>
     </BaseButton>
@@ -453,7 +457,9 @@ async function handleConfirmarPago() {
             <span class="text-xs font-medium text-slate-500 block">
               Total a pagar
             </span>
-            <span class="text-[11px] sm:text-xs text-slate-400">Pesos Argentinos</span>
+            <span class="text-[11px] sm:text-xs text-slate-400"
+              >Pesos Argentinos</span
+            >
           </div>
           <div class="text-xl sm:text-2xl font-black text-[#202759]">
             {{ montoFormateado }}

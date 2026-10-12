@@ -123,7 +123,10 @@ const detalleDesglosado = computed(() => {
                 v-if="detalleDesglosado.sede"
                 class="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-medium bg-slate-50 text-slate-600 border border-slate-200/80 whitespace-nowrap"
               >
-                <PhMapPin :size="13" class="text-slate-400 shrink-0 sm:w-3.5 sm:h-3.5" />
+                <PhMapPin
+                  :size="13"
+                  class="text-slate-400 shrink-0 sm:w-3.5 sm:h-3.5"
+                />
                 {{ detalleDesglosado.sede }}
               </span>
 
@@ -131,7 +134,10 @@ const detalleDesglosado = computed(() => {
                 v-if="detalleDesglosado.fecha"
                 class="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-medium bg-slate-50 text-slate-600 border border-slate-200/80 whitespace-nowrap"
               >
-                <PhCalendarBlank :size="13" class="text-slate-400 shrink-0 sm:w-3.5 sm:h-3.5" />
+                <PhCalendarBlank
+                  :size="13"
+                  class="text-slate-400 shrink-0 sm:w-3.5 sm:h-3.5"
+                />
                 {{ detalleDesglosado.fecha }}
               </span>
 
@@ -139,7 +145,10 @@ const detalleDesglosado = computed(() => {
                 v-if="detalleDesglosado.horario"
                 class="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-medium bg-slate-50 text-slate-600 border border-slate-200/80 whitespace-nowrap"
               >
-                <PhClock :size="13" class="text-slate-400 shrink-0 sm:w-3.5 sm:h-3.5" />
+                <PhClock
+                  :size="13"
+                  class="text-slate-400 shrink-0 sm:w-3.5 sm:h-3.5"
+                />
                 {{ detalleDesglosado.horario }}
               </span>
             </div>
@@ -154,14 +163,20 @@ const detalleDesglosado = computed(() => {
                 v-if="detalleDesglosado.plan"
                 class="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-medium bg-slate-50 text-slate-600 border border-slate-200/80 whitespace-nowrap"
               >
-                <PhClock :size="13" class="text-slate-400 shrink-0 sm:w-3.5 sm:h-3.5" />
+                <PhClock
+                  :size="13"
+                  class="text-slate-400 shrink-0 sm:w-3.5 sm:h-3.5"
+                />
                 {{ detalleDesglosado.plan }}
               </span>
               <span
                 v-if="detalleDesglosado.vigencia"
                 class="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-medium bg-slate-50 text-slate-600 border border-slate-200/80 whitespace-nowrap"
               >
-                <PhCalendarBlank :size="13" class="text-slate-400 shrink-0 sm:w-3.5 sm:h-3.5" />
+                <PhCalendarBlank
+                  :size="13"
+                  class="text-slate-400 shrink-0 sm:w-3.5 sm:h-3.5"
+                />
                 {{ detalleDesglosado.vigencia }}
               </span>
             </div>
@@ -173,7 +188,10 @@ const detalleDesglosado = computed(() => {
               <span
                 class="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-medium bg-slate-50 text-slate-600 border border-slate-200/80 whitespace-nowrap"
               >
-                <PhCalendarBlank :size="13" class="text-slate-400 shrink-0 sm:w-3.5 sm:h-3.5" />
+                <PhCalendarBlank
+                  :size="13"
+                  class="text-slate-400 shrink-0 sm:w-3.5 sm:h-3.5"
+                />
                 {{ detalleDesglosado.texto }}
               </span>
             </div>
@@ -192,7 +210,9 @@ const detalleDesglosado = computed(() => {
         >
           Total a pagar
         </span>
-        <span class="text-xl sm:text-2xl font-black text-[#202759] tracking-tight">
+        <span
+          class="text-xl sm:text-2xl font-black text-[#202759] tracking-tight"
+        >
           {{ montoFormateado }}
         </span>
       </div>

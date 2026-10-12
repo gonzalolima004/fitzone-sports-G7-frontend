@@ -9,6 +9,7 @@ import {
   PhArrowLeft,
 } from '@phosphor-icons/vue'
 import BaseButton from '@/common/components/BaseButton.vue'
+import BaseSkeleton from '@/common/components/BaseSkeleton.vue'
 import PagoPendienteCard from '../components/PagoPendienteCard.vue'
 import HistorialPagos from '../components/HistorialPagos.vue'
 import { pagosService, type PagoPendiente } from '../services/pagos.service'
@@ -49,7 +50,9 @@ onMounted(cargarPendientes)
 <template>
   <div class="space-y-8 max-w-5xl mx-auto py-4">
     <!-- Encabezado del módulo con botón de acceso al historial -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div
+      class="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+    >
       <div class="flex items-center gap-3">
         <div
           class="w-10 h-10 rounded-xl bg-[#202759] text-white flex items-center justify-center shadow-xs"
@@ -102,17 +105,64 @@ onMounted(cargarPendientes)
 
     <!-- Vista 2: Conceptos Pendientes -->
     <div v-else class="space-y-8">
-      <!-- Cargando -->
+      <!-- Estado de carga: Skeletons de conceptos pendientes -->
       <div
         v-if="cargando"
-        class="grid grid-cols-1 md:grid-cols-2 gap-6"
+        class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6"
         aria-busy="true"
       >
         <div
           v-for="n in 2"
           :key="n"
-          class="h-64 rounded-2xl bg-slate-100 animate-pulse"
-        ></div>
+          class="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between gap-4 sm:gap-5"
+        >
+          <div class="space-y-3.5 sm:space-y-4">
+            <!-- Cabecera: Badges tipo y estado -->
+            <div class="flex items-center justify-between gap-2.5 sm:gap-3">
+              <BaseSkeleton variant="badge" class="w-28 sm:w-32 h-6" />
+              <BaseSkeleton variant="badge" class="w-20 sm:w-24 h-6" />
+            </div>
+
+            <!-- Título y badges descriptivos -->
+            <div class="space-y-3">
+              <BaseSkeleton
+                variant="text"
+                class="h-6 sm:h-7 w-3/4 rounded-lg"
+              />
+              <div class="flex items-center gap-2">
+                <BaseSkeleton
+                  variant="rounded"
+                  class="h-6 w-24 sm:w-28 rounded-lg"
+                />
+                <BaseSkeleton
+                  variant="rounded"
+                  class="h-6 w-28 sm:w-32 rounded-lg"
+                />
+                <BaseSkeleton
+                  variant="rounded"
+                  class="h-6 w-20 sm:w-24 rounded-lg hidden sm:block"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Barra de cobro inferior integrada -->
+          <div
+            class="bg-slate-50 rounded-2xl p-3.5 sm:p-4 border border-slate-100 flex items-center justify-between gap-3 sm:gap-4 mt-2"
+          >
+            <div>
+              <BaseSkeleton variant="text" class="h-3 w-16 mb-1.5 rounded-sm" />
+              <BaseSkeleton
+                variant="text"
+                class="h-7 w-24 sm:w-28 rounded-lg"
+              />
+            </div>
+            <BaseSkeleton
+              variant="button"
+              class="w-32 sm:w-36 h-9 sm:h-10 rounded-xl shrink-0"
+            />
+          </div>
+        </div>
       </div>
 
       <!-- Error al cargar -->
@@ -124,7 +174,11 @@ onMounted(cargarPendientes)
           <PhWarningCircle :size="20" class="shrink-0" />
           {{ error }}
         </span>
-        <BaseButton variant="danger-outline" size="sm" @click="cargarPendientes">
+        <BaseButton
+          variant="danger-outline"
+          size="sm"
+          @click="cargarPendientes"
+        >
           Reintentar
         </BaseButton>
       </div>
@@ -139,9 +193,7 @@ onMounted(cargarPendientes)
           weight="duotone"
           class="text-emerald-600 mx-auto mb-3"
         />
-        <h2 class="text-lg font-bold text-[#202759] m-0 mb-1">
-          Estás al día
-        </h2>
+        <h2 class="text-lg font-bold text-[#202759] m-0 mb-1">Estás al día</h2>
         <p class="text-sm text-slate-500 m-0">
           No tenés membresías ni reservas de cancha pendientes de pago.
         </p>

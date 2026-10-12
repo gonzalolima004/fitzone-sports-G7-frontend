@@ -110,16 +110,17 @@
   - Desglose de datos en mini badges visuales con iconos.
   - Normalización estética de importes monetarios en ARS sin decimales en tarjetas, historial y modales de pago.
   - Optimización de armonía visual en tarjetas de pagos pendientes para vista mobile.
+  - Creación del componente genérico BaseSkeleton e integración en conceptos pendientes e historial de pagos.
 - **Decisiones:**
   - Desacoplar el historial en un componente dedicado y reutilizable para mantener un tamaño de archivo liviano y alta legibilidad.
   - Restringir la disponibilidad de descarga del comprobante únicamente a transacciones certificadas en estado 'Aprobado'.
+  - Implementar BaseSkeleton para estandarizar los estados de carga.
 - **Dificultades:**
   - Desbalance visual y saltos de línea involuntarios en los badges descriptivos y botones de cobro en pantallas estrechas.
 - **Commits:**
   - `feat(pagos): creación de historial de pagos`
-  - `refactor(pagos): integración de mini badges compactos y unificación visual con conceptos pendientes`
-  - `docs(pagos): registrar actividades y decisiones técnicas de la tarea 3 en bitácora`
-  - `fix(pagos): armonización visual y consistencia de botones y textos en mobile`
+  - `fix(pagos): armonizar diseño en desktop y mobile`
+  - `feat(pagos): agregar skeleton loaders base y utilizarlo en toda la sección`
 
 
 ----

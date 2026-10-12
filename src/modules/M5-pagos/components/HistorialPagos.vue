@@ -13,6 +13,7 @@ import {
   PhMapPin,
 } from '@phosphor-icons/vue'
 import BaseButton from '@/common/components/BaseButton.vue'
+import BaseSkeleton from '@/common/components/BaseSkeleton.vue'
 import { toast } from '@/common/utils/toast'
 import {
   pagosService,
@@ -113,13 +114,45 @@ defineExpose({ historial, cargando, error, cargarHistorial })
 
 <template>
   <div class="space-y-6">
-    <!-- Estado de carga: Skeletons -->
+    <!-- Estado de carga: Skeletons de filas del historial -->
     <div v-if="cargando" class="space-y-4" aria-busy="true">
       <div
         v-for="n in 3"
         :key="n"
-        class="h-28 rounded-2xl bg-slate-100 animate-pulse border border-slate-200/60"
-      ></div>
+        class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-5"
+      >
+        <div class="space-y-2.5 flex-1">
+          <!-- Badges de tipo, estado y fecha -->
+          <div class="flex items-center gap-2.5 flex-wrap">
+            <BaseSkeleton variant="badge" class="w-24 h-5" />
+            <BaseSkeleton variant="badge" class="w-20 h-5" />
+            <BaseSkeleton variant="text" class="w-24 h-3.5" />
+          </div>
+
+          <!-- Título y badges de metadatos -->
+          <div class="space-y-2">
+            <BaseSkeleton variant="text" class="h-5 w-48 sm:w-64 rounded-md" />
+            <div class="flex items-center gap-2 pt-0.5">
+              <BaseSkeleton variant="rounded" class="h-6 w-24 rounded-lg" />
+              <BaseSkeleton variant="rounded" class="h-6 w-28 rounded-lg" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Columna derecha: Importe y botón comprobante -->
+        <div
+          class="flex items-center justify-between md:justify-end gap-5 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100"
+        >
+          <div class="space-y-1 text-left md:text-right">
+            <BaseSkeleton
+              variant="text"
+              class="h-3 w-12 rounded-sm md:ml-auto"
+            />
+            <BaseSkeleton variant="text" class="h-6 w-20 sm:w-24 rounded-md" />
+          </div>
+          <BaseSkeleton variant="button" class="w-28 h-8 rounded-lg shrink-0" />
+        </div>
+      </div>
     </div>
 
     <!-- Error al cargar -->
@@ -151,8 +184,8 @@ defineExpose({ historial, cargando, error, cargarHistorial })
           Aún no registrás pagos
         </h3>
         <p class="text-sm text-slate-500 max-w-sm mx-auto m-0">
-          Todas las operaciones y pagos que realices se registrarán aquí junto
-          a sus comprobantes oficiales.
+          Todas las operaciones y pagos que realices se registrarán aquí junto a
+          sus comprobantes oficiales.
         </p>
       </div>
     </div>
