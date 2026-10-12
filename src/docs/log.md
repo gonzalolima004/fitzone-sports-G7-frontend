@@ -79,21 +79,24 @@
 
 ----
 
-#### XX/XX/2026
+#### 12/10/2026
 #### Gonzalo Lima | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  - Creación de la vista de resultado del pago con soporte para estados Aprobado, Pendiente, Rechazado y No identificado.
+  - Configuración de la ruta /pagos/resultado y para los retornos de MercadoPago (pagos/exito, pagos/error, pagos/pendiente).
+  - Consulta al backend (GET /pagos/:id) para certificar el estado real del pago a partir de localStorage o parámetros de URL.
+  - Integración de botones contextuales.
 - **Decisiones:**
-  - 
-  - 
-- **Dificultades:** Ninguna.
+  - Validar siempre el estado persistido en la base de datos para no depender únicamente de los parámetros de retorno de la pasarela.
+  - Unificar la estructura de la tarjeta mediante propiedades reactivas computadas para mantener el código conciso y sin duplicaciones.
+  - Uso estricto de componentes base (BaseButton) respetando la guía de diseño institucional.
+- **Dificultades:**
+  - Manejo de accesos directos sin identificador de pago o consultas no autorizadas, resuelto incorporando un estado defensivo con navegación segura al panel de pagos.
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  - `feat(pagos): vista de resultado de pago y configuración de rutas con alias`
+  - `feat(pagos): consulta de estado persistido y acciones contextuales con comprobante pdf`
+  - `refactor(pagos): estructura unificada de resultado utilizando componentes base`
 
 ----
 

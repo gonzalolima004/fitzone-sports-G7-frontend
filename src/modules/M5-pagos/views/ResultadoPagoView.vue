@@ -10,6 +10,8 @@ import {
   PhArrowLeft,
   PhCreditCard,
   PhWarningCircle,
+  PhSoccerBall,
+  PhArrowClockwise,
 } from '@phosphor-icons/vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import {
@@ -18,11 +20,7 @@ import {
 } from '../services/pagos.service'
 
 export type EstadoResultado =
-  | 'verificando'
-  | 'aprobado'
-  | 'pendiente'
-  | 'rechazado'
-  | 'no_identificado'
+  'verificando' | 'aprobado' | 'pendiente' | 'rechazado' | 'no_identificado'
 
 const route = useRoute()
 const router = useRouter()
@@ -33,6 +31,8 @@ const conceptoTitulo = ref('')
 const conceptoDetalle = ref('')
 const monto = ref<number | null>(null)
 const pagoDetalle = ref<PagoDetalleResponse | null>(null)
+
+const tipoConcepto = computed(() => pagoDetalle.value?.concepto?.tipo)
 
 const montoFormateado = computed(() => {
   if (monto.value === null) return null
@@ -51,7 +51,8 @@ const infoEstado = computed(() => {
         badge: 'Aprobado',
         badgeClass: 'bg-emerald-100 text-emerald-800',
         titulo: '¡Pago realizado con éxito!',
-        descripcion: 'Tu operación ha sido acreditada y certificada correctamente.',
+        descripcion:
+          'Tu operación ha sido acreditada y certificada correctamente.',
         icono: PhCheckCircle,
         iconoClass: 'bg-emerald-50 text-emerald-600',
         spin: false,
@@ -84,7 +85,7 @@ const infoEstado = computed(() => {
         badgeClass: 'bg-slate-100 text-slate-700',
         titulo: 'No pudimos identificar el pago',
         descripcion:
-          'No encontramos un pago pendiente registrado o la referencia no es válida. Podés revisar tus deudas e historial en Pagos.',
+          'No encontramos un pago registrado o la referencia no es válida. Podés revisar tus deudas e historial en Pagos.',
         icono: PhWarningCircle,
         iconoClass: 'bg-slate-100 text-slate-600',
         spin: false,
@@ -108,13 +109,29 @@ function irAPagos() {
   router.push('/pagos')
 }
 
+function irARecurso() {
+  if (tipoConcepto.value === 'cancha') {
+    router.push('/canchas')
+  } else if (tipoConcepto.value === 'membresia') {
+    router.push('/perfil')
+  } else {
+    router.push('/pagos')
+  }
+}
+
+function descargarComprobante() {
+  if (idPago.value) {
+    const url = pagosService.getComprobanteUrl(idPago.value)
+    window.open(url, '_blank')
+  }
+}
+
 /**
  * Obtiene el ID numérico del pago:
  * 1. Desde localStorage ('fitzone_pago_pendiente').
  * 2. Fallback desde query params de la URL.
  */
 function recuperarIdPago(): number | null {
-  // 1. Intentar desde localStorage
   try {
     const rawStorage = localStorage.getItem('fitzone_pago_pendiente')
     if (rawStorage) {
@@ -127,7 +144,6 @@ function recuperarIdPago(): number | null {
     console.warn('No se pudo leer fitzone_pago_pendiente de localStorage:', err)
   }
 
-  // 2. Fallback desde query params (id_pago, id o external_reference numérico)
   const qIdPago = route.query.id_pago || route.query.id
   if (qIdPago && !isNaN(Number(qIdPago))) {
     return Number(qIdPago)
@@ -161,7 +177,6 @@ async function verificarPagoReal() {
     conceptoTitulo.value = pago.concepto?.titulo || 'Servicio FitZone'
     conceptoDetalle.value = pago.concepto?.detalle || ''
 
-    // Normalizar estado recibido del backend
     const estadoApi = (pago.estado || '').trim().toLowerCase()
     if (estadoApi === 'aprobado') {
       estado.value = 'aprobado'
@@ -174,7 +189,6 @@ async function verificarPagoReal() {
     console.error('Error al consultar el estado real del pago:', error)
     estado.value = 'no_identificado'
   } finally {
-    // Limpieza de localStorage tras la verificación
     localStorage.removeItem('fitzone_pago_pendiente')
   }
 }
@@ -190,6 +204,9 @@ defineExpose({
   conceptoDetalle,
   monto,
   pagoDetalle,
+  tipoConcepto,
+  irARecurso,
+  descargarComprobante,
   verificarPagoReal,
 })
 </script>
@@ -253,9 +270,13 @@ defineExpose({
         </p>
       </div>
 
-      <!-- Resumen del concepto y monto (solo si fue identificado y no está verificando) -->
+      <!-- Resumen del concepto y monto -->
       <div
-        v-if="estado !== 'verificando' && estado !== 'no_identificado' && conceptoTitulo"
+        v-if="
+          estado !== 'verificando' &&
+          estado !== 'no_identificado' &&
+          conceptoTitulo
+        "
         class="bg-slate-50 rounded-2xl p-5 border border-slate-200/70 text-left space-y-3"
       >
         <div class="flex items-start justify-between gap-4">
@@ -308,15 +329,30 @@ defineExpose({
       >
         <!-- Aprobado -->
         <template v-if="estado === 'aprobado'">
+          <!-- Redirección contextual según concepto -->
           <BaseButton
+            v-if="tipoConcepto === 'cancha'"
             variant="primary"
             size="md"
             class="w-full sm:w-auto"
-            @click="irAPagos"
+            @click="irARecurso"
+          >
+            <span class="inline-flex items-center gap-2">
+              <PhSoccerBall :size="18" weight="bold" />
+              Ver mis reservas
+            </span>
+          </BaseButton>
+
+          <!-- Descargar Comprobante PDF oficial (nueva pestaña) -->
+          <BaseButton
+            variant="secondary"
+            size="md"
+            class="w-full sm:w-auto"
+            @click="descargarComprobante"
           >
             <span class="inline-flex items-center gap-2">
               <PhReceipt :size="18" weight="bold" />
-              Ver Comprobante
+              Descargar comprobante
             </span>
           </BaseButton>
 
@@ -338,7 +374,7 @@ defineExpose({
             class="w-full sm:w-auto"
             @click="irAPagos"
           >
-            Ir a mis pagos
+            Volver a Pagos
           </BaseButton>
         </template>
 
@@ -350,7 +386,10 @@ defineExpose({
             class="w-full sm:w-auto"
             @click="irAPagos"
           >
-            Intentar nuevamente
+            <span class="inline-flex items-center gap-2">
+              <PhArrowClockwise :size="18" weight="bold" />
+              Reintentar pago
+            </span>
           </BaseButton>
 
           <BaseButton
