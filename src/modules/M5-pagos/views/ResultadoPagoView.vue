@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
   PhCheckCircle,
   PhClock,
@@ -9,28 +9,38 @@ import {
   PhReceipt,
   PhArrowLeft,
   PhCreditCard,
+  PhWarningCircle,
 } from '@phosphor-icons/vue'
 import BaseButton from '@/common/components/BaseButton.vue'
+import {
+  pagosService,
+  type PagoDetalleResponse,
+} from '../services/pagos.service'
 
 export type EstadoResultado =
   | 'verificando'
   | 'aprobado'
   | 'pendiente'
   | 'rechazado'
+  | 'no_identificado'
 
+const route = useRoute()
 const router = useRouter()
 
 const estado = ref<EstadoResultado>('verificando')
 const idPago = ref<number | null>(null)
-const conceptoTitulo = ref('Pago FitZone')
-const conceptoDetalle = ref('Servicio deportivo')
+const conceptoTitulo = ref('')
+const conceptoDetalle = ref('')
 const monto = ref<number | null>(null)
+const pagoDetalle = ref<PagoDetalleResponse | null>(null)
 
 const montoFormateado = computed(() => {
   if (monto.value === null) return null
   return new Intl.NumberFormat('es-AR', {
     style: 'currency',
     currency: 'ARS',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(monto.value)
 })
 
@@ -41,7 +51,7 @@ const infoEstado = computed(() => {
         badge: 'Aprobado',
         badgeClass: 'bg-emerald-100 text-emerald-800',
         titulo: '¡Pago realizado con éxito!',
-        descripcion: 'Tu operación ha sido acreditada correctamente.',
+        descripcion: 'Tu operación ha sido acreditada y certificada correctamente.',
         icono: PhCheckCircle,
         iconoClass: 'bg-emerald-50 text-emerald-600',
         spin: false,
@@ -68,6 +78,17 @@ const infoEstado = computed(() => {
         iconoClass: 'bg-red-50 text-red-500',
         spin: false,
       }
+    case 'no_identificado':
+      return {
+        badge: 'No identificado',
+        badgeClass: 'bg-slate-100 text-slate-700',
+        titulo: 'No pudimos identificar el pago',
+        descripcion:
+          'No encontramos un pago pendiente registrado o la referencia no es válida. Podés revisar tus deudas e historial en Pagos.',
+        icono: PhWarningCircle,
+        iconoClass: 'bg-slate-100 text-slate-600',
+        spin: false,
+      }
     case 'verificando':
     default:
       return {
@@ -87,7 +108,90 @@ function irAPagos() {
   router.push('/pagos')
 }
 
-defineExpose({ estado, idPago, conceptoTitulo, conceptoDetalle, monto })
+/**
+ * Obtiene el ID numérico del pago:
+ * 1. Desde localStorage ('fitzone_pago_pendiente').
+ * 2. Fallback desde query params de la URL.
+ */
+function recuperarIdPago(): number | null {
+  // 1. Intentar desde localStorage
+  try {
+    const rawStorage = localStorage.getItem('fitzone_pago_pendiente')
+    if (rawStorage) {
+      const data = JSON.parse(rawStorage)
+      if (data && typeof data.id_pago === 'number') {
+        return data.id_pago
+      }
+    }
+  } catch (err) {
+    console.warn('No se pudo leer fitzone_pago_pendiente de localStorage:', err)
+  }
+
+  // 2. Fallback desde query params (id_pago, id o external_reference numérico)
+  const qIdPago = route.query.id_pago || route.query.id
+  if (qIdPago && !isNaN(Number(qIdPago))) {
+    return Number(qIdPago)
+  }
+
+  const qExtRef = route.query.external_reference
+  if (qExtRef && !isNaN(Number(qExtRef))) {
+    return Number(qExtRef)
+  }
+
+  return null
+}
+
+/**
+ * Consulta el estado real del pago al backend (GET /pagos/:id).
+ */
+async function verificarPagoReal() {
+  estado.value = 'verificando'
+  const id = recuperarIdPago()
+
+  if (!id) {
+    estado.value = 'no_identificado'
+    return
+  }
+
+  try {
+    const pago = await pagosService.obtenerPagoPorId(id)
+    pagoDetalle.value = pago
+    idPago.value = pago.id_pago
+    monto.value = pago.monto
+    conceptoTitulo.value = pago.concepto?.titulo || 'Servicio FitZone'
+    conceptoDetalle.value = pago.concepto?.detalle || ''
+
+    // Normalizar estado recibido del backend
+    const estadoApi = (pago.estado || '').trim().toLowerCase()
+    if (estadoApi === 'aprobado') {
+      estado.value = 'aprobado'
+    } else if (estadoApi === 'rechazado' || estadoApi === 'cancelado') {
+      estado.value = 'rechazado'
+    } else {
+      estado.value = 'pendiente'
+    }
+  } catch (error) {
+    console.error('Error al consultar el estado real del pago:', error)
+    estado.value = 'no_identificado'
+  } finally {
+    // Limpieza de localStorage tras la verificación
+    localStorage.removeItem('fitzone_pago_pendiente')
+  }
+}
+
+onMounted(() => {
+  verificarPagoReal()
+})
+
+defineExpose({
+  estado,
+  idPago,
+  conceptoTitulo,
+  conceptoDetalle,
+  monto,
+  pagoDetalle,
+  verificarPagoReal,
+})
 </script>
 
 <template>
@@ -149,9 +253,9 @@ defineExpose({ estado, idPago, conceptoTitulo, conceptoDetalle, monto })
         </p>
       </div>
 
-      <!-- Resumen del pago (cuando no está en verificación inicial) -->
+      <!-- Resumen del concepto y monto (solo si fue identificado y no está verificando) -->
       <div
-        v-if="estado !== 'verificando'"
+        v-if="estado !== 'verificando' && estado !== 'no_identificado' && conceptoTitulo"
         class="bg-slate-50 rounded-2xl p-5 border border-slate-200/70 text-left space-y-3"
       >
         <div class="flex items-start justify-between gap-4">
@@ -190,7 +294,7 @@ defineExpose({ estado, idPago, conceptoTitulo, conceptoDetalle, monto })
           v-if="idPago"
           class="pt-3 border-t border-slate-200/60 flex items-center justify-between text-xs text-slate-400"
         >
-          <span>Identificador:</span>
+          <span>Identificador de pago:</span>
           <span class="font-mono font-semibold text-slate-600">
             #{{ idPago }}
           </span>
@@ -251,6 +355,18 @@ defineExpose({ estado, idPago, conceptoTitulo, conceptoDetalle, monto })
 
           <BaseButton
             variant="outline"
+            size="md"
+            class="w-full sm:w-auto"
+            @click="irAPagos"
+          >
+            Volver a Pagos
+          </BaseButton>
+        </template>
+
+        <!-- No identificado / Error -->
+        <template v-else-if="estado === 'no_identificado'">
+          <BaseButton
+            variant="primary"
             size="md"
             class="w-full sm:w-auto"
             @click="irAPagos"
