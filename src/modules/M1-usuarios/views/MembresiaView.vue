@@ -38,7 +38,6 @@ const fetchDatos = async () => {
       membresiasService.verificarEstado(userId),
     ])) as unknown as [PlanMembresia[], EstadoMembresia]
 
-    // Mapeamos las descripciones de la UI basadas en los días del plan
     planes.value = planesData.map((p) => {
       let desc =
         'Acceso ilimitado a 25+ sedes|Clases grupales incluidas|15% off en Canchas|Credencial QR dinámica'
@@ -65,12 +64,9 @@ const fetchDatos = async () => {
 onMounted(async () => {
   await fetchDatos()
 
-  // Gestión del retorno desde el Checkout de Mercado Pago
   if (route.query.status || route.query.payment_id) {
-    // Limpiamos la URL para que no quede sucia
     router.replace({ path: route.path })
 
-    // Evaluamos el estado real devuelto por nuestro backend
     if (miEstado.value?.esSocioActivo) {
       toast.success('¡Tu membresía ha sido activada exitosamente!')
     } else if (miEstado.value?.enMora) {
@@ -83,20 +79,16 @@ onMounted(async () => {
   }
 })
 
-// En el <script>:
-// En el <script setup>:
 const abrirCheckout = (planRecibido: PlanMembresia) => {
-  planSeleccionado.value = planRecibido // Asignación directa e infalible
+  planSeleccionado.value = planRecibido
   modalAbierto.value = true
 }
 
-const confirmarPago = async (planId: number) => {
+const confirmarPago = async () => {
   isProcessingPayment.value = true
   try {
-    // Aseguramos capturar el ID real para enviarlo al backend
-
     const payload = {
-      id_membresia: planSeleccionado.value?.id ?? planId,
+      id_membresia: planSeleccionado.value?.id,
       monto: planSeleccionado.value?.precio ?? 0,
       email_pagador: authStore.usuario?.email || 'test@fitzone.com',
       titulo: `Suscripción - ${planSeleccionado.value?.nombre ?? ''}`,
@@ -111,9 +103,8 @@ const confirmarPago = async (planId: number) => {
       window.location.href = (response.initPoint ||
         response.sandboxInitPoint) as string
     }
-  } catch (error) {
-    console.error('Error al procesar pago:', error)
-    toast.error('No se pudo iniciar el proceso de pago. Revisa la consola.')
+  } catch {
+    toast.error('No se pudo iniciar el proceso de pago. Inténtalo nuevamente.')
   } finally {
     isProcessingPayment.value = false
     modalAbierto.value = false
@@ -122,7 +113,6 @@ const confirmarPago = async (planId: number) => {
 
 const formatFecha = (fechaStr: string | null) => {
   if (!fechaStr) return '-'
-  // Ajusta la zona horaria para evitar desfases de 1 día
   const date = new Date(fechaStr)
   return new Date(
     date.getTime() + date.getTimezoneOffset() * 60000
@@ -133,7 +123,6 @@ const formatFecha = (fechaStr: string | null) => {
   })
 }
 
-// Computed properties para la UI
 const estadoConfig = computed(() => {
   if (!miEstado.value)
     return {
@@ -156,12 +145,11 @@ const estadoConfig = computed(() => {
   }
 })
 
-// Determinación visual del "Más elegido" basado en la duración (Ej. 90 días = Trimestral)
 const isPopularPlan = (plan: PlanMembresia) => plan.duracion_dias === 90
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 font-sans animate-fade-in">
+  <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 font-sans overflow-x-hidden">
     <!-- Skeleton Loading -->
     <div
       v-if="isLoading"
@@ -170,144 +158,142 @@ const isPopularPlan = (plan: PlanMembresia) => plan.duracion_dias === 90
       <div
         class="w-12 h-12 border-4 border-[#202759]/20 border-t-[#F96167] rounded-full animate-spin mb-4"
       ></div>
-      <p class="text-slate-500 font-medium tracking-wide text-sm">
+      <p class="text-slate-500 font-medium tracking-wide text-sm text-center">
         Cargando estado de membresía...
       </p>
     </div>
 
-    <template v-else>
-      <!-- Cabecera -->
-      <header
-        class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6 mb-8"
-      >
-        <div class="flex items-center gap-3">
-          <PhMedal :size="32" weight="duotone" class="text-[#4285F4]" />
-          <h1 class="text-2xl font-bold text-[#202759] m-0">
-            Planes y Estado de Suscripción
-          </h1>
+    <Transition
+      v-else
+      appear
+      enter-active-class="transition-all duration-500 ease-out"
+      enter-from-class="opacity-0 translate-y-4"
+      enter-to-class="opacity-100 translate-y-0"
+    >
+      <div>
+        <!-- Cabecera -->
+        <header
+          class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6 mb-8"
+        >
+          <div class="flex items-center gap-3">
+            <PhMedal
+              :size="32"
+              weight="duotone"
+              class="text-[#4285F4] shrink-0"
+            />
+            <h1 class="text-xl sm:text-2xl font-bold text-[#202759] m-0">
+              Planes y Estado de Suscripción
+            </h1>
+          </div>
+
+          <div class="flex items-center flex-wrap gap-2 sm:gap-3">
+            <span
+              class="px-3 py-1.5 text-[10px] sm:text-[11px] font-bold tracking-wide rounded-full border bg-white text-slate-600 shadow-sm whitespace-nowrap"
+            >
+              Cobertura: 25+ Sucursales
+            </span>
+            <span
+              class="px-3 py-1.5 text-[10px] sm:text-[11px] font-bold tracking-wide rounded-full border uppercase shadow-sm whitespace-nowrap"
+              :class="estadoConfig.class"
+            >
+              ESTADO: {{ estadoConfig.text }}
+            </span>
+          </div>
+        </header>
+
+        <!-- Panel de Vencimiento / Mora -->
+        <div
+          v-if="miEstado?.enMora"
+          class="bg-red-50 border-l-4 border-[#F96167] p-4 sm:p-5 rounded-r-xl shadow-sm mb-8 sm:mb-10"
+        >
+          <div class="flex items-start gap-3 sm:gap-4">
+            <PhWarningCircle
+              :size="24"
+              weight="duotone"
+              class="text-[#F96167] shrink-0 sm:h-7 sm:w-7 mt-0.5"
+            />
+            <div>
+              <h3 class="text-red-800 font-bold text-sm sm:text-base">
+                Atención: Membresía Vencida
+              </h3>
+              <p class="text-red-700 text-xs sm:text-sm mt-1 leading-relaxed">
+                Tu plan actual finalizó el
+                <strong>{{
+                  formatFecha(miEstado?.fechaVencimiento ?? null)
+                }}</strong
+                >. <br class="hidden sm:block" />
+                Actualmente
+                <strong>no tienes acceso para reservar clases grupales</strong>
+                y la tarifa de alquiler de canchas se cobrará como Cliente
+                Externo sin descuento.
+              </p>
+              <p class="text-red-700 font-semibold text-xs sm:text-sm mt-2">
+                Renueva tu plan a continuación para recuperar tus beneficios de
+                socio.
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div class="flex items-center flex-wrap gap-3">
-          <span
-            class="px-3 py-1 text-[11px] font-bold tracking-wide rounded-full border bg-white text-slate-600 shadow-sm"
+        <!-- Sección de Planes -->
+        <div class="text-center px-2 mb-8 sm:mb-10">
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-[#202759] mb-3">
+            Elegí tu Plan FitZone
+          </h2>
+          <p
+            class="text-sm sm:text-base text-slate-500 max-w-2xl mx-auto leading-relaxed"
           >
-            Cobertura: 25+ Sucursales
-          </span>
-          <span
-            class="px-3 py-1 text-[11px] font-bold tracking-wide rounded-full border uppercase shadow-sm"
-            :class="estadoConfig.class"
-          >
-            ESTADO: {{ estadoConfig.text }}
-          </span>
+            Todos nuestros planes incluyen libre acceso a musculación en todas
+            las sedes, reserva de clases grupales y 15% de descuento exclusivo
+            en alquiler de canchas deportivas.
+          </p>
         </div>
-      </header>
 
-      <!-- Panel de Vencimiento / Mora -->
-      <div
-        v-if="miEstado?.enMora"
-        class="bg-red-50 border-l-4 border-[#F96167] p-5 rounded-r-xl shadow-sm mb-10"
-      >
-        <div class="flex items-start gap-4">
-          <PhWarningCircle
-            :size="28"
-            weight="duotone"
-            class="text-[#F96167] shrink-0 mt-0.5"
+        <div
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-6 xl:gap-8 max-w-6xl mx-auto"
+        >
+          <PlanCard
+            v-for="plan in planes"
+            :key="plan.id"
+            :plan="plan"
+            :is-current="miEstado?.nombre_plan === plan.nombre"
+            :is-popular="isPopularPlan(plan)"
+            :is-loading="
+              isProcessingPayment && planSeleccionado?.id === plan.id
+            "
+            @subscribe="abrirCheckout"
           />
+        </div>
+
+        <!-- Footer Informativo -->
+        <div
+          class="mt-10 sm:mt-12 bg-blue-50/50 border border-blue-100 p-4 sm:p-5 rounded-xl flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4"
+        >
+          <div class="bg-blue-100 p-2 rounded-full shrink-0">
+            <PhShieldCheck :size="24" weight="duotone" class="text-blue-600" />
+          </div>
           <div>
-            <h3 class="text-red-800 font-bold text-base">
-              Atención: Membresía Vencida
-            </h3>
-            <p class="text-red-700 text-sm mt-1 leading-relaxed">
-              Tu plan actual finalizó el
-              <strong>{{
-                formatFecha(miEstado?.fechaVencimiento ?? null)
-              }}</strong
-              >. <br />
-              Actualmente
-              <strong>no tienes acceso para reservar clases grupales</strong> y
-              la tarifa de alquiler de canchas se cobrará como Cliente Externo
-              sin descuento.
-            </p>
-            <p class="text-red-700 font-semibold text-sm mt-2">
-              Renueva tu plan a continuación para recuperar tus beneficios de
-              socio.
+            <h4 class="text-sm font-bold text-[#202759]">
+              Seguridad de Datos y Tokenización
+            </h4>
+            <p class="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed">
+              FitZone Sports no almacena datos sensibles de tarjetas de crédito
+              o débito en sus bases de datos locales. La transacción se procesa
+              directamente mediante el checkout seguro oficial de la pasarela de
+              pagos.
             </p>
           </div>
         </div>
-      </div>
 
-      <!-- Sección de Planes -->
-      <div class="text-center mb-10">
-        <h2 class="text-3xl font-extrabold text-[#202759] mb-3">
-          Elegí tu Plan FitZone
-        </h2>
-        <p class="text-slate-500 max-w-2xl mx-auto">
-          Todos nuestros planes incluyen libre acceso a musculación en todas las
-          sedes, reserva de clases grupales y 15% de descuento exclusivo en
-          alquiler de canchas deportivas.
-        </p>
-      </div>
-
-      <!-- En el <template>: -->
-      <!-- En el <template> (dentro del v-for de PlanCard): -->
-      <div
-        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-6 xl:gap-8 max-w-6xl mx-auto"
-      >
-        <PlanCard
-          v-for="plan in planes"
-          :key="plan.id"
-          :plan="plan"
-          :is-current="miEstado?.nombre_plan === plan.nombre"
-          :is-popular="isPopularPlan(plan)"
-          :is-loading="isProcessingPayment && planSeleccionado?.id === plan.id"
-          @subscribe="abrirCheckout"
+        <!-- Modal de Checkout -->
+        <CheckoutModal
+          v-if="planSeleccionado"
+          v-model="modalAbierto"
+          :plan="planSeleccionado"
+          :is-loading="isProcessingPayment"
+          @confirmar="confirmarPago"
         />
       </div>
-
-      <!-- Footer Informativo -->
-      <div
-        class="mt-12 bg-blue-50/50 border border-blue-100 p-4 rounded-xl flex flex-col sm:flex-row items-center sm:items-start gap-4"
-      >
-        <div class="bg-blue-100 p-2 rounded-full shrink-0">
-          <PhShieldCheck :size="24" weight="duotone" class="text-blue-600" />
-        </div>
-        <div>
-          <h4 class="text-sm font-bold text-[#202759]">
-            Seguridad de Datos y Tokenización
-          </h4>
-          <p class="text-xs text-slate-500 mt-1 leading-relaxed">
-            FitZone Sports no almacena datos sensibles de tarjetas de crédito o
-            débito en sus bases de datos locales. La transacción se procesa
-            directamente mediante el checkout seguro oficial de la pasarela de
-            pagos.
-          </p>
-        </div>
-      </div>
-
-      <!-- Modal de Checkout -->
-      <CheckoutModal
-        v-if="planSeleccionado"
-        v-model="modalAbierto"
-        :plan="planSeleccionado"
-        :is-loading="isProcessingPayment"
-        @confirmar="confirmarPago"
-      />
-    </template>
+    </Transition>
   </div>
 </template>
-
-<style scoped>
-.animate-fade-in {
-  animation: fadeIn 0.4s ease-out;
-}
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-</style>

@@ -62,7 +62,7 @@ const todasLasSecciones: NavSection[] = [
     items: [
       {
         nombre: 'Pagos y Membresía',
-        ruta: '/pagos',
+        ruta: '/membresia',
         icono: 'credit-card',
         roles: ['socio', 'admin'],
       },
