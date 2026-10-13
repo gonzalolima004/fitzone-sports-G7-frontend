@@ -29,26 +29,30 @@ const planSeleccionado = ref<PlanMembresia | null>(null)
 const fetchDatos = async () => {
   try {
     isLoading.value = true
-
-    // Obtenemos el ID del usuario desde Pinia (ajusta 'id_usuario' según tu store)
     const userId = authStore.usuario?.id
 
-    if (!userId) {
-      throw new Error('Usuario no identificado')
-    }
+    if (!userId) throw new Error('Usuario no identificado')
 
     const [planesData, estadoData] = (await Promise.all([
       membresiasService.getPlanes(),
       membresiasService.verificarEstado(userId),
     ])) as unknown as [PlanMembresia[], EstadoMembresia]
 
-    // Mapeamos los planes para asegurar que tengan descripción para la UI
-    planes.value = planesData.map((p) => ({
-      ...p,
-      descripcion:
-        p.descripcion ||
-        'Acceso ilimitado a 25+ sedes|Clases grupales incluidas|15% off en Canchas|Credencial QR dinámica',
-    }))
+    // Mapeamos las descripciones de la UI basadas en los días del plan
+    planes.value = planesData.map((p) => {
+      let desc =
+        'Acceso ilimitado a 25+ sedes|Clases grupales incluidas|15% off en Canchas|Credencial QR dinámica'
+
+      if (p.duracion_dias === 90) {
+        desc =
+          'Todo lo del Plan Básico|Reserva prioritaria de clases (48 hs antes)|Renovación automática sin cortes|2 pases de invitado por trimestre'
+      } else if (p.duracion_dias >= 365) {
+        desc =
+          'Todo lo del Plan Pro|2 meses gratis incluidos en el año|Turno fijo semanal en canchas|Kit de bienvenida FitZone Sports'
+      }
+
+      return { ...p, descripcion: desc }
+    })
 
     miEstado.value = estadoData
   } catch {
@@ -79,19 +83,31 @@ onMounted(async () => {
   }
 })
 
+// En el <script>:
+// En el <script setup>:
 const abrirCheckout = (planId: number) => {
+  // Identificamos el plan sin importar cómo el DTO haya renombrado el ID
   planSeleccionado.value = planes.value.find((p) => p.id === planId) || null
+
   if (planSeleccionado.value) {
     modalAbierto.value = true
+  } else {
+    // Si sigue sin encontrarlo, imprimimos los planes para ver qué está mandando el backend
+    console.error(
+      'No se encontró el plan. Revisa esta estructura que llegó del backend:',
+      planes.value
+    )
+    toast.error('Error interno de sincronización de planes.')
   }
 }
 
 const confirmarPago = async (planId: number) => {
   isProcessingPayment.value = true
   try {
-    // Estructura adaptada al IniciarPagoDto del backend
+    // Aseguramos capturar el ID real para enviarlo al backend
+
     const payload = {
-      id_membresia: planId,
+      id_membresia: planSeleccionado.value?.id ?? planId,
       monto: planSeleccionado.value?.precio ?? 0,
       email_pagador: authStore.usuario?.email || 'test@fitzone.com',
       titulo: `Suscripción - ${planSeleccionado.value?.nombre ?? ''}`,
@@ -102,13 +118,13 @@ const confirmarPago = async (planId: number) => {
       sandboxInitPoint?: string
     }
 
-    // Redirección al initPoint de Mercado Pago
     if (response?.initPoint || response?.sandboxInitPoint) {
       window.location.href = (response.initPoint ||
         response.sandboxInitPoint) as string
     }
-  } catch {
-    toast.error('No se pudo iniciar el proceso de pago. Inténtalo nuevamente.')
+  } catch (error) {
+    console.error('Error al procesar pago:', error)
+    toast.error('No se pudo iniciar el proceso de pago. Revisa la consola.')
   } finally {
     isProcessingPayment.value = false
     modalAbierto.value = false
@@ -243,6 +259,8 @@ const isPopularPlan = (plan: PlanMembresia) => plan.duracion_dias === 90
         </p>
       </div>
 
+      <!-- En el <template>: -->
+      <!-- En el <template> (dentro del v-for de PlanCard): -->
       <div
         class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-6 xl:gap-8 max-w-6xl mx-auto"
       >
@@ -250,7 +268,7 @@ const isPopularPlan = (plan: PlanMembresia) => plan.duracion_dias === 90
           v-for="plan in planes"
           :key="plan.id"
           :plan="plan"
-          :is-current="miEstado?.planNombre === plan.nombre"
+          :is-current="miEstado?.nombre_plan === plan.nombre"
           :is-popular="isPopularPlan(plan)"
           :is-loading="isProcessingPayment && planSeleccionado?.id === plan.id"
           @subscribe="abrirCheckout"

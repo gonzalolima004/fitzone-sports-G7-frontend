@@ -16,6 +16,7 @@ export interface EstadoMembresia {
   fechaVencimiento: string | null
   planActualId: number | null
   planNombre: string | null
+  nombre_plan: string | null
 }
 
 export const membresiasService = {

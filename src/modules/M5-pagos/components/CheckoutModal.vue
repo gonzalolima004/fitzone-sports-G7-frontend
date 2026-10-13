@@ -135,9 +135,7 @@ const formattedPrice = computed(() => {
     </div>
 
     <template #actions>
-      <BaseButton variant="outline" @click="emit('update:modelValue', false)">
-        Cancelar
-      </BaseButton>
+      <!-- En el <template> (botón al final): -->
       <BaseButton
         variant="secondary"
         :loading="isLoading"
