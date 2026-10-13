@@ -12,7 +12,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'subscribe', planId: number): void
+  (e: 'subscribe', plan: PlanMembresia): void // <-- Pasamos el objeto entero
 }>()
 
 const formattedPrice = computed(() => {
@@ -81,11 +81,12 @@ const features = computed(() => {
       </li>
     </ul>
 
+    <!-- En el botón al final del template -->
     <BaseButton
       class="w-full"
       :variant="isPopular || isCurrent ? 'secondary' : 'outline'"
       :loading="isLoading"
-      @click="emit('subscribe', plan.id)"
+      @click="emit('subscribe', plan)"
     >
       {{ isCurrent ? 'Renovar / Cambiar Plan' : 'Suscribirme' }}
     </BaseButton>

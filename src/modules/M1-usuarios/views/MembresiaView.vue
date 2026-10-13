@@ -85,20 +85,9 @@ onMounted(async () => {
 
 // En el <script>:
 // En el <script setup>:
-const abrirCheckout = (planId: number) => {
-  // Identificamos el plan sin importar cómo el DTO haya renombrado el ID
-  planSeleccionado.value = planes.value.find((p) => p.id === planId) || null
-
-  if (planSeleccionado.value) {
-    modalAbierto.value = true
-  } else {
-    // Si sigue sin encontrarlo, imprimimos los planes para ver qué está mandando el backend
-    console.error(
-      'No se encontró el plan. Revisa esta estructura que llegó del backend:',
-      planes.value
-    )
-    toast.error('Error interno de sincronización de planes.')
-  }
+const abrirCheckout = (planRecibido: PlanMembresia) => {
+  planSeleccionado.value = planRecibido // Asignación directa e infalible
+  modalAbierto.value = true
 }
 
 const confirmarPago = async (planId: number) => {
