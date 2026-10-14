@@ -44,16 +44,23 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../modules/M5-pagos/views/PagosView.vue'),
       },
       {
-        path: 'reportes/ocupacion',
-        name: 'reportes-ocupacion',
-        component: () =>
-          import('../modules/M6-reportes/views/OcupacionView.vue'),
-      },
-      {
         path: 'reportes',
-        name: 'reportes',
         component: () =>
-          import('../modules/M6-reportes/views/ReportesView.vue'),
+          import('../modules/M6-reportes/views/PanelGerenciaView.vue'),
+        children: [
+          {
+            path: '',
+            name: 'reportes',
+            component: () =>
+              import('../modules/M6-reportes/views/ReportesView.vue'),
+          },
+          {
+            path: 'ocupacion',
+            name: 'reportes-ocupacion',
+            component: () =>
+              import('../modules/M6-reportes/views/OcupacionView.vue'),
+          },
+        ],
       },
     ],
   },
