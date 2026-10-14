@@ -67,9 +67,9 @@ async function consultar() {
 <template>
   <section class="space-y-6" :aria-busy="cargando">
     <header>
-      <h1 class="text-2xl font-bold text-slate-800">
+      <h2 class="text-2xl font-bold text-slate-800">
         Ocupación y reservas por sede
-      </h1>
+      </h2>
       <p class="mt-2 text-slate-600">
         Consultá las asistencias y reservas registradas durante un período.
       </p>
