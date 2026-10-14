@@ -557,6 +557,7 @@
   - Revisión de los PR abiertos de ambos repositorios y resolución de conflictos de los PR frontend #16, #17, #18 y #20, conservando el trabajo de sus autores.
   - Comprobación de la dependencia #16 → #17 → #18 para propagar las resoluciones en orden.
   - Unificación en #20 del servicio de pagos completo y del contrato vigente de lista de espera, con pruebas de regresión.
+  - Comprobación de #18 y #20 contra `dev` en `5294b0d` después de que #16 y #17 se integraran en GitHub durante el trabajo; Git confirmó combinaciones sin conflictos.
   - Preparación del documento [Cierre y traspaso](./cierre-tl-2026-10-14.md) para la reunión del 14/10 a las 15:00 y el inicio del nuevo TL el 15/10.
 - **Decisiones:**
   - Actualizar las ramas de los PR mediante merges, sin reescribir historial ni fusionar los PR en `dev`.
