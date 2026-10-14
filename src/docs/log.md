@@ -59,16 +59,36 @@
 
 ----
 
+#### 12/10/2026
+#### Gonzalo Lima | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Creación del servicio de pagos para conectar la interfaz con la API de cobros.
+  - Creación del botón y modal de confirmación de pago con validación y estados de carga.
+  - Listado dinámico de conceptos pendientes (membresías adeudadas y reservas de canchas).
+  - Redirección al checkout de Mercado Pago al confirmar el pago.
+- **Decisiones:**
+  - Reutilizar los componentes base del sistema (botones y modales) para mantener la consistencia visual.
+  - Mostrar mensajes de estado claros cuando el socio está al día con sus pagos.
+- **Dificultades:**
+  - Problema con el token de sesión en las peticiones que provocaba error de autenticación, resuelto unificando su lectura en el cliente HTTP.
+- **Commits:**
+  - `feat(pagos): pago service y botón disparador de acción de pago`
+  - `feat(pagos): conectar service con api iniciar-pagos`
+  - `feat(pagos): integracion de conceptos pendientes e inicio de checkout`
+
+----
+
 #### XX/XX/2026
 #### Gonzalo Lima | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  -
+  -
+  -
 - **Decisiones:**
-  - 
-  - 
+  -
+  -
 - **Dificultades:** Ninguna.
 - **Commits:**
   - ``
@@ -81,30 +101,12 @@
 #### Gonzalo Lima | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  -
+  -
+  -
 - **Decisiones:**
-  - 
-  - 
-- **Dificultades:** Ninguna.
-- **Commits:**
-  - ``
-  - ``
-  - ``
-
-----
-
-#### XX/XX/2026
-#### Gonzalo Lima | Rol: Desarrollador Frontend
-
-- **Actividades:**
-  - 
-  - 
-  - 
-- **Decisiones:**
-  - 
-  - 
+  -
+  -
 - **Dificultades:** Ninguna.
 - **Commits:**
   - ``
@@ -202,12 +204,12 @@
 #### Matías Sillen | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  -
+  -
+  -
 - **Decisiones:**
-  - 
-  - 
+  -
+  -
 - **Dificultades:** Ninguna.
 - **Commits:**
   - ``
@@ -223,10 +225,10 @@
   - Desarrollo de la vista de credencial del socio para la generación y visualización dinámica del código QR de acceso.
   - Creación del servicio accesos.service.ts para consumir el endpoint de generación de codigo qr, adjuntando la sesión activa del usuario.
   - Implementación del composable useQr.ts para gestionar la lógica de cuenta regresiva, expiración del token y renovación automática de la credencial.
-  - Manejo de estados de carga, fallos de red y expiración de sesión para evitar mostrar códigos no válidos o desactualizados 
+  - Manejo de estados de carga, fallos de red y expiración de sesión para evitar mostrar códigos no válidos o desactualizados
 - **Decisiones:**
-  -Centralizar la lógica del temporizador y temporización de renovación dentro de un composable (useQr) para limpiar correctamente los intervalos al desmontar el componente y evitar fuga de memoria o llamadas innecesarias a la API. 
-  - 
+  -Centralizar la lógica del temporizador y temporización de renovación dentro de un composable (useQr) para limpiar correctamente los intervalos al desmontar el componente y evitar fuga de memoria o llamadas innecesarias a la API.
+  -
 - **Dificultades:** Ninguna.
 - **Commits:**
   - `feat(M2): interfases de qrResponse y appiError`
@@ -240,12 +242,12 @@
 #### Angelina Viale | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  -
+  -
+  -
 - **Decisiones:**
-  - 
-  - 
+  -
+  -
 - **Dificultades:** Ninguna.
 - **Commits:**
   - ``
@@ -258,12 +260,12 @@
 #### Angelina Viale | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  -
+  -
+  -
 - **Decisiones:**
-  - 
-  - 
+  -
+  -
 - **Dificultades:** Ninguna.
 - **Commits:**
   - ``
@@ -358,7 +360,7 @@
   - Utilizar temporalmente slots de horarios fijos calculados según una hora hardcodeada, al no estar decidido todavía la implementación final de horarios.
   - Segmentar las columnas de la grilla por disciplina seleccionada en lugar de mostrar todas las canchas juntas, evitando saturación de información y mejorando la legibilidad.
   - Consumir la sede activa desde el store global de Pinia (`useSedeStore`) para que cualquier cambio de sede en el encabezado actualice de forma reactiva el catálogo y la grilla.
-- **Dificultades:** 
+- **Dificultades:**
   - Curva de aprendizaje inicial con Vue 3, lo que demandó considerable tiempo inicial de investigación y estudio del framework.
   - Discrepancias con los modelos iniciales de arquitectura,tanto diagramas como los adr y falta de endpoints en el backend para obtener información relevante, así que se tuvo que implementar temporalmente con información hardcodeada u omitirse temporalmente.
 - **Commits:**
@@ -382,7 +384,7 @@
   - Rediseño de casilleros de slots horarios para diferenciarlos más fácilmente y que sea visualmente más agradable.
   - Preparación para futuras integraciones con Supabase Realtime sobre la tabla `cancha_reserva` para refresco automático ante reservas concurrentes de otros usuarios.
 - **Decisiones:**
-  - 
+  -
 - **Dificultades:**
   - Adaptación del frontend ante la falta de endpoints específicos o contratos incompletos en el backend preexistente, requiriendo normalizar respuestas y pausar el flujo visual hasta implementar y sincronizar los endpoints en el backend.
   - Sincronización de zonas horarias, la hora local argentina y las marcas de tiempo ISO que esperaba el backend, para evitar que turnos de la tarde o noche se desfasaran o se computaran en días posteriores.
@@ -504,12 +506,12 @@
 #### Facundo Agüero | Rol: Team Leader
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  -
+  -
+  -
 - **Decisiones:**
-  - 
-  - 
+  -
+  -
 - **Dificultades:** Ninguna.
 - **Commits:**
   - ``
