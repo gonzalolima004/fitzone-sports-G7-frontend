@@ -9,47 +9,152 @@ export interface ClaseResponse {
   activo: boolean
 }
 
+export interface ClaseAgendaResponse {
+  id_clase: number
+  id_sede: number
+  nombre: string
+  descripcion: string | null
+  profesor?: string | null
+  sala?: string | null
+  horario_inicio: string
+  horario_fin: string
+  fecha_inicio: string
+  fecha_fin: string
+  capacidad_maxima: number
+  cupos_ocupados: number
+  cupos_disponibles: number
+  en_espera: number
+  estado: 'DISPONIBLE' | 'COMPLETO'
+  activo: boolean
+}
+
 export interface CreateReservaRequest {
   id_clase: number
-  fecha: string // Formato YYYY-MM-DD
+  fecha_inicio?: string
+  fecha_fin?: string
+  fecha?: string
+}
+
+export interface InscribirListaEsperaRequest {
+  id_clase: number
+  fecha_inicio?: string
+  fecha_fin?: string
+  fecha?: string
 }
 
 export interface ReservaResponse {
+  id_clase_reserva?: number
   id_reserva: number
-  id_usuario: number
+  id_usuario?: number
+  id_clase?: number
+  fecha_inicio?: string
+  fecha_fin?: string
+  id_clase_reserva_estado?: number
+  estado?: string
+}
+
+export interface MiReservaClaseResponse {
+  id_clase_reserva: number
   id_clase: number
-  fecha: string
+  id_usuario: number
+  fecha_inicio: string
+  fecha_fin: string
+  id_clase_reserva_estado: number
   estado: string
+  nombre_clase?: string
 }
 
 export interface ListaEsperaResponse {
   id_lista: number
-  id_usuario: number
+  message?: string
+  orden_en_cola?: number
+  inscripcion?: {
+    id_clase_lista_espera: number
+    id_usuario: number
+    id_clase: number
+    fecha_inicio: string
+    fecha_fin: string
+    id_clase_lista_espera_estado: number
+  }
+}
+
+export interface MiInscripcionListaEsperaResponse {
+  id_clase_lista_espera: number
   id_clase: number
-  fecha: string
+  id_usuario: number
+  fecha_inicio: string
+  fecha_fin: string
+  orden_en_cola: number
+  id_clase_lista_espera_estado: number
   estado: string
+  nombre_clase?: string
 }
 
 export const clasesService = {
   /**
-   * Obtiene el catálogo de clases activas para una sede específica.
+   * Obtiene la agenda de clases para una sede específica (y fecha opcional).
    * @param id_sede ID de la sede para filtrar
-   * @returns Lista de clases
+   * @param fecha Fecha opcional en formato YYYY-MM-DD
+   * @returns Lista de clases con aforo y horarios reales
    */
-  async obtenerClasesPorSede(id_sede: number): Promise<ClaseResponse[]> {
-    const response = await http.get<ClaseResponse[]>('/clases', {
-      params: { id_sede },
+  async obtenerClasesPorSede(
+    id_sede: number,
+    fecha?: string
+  ): Promise<ClaseAgendaResponse[]> {
+    const response = await http.get<ClaseAgendaResponse[]>('/clases', {
+      params: { id_sede, fecha },
     })
     return response.data
   },
 
   /**
+   * Obtiene las reservas activas del usuario autenticado (con filtro opcional de fecha).
+   * @param fecha Fecha opcional en formato YYYY-MM-DD
+   */
+  async obtenerMisReservas(fecha?: string): Promise<MiReservaClaseResponse[]> {
+    const response = await http.get<MiReservaClaseResponse[]>(
+      '/reservas-clases/mis-reservas',
+      {
+        params: fecha ? { fecha } : {},
+      }
+    )
+    return response.data
+  },
+
+  /**
+   * Obtiene las inscripciones activas en lista de espera del usuario autenticado.
+   * @param fecha Fecha opcional en formato YYYY-MM-DD
+   */
+  async obtenerMisInscripciones(
+    fecha?: string
+  ): Promise<MiInscripcionListaEsperaResponse[]> {
+    const response = await http.get<MiInscripcionListaEsperaResponse[]>(
+      '/lista-espera/mis-inscripciones',
+      {
+        params: fecha ? { fecha } : {},
+      }
+    )
+    return response.data
+  },
+
+  /**
    * Genera una reserva para una clase grupal.
-   * @param data Datos de la reserva (clase y fecha)
+   * @param data Datos de la reserva (id_clase, fecha_inicio, fecha_fin)
    * @returns La reserva creada
    */
   async reservarClase(data: CreateReservaRequest): Promise<ReservaResponse> {
-    const response = await http.post<ReservaResponse>('/reservas-clases', data)
+    const payload =
+      data.fecha_inicio && data.fecha_fin
+        ? {
+            id_clase: data.id_clase,
+            fecha_inicio: data.fecha_inicio,
+            fecha_fin: data.fecha_fin,
+          }
+        : data
+    const response = await http.post<ReservaResponse>(
+      '/reservas-clases',
+      payload
+    )
     return response.data
   },
 
@@ -63,15 +168,23 @@ export const clasesService = {
 
   /**
    * Inscribe al usuario en la lista de espera para una clase completa.
-   * @param data Datos de la clase y fecha
+   * @param data Datos de la clase y horarios ISO
    * @returns La inscripción creada
    */
   async inscribirListaEspera(
-    data: CreateReservaRequest
+    data: InscribirListaEsperaRequest
   ): Promise<ListaEsperaResponse> {
+    const payload =
+      data.fecha_inicio && data.fecha_fin
+        ? {
+            id_clase: data.id_clase,
+            fecha_inicio: data.fecha_inicio,
+            fecha_fin: data.fecha_fin,
+          }
+        : data
     const response = await http.post<ListaEsperaResponse>(
       '/lista-espera/inscribir',
-      data
+      payload
     )
     return response.data
   },
