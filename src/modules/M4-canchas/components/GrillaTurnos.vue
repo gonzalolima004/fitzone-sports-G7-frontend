@@ -4,6 +4,7 @@ import type {
   Cancha,
   TurnoSlot,
   TurnoSeleccionado,
+  HorarioOperativoDia,
 } from '@/modules/M4-canchas/types/canchas.types'
 
 interface Props {
@@ -12,6 +13,8 @@ interface Props {
   turnoSeleccionado: TurnoSeleccionado | null
   cargando: boolean
   fecha: string
+  fechaHoy?: string
+  horarioOperativo?: HorarioOperativoDia | null
 }
 
 const props = defineProps<Props>()
@@ -20,19 +23,68 @@ const emit = defineEmits<{
   (e: 'seleccionarTurno', payload: { cancha: Cancha; slot: TurnoSlot }): void
 }>()
 
-// Lista estándar de horas a desplegar (08:00 a 22:00 hs)
-const franjasHorarias = computed(() => {
-  const horas: string[] = []
-  for (let h = 8; h <= 22; h++) {
-    horas.push(`${h.toString().padStart(2, '0')}:00`)
+// Comprueba si un slot ya transcurrió en el tiempo para el día actual
+function esSlotPasado(slot: TurnoSlot): boolean {
+  const hoyRef =
+    props.fechaHoy ||
+    new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+      .toISOString()
+      .split('T')[0]
+  console.log('prop:', props.fechaHoy)
+  console.log(
+    'cod:',
+    new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+      .toISOString()
+      .split('T')[0]
+  )
+  console.log('final:', hoyRef)
+  if (props.fecha < hoyRef) return true
+  if (props.fecha === hoyRef) {
+    const ahora = new Date()
+    const horaActual = `${ahora.getHours().toString().padStart(2, '0')}:${ahora.getMinutes().toString().padStart(2, '0')}`
+    return slot.hora_inicio <= horaActual
   }
-  return horas
+  return false
+}
+
+// Lista dinámica de horas según los slots de la sede y fecha (SedeHorario y Calendario)
+const franjasHorarias = computed(() => {
+  const horasSet = new Set<string>()
+  if (props.disponibilidadMap) {
+    Object.values(props.disponibilidadMap).forEach((slots) => {
+      if (Array.isArray(slots)) {
+        slots.forEach((s) => {
+          if (s && s.hora_inicio) {
+            horasSet.add(s.hora_inicio)
+          }
+        })
+      }
+    })
+  }
+
+  if (horasSet.size > 0) {
+    return Array.from(horasSet).sort()
+  }
+
+  if (props.horarioOperativo && props.horarioOperativo.abierto) {
+    const inicio = parseInt(
+      props.horarioOperativo.hora_apertura.split(':')[0],
+      10
+    )
+    const fin = parseInt(props.horarioOperativo.hora_cierre.split(':')[0], 10)
+    const res: string[] = []
+    for (let h = inicio; h < fin; h++) {
+      res.push(`${h.toString().padStart(2, '0')}:00`)
+    }
+    return res
+  }
+  return []
 })
 
 function getSlot(canchaId: number, horaInicio: string): TurnoSlot | undefined {
-  const slots = props.disponibilidadMap[canchaId]
-  if (!slots) return undefined
-  return slots.find((s) => s.hora_inicio === horaInicio)
+  const slots = props.disponibilidadMap?.[canchaId]
+  if (!Array.isArray(slots)) return undefined
+  return slots.find((s) => s && s.hora_inicio === horaInicio)
 }
 
 function esSlotSeleccionado(canchaId: number, slot: TurnoSlot): boolean {
@@ -44,7 +96,7 @@ function esSlotSeleccionado(canchaId: number, slot: TurnoSlot): boolean {
 }
 
 function handleSlotClick(cancha: Cancha, slot: TurnoSlot) {
-  if (slot.estado !== 'DISPONIBLE') return
+  if (esSlotPasado(slot) || slot.estado !== 'DISPONIBLE') return
   emit('seleccionarTurno', { cancha, slot })
 }
 
@@ -74,15 +126,15 @@ function formatoMoneda(valor: number): string {
         </p>
       </div>
 
-      <!-- Leyenda de Estados (sin pills decorativas innecesarias, texto limpio con viñetas) -->
+      <!-- Leyenda de Estados -->
       <div
         class="flex flex-wrap items-center gap-4 text-xs font-medium text-slate-600"
       >
         <div class="flex items-center gap-1.5">
           <span
-            class="w-3.5 h-3.5 rounded-md border border-slate-300 bg-white inline-block shadow-2xs"
+            class="w-3.5 h-3.5 rounded-md border-2 border-rose-300 bg-rose-100 inline-block shadow-2xs"
           />
-          <span>Disponible</span>
+          <span class="text-[#F96167] font-bold">Horario Pico (19 a 21h)</span>
         </div>
         <div class="flex items-center gap-1.5">
           <span
@@ -94,13 +146,13 @@ function formatoMoneda(valor: number): string {
         </div>
         <div class="flex items-center gap-1.5">
           <span class="w-3.5 h-3.5 rounded-md bg-slate-200 inline-block" />
-          <span class="text-slate-400">Ocupado</span>
+          <span class="text-slate-400">Ocupado / Pasado</span>
         </div>
         <div class="flex items-center gap-1.5">
           <span
-            class="w-3.5 h-3.5 rounded-md bg-amber-100 border border-amber-300 inline-block"
+            class="w-3.5 h-3.5 rounded-md bg-amber-100 border-2 border-dashed border-amber-400 inline-block"
           />
-          <span class="text-amber-800">Mantenimiento</span>
+          <span class="text-amber-800 font-bold">Mantenimiento</span>
         </div>
         <div class="flex items-center gap-1.5">
           <span class="w-3.5 h-3.5 rounded-md bg-[#202759] inline-block" />
@@ -137,6 +189,65 @@ function formatoMoneda(valor: number): string {
       <span class="text-xs font-medium text-slate-500"
         >Consultando disponibilidad en tiempo real...</span
       >
+    </div>
+
+    <!-- Estado de Sede Cerrada o Fecha No Programada en Calendario -->
+    <div
+      v-else-if="horarioOperativo && !horarioOperativo.abierto"
+      class="p-12 text-center flex flex-col items-center justify-center gap-3"
+    >
+      <div
+        :class="[
+          'w-12 h-12 rounded-full flex items-center justify-center mb-1',
+          horarioOperativo.no_programado
+            ? 'bg-amber-100 text-amber-700'
+            : 'bg-red-50 text-[#F96167]',
+        ]"
+      >
+        <svg
+          v-if="horarioOperativo.no_programado"
+          class="w-6 h-6"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+          />
+        </svg>
+        <svg
+          v-else
+          class="w-6 h-6"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+      </div>
+      <h4 class="text-sm font-bold text-slate-800">
+        {{
+          horarioOperativo.no_programado
+            ? 'Fecha no programada en el calendario'
+            : horarioOperativo.es_pasado
+              ? 'Fecha pasada no disponible'
+              : 'Sede Cerrada'
+        }}
+      </h4>
+      <p class="text-xs text-slate-500 max-w-md leading-relaxed">
+        {{
+          horarioOperativo.motivo_cierre ||
+          'La sede no se encuentra abierta en la fecha seleccionada según el calendario oficial.'
+        }}
+      </p>
     </div>
 
     <!-- Empty State: sin canchas para el filtro -->
@@ -206,7 +317,7 @@ function formatoMoneda(valor: number): string {
             :key="hora"
             class="hover:bg-slate-50/50 transition-colors"
           >
-            <!-- Celda de Hora (Eje Vertical con Tipografía Tabular) -->
+            <!-- Celda de Hora -->
             <td
               class="py-2.5 px-4 text-center font-mono text-slate-600 font-semibold tabular-nums select-none bg-slate-50/40"
             >
@@ -220,9 +331,24 @@ function formatoMoneda(valor: number): string {
               class="py-1.5 px-2.5 border-l border-slate-100 text-center align-middle"
             >
               <template v-if="getSlot(cancha.id_cancha, hora)">
-                <!-- SLOT DISPONIBLE (O SELECCIONADO) -->
+                <!-- SLOT PASADO / HORARIO TRANSCURRIDO HOY O FECHA PASADA -->
+                <div
+                  v-if="esSlotPasado(getSlot(cancha.id_cancha, hora)!)"
+                  class="w-full py-2 px-2 rounded-xl text-xs bg-slate-100 text-slate-400 select-none cursor-not-allowed flex flex-col items-center justify-center gap-0.5 border border-slate-200/60"
+                  title="Este horario ya transcurrió en el día de hoy"
+                >
+                  <span class="font-medium text-[11px] leading-none"
+                    >Pasado</span
+                  >
+                  <span
+                    class="text-[9px] text-slate-400 uppercase tracking-wider font-mono"
+                    >No disp.</span
+                  >
+                </div>
+
+                <!-- SLOT DISPONIBLE -->
                 <button
-                  v-if="
+                  v-else-if="
                     getSlot(cancha.id_cancha, hora)!.estado === 'DISPONIBLE'
                   "
                   type="button"
@@ -234,7 +360,7 @@ function formatoMoneda(valor: number): string {
                     )
                       ? 'bg-[#202759] text-white shadow-md ring-2 ring-[#202759]'
                       : getSlot(cancha.id_cancha, hora)!.es_horario_pico
-                        ? 'bg-amber-50/60 border border-[#F96167]/40 text-[#202759] hover:bg-[#F96167]/15 hover:border-[#F96167]'
+                        ? 'bg-rose-50/90 border-2 border-rose-300 text-[#202759] hover:bg-rose-100 hover:border-[#F96167] shadow-2xs'
                         : 'bg-white border border-slate-200 text-slate-700 hover:border-[#202759]/60 hover:bg-slate-50 hover:text-[#202759] shadow-2xs',
                   ]"
                   @click="
@@ -251,11 +377,19 @@ function formatoMoneda(valor: number): string {
                       "
                       class="text-white"
                     >
-                      ✓ Elegido
+                      Elegido
                     </span>
-                    <span v-else> Disponible </span>
+                    <span
+                      v-else
+                      :class="
+                        getSlot(cancha.id_cancha, hora)!.es_horario_pico
+                          ? 'text-[#202759] font-bold'
+                          : ''
+                      "
+                    >
+                      Disponible
+                    </span>
 
-                    <!-- Indicador de Horario Pico con acento oficial Coral (#F96167) -->
                     <span
                       v-if="
                         getSlot(cancha.id_cancha, hora)!.es_horario_pico &&
@@ -264,13 +398,13 @@ function formatoMoneda(valor: number): string {
                           getSlot(cancha.id_cancha, hora)!
                         )
                       "
-                      class="text-[10px] font-bold text-[#F96167] tracking-tight uppercase"
+                      class="text-[9px] font-black bg-[#F96167] text-white px-1.5 py-0.5 rounded shadow-2xs tracking-tight uppercase"
                     >
-                      (Pico)
+                      Pico
                     </span>
                   </div>
 
-                  <!-- Precio con cifras tabulares -->
+                  <!-- Precio con cifras tabulares y cálculo correcto -->
                   <span
                     :class="[
                       'text-[10px] font-mono tabular-nums leading-none',
@@ -280,7 +414,7 @@ function formatoMoneda(valor: number): string {
                       )
                         ? 'text-slate-200'
                         : getSlot(cancha.id_cancha, hora)!.es_horario_pico
-                          ? 'text-[#F96167] font-semibold'
+                          ? 'text-[#F96167] font-extrabold'
                           : 'text-slate-500',
                     ]"
                   >
@@ -292,7 +426,7 @@ function formatoMoneda(valor: number): string {
                   </span>
                 </button>
 
-                <!-- SLOT RESERVADO / OCUPADO -->
+                <!-- SLOT RESERVADO -->
                 <div
                   v-else-if="
                     getSlot(cancha.id_cancha, hora)!.estado === 'RESERVADO'
@@ -308,17 +442,21 @@ function formatoMoneda(valor: number): string {
                   >
                 </div>
 
-                <!-- SLOT EN MANTENIMIENTO (RF-12) -->
+                <!-- SLOT EN MANTENIMIENTO (RF-12) - Borde discontinuo y advertencia inconfundible -->
                 <div
                   v-else-if="
                     getSlot(cancha.id_cancha, hora)!.estado === 'MANTENIMIENTO'
                   "
-                  class="w-full py-2 px-2 rounded-xl text-xs bg-amber-50 text-amber-800 border border-amber-200/80 select-none cursor-not-allowed flex flex-col items-center justify-center gap-0.5"
+                  class="w-full py-2 px-2 rounded-xl text-xs bg-amber-50 text-amber-950 border-2 border-dashed border-amber-400 select-none cursor-not-allowed flex flex-col items-center justify-center gap-0.5 shadow-2xs"
+                  title="Cancha bloqueada por mantenimiento preventivo"
                 >
-                  <span class="font-semibold text-[11px] leading-none"
-                    >Mantenimiento</span
-                  >
-                  <span class="text-[9px] text-amber-600 font-mono"
+                  <div class="flex items-center gap-1 leading-none">
+                    <span
+                      class="font-bold text-[11px] text-amber-900 leading-none"
+                      >Mantenimiento</span
+                    >
+                  </div>
+                  <span class="text-[9px] text-amber-700 font-mono font-medium"
                     >Bloqueado</span
                   >
                 </div>

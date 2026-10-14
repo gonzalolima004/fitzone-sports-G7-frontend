@@ -3,15 +3,17 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useSedeStore } from '@/store/sede'
 import canchasService from '@/modules/M4-canchas/services/canchas.service'
 import GrillaTurnos from '@/modules/M4-canchas/components/GrillaTurnos.vue'
+import ConfirmarReserva from '@/modules/M4-canchas/components/ConfirmarReserva.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import BaseInput from '@/common/components/BaseInput.vue'
-import BaseModal from '@/common/components/BaseModal.vue'
 import { toast } from '@/common/utils/toast'
 import type {
   Cancha,
   CanchaTipo,
   TurnoSlot,
   TurnoSeleccionado,
+  ReservaCanchaResponse,
+  HorarioOperativoDia,
 } from '@/modules/M4-canchas/types/canchas.types'
 
 const sedeStore = useSedeStore()
@@ -29,6 +31,7 @@ const tiposCancha = ref<CanchaTipo[]>([])
 const todasLasCanchasSede = ref<Cancha[]>([])
 const disponibilidadMap = ref<Record<number, TurnoSlot[]>>({})
 const turnoSeleccionado = ref<TurnoSeleccionado | null>(null)
+const horarioOperativo = ref<HorarioOperativoDia | null>(null)
 
 // Modal de pre-confirmación de reserva
 const modalConfirmarAbierto = ref(false)
@@ -48,7 +51,17 @@ const unsubscribeFns: Array<() => void> = []
  * consumiendo GET /canchas/:id/disponibilidad
  */
 async function cargarDisponibilidad() {
-  if (canchasFiltradas.value.length === 0) {
+  if (sedeStore.sedeSeleccionada) {
+    horarioOperativo.value = await canchasService.getHorarioOperativo(
+      sedeStore.sedeSeleccionada.id_sede,
+      fechaSeleccionada.value
+    )
+  }
+
+  if (
+    canchasFiltradas.value.length === 0 ||
+    (horarioOperativo.value && !horarioOperativo.value.abierto)
+  ) {
     disponibilidadMap.value = {}
     return
   }
@@ -111,7 +124,6 @@ async function inicializarDatos() {
  * Configura la suscripción a Supabase Realtime para la sede y canchas visibles
  */
 function suscribirRealtime() {
-  // Limpiar suscripciones previas
   unsubscribeFns.forEach((fn) => fn())
   unsubscribeFns.length = 0
 
@@ -125,7 +137,6 @@ function suscribirRealtime() {
           payload
         )
         toast.info(`Actualización en vivo en ${cancha.nombre}`)
-        // Refrescar slots de la cancha
         canchasService
           .getDisponibilidad(cancha.id_cancha, fechaSeleccionada.value)
           .then((res) => {
@@ -151,6 +162,17 @@ function handleSeleccionarTurno(payload: { cancha: Cancha; slot: TurnoSlot }) {
 function abrirConfirmacion() {
   if (!turnoSeleccionado.value) return
   modalConfirmarAbierto.value = true
+}
+
+function handleReservaConfirmada(reserva: ReservaCanchaResponse) {
+  console.log('[CanchasView] Reserva confirmada:', reserva)
+  turnoSeleccionado.value = null
+  cargarDisponibilidad()
+}
+
+function handleConflictoDisponibilidad(mensaje: string) {
+  console.warn('[CanchasView] Conflicto en turno:', mensaje)
+  cargarDisponibilidad()
 }
 
 function formatoMoneda(valor: number): string {
@@ -208,35 +230,51 @@ onUnmounted(() => {
         </p>
       </div>
 
-      <!-- Indicador de Sede Activa (Consumida del store global) -->
+      <!-- Indicador de Sede Activa y Horario Operativo -->
       <div
-        class="flex items-center gap-2 text-xs font-medium text-slate-600 bg-white border border-slate-200 px-3.5 py-2 rounded-xl shadow-2xs"
+        class="flex flex-wrap items-center gap-2.5 text-xs font-medium text-slate-600 bg-white border border-slate-200 px-3.5 py-2 rounded-xl shadow-2xs"
       >
-        <svg
-          class="w-4 h-4 text-[#202759]"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-          />
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-          />
-        </svg>
-        <span
-          >Sede activa:
-          <strong class="text-[#202759]">{{
-            sedeStore.sedeSeleccionada?.nombre
-          }}</strong></span
-        >
+        <div class="flex items-center gap-1.5">
+          <svg
+            class="w-4 h-4 text-[#202759]"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+            />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+            />
+          </svg>
+          <span
+            >Sede activa:
+            <strong class="text-[#202759]">{{
+              sedeStore.sedeSeleccionada?.nombre
+            }}</strong></span
+          >
+        </div>
+
+        <span class="text-slate-300">|</span>
+
+        <!-- Horario del día según SedeHorario / Calendario -->
+        <div v-if="horarioOperativo" class="flex items-center gap-1">
+          <span
+            v-if="horarioOperativo.abierto"
+            class="text-emerald-700 font-semibold font-mono tabular-nums"
+          >
+            Horario: {{ horarioOperativo.hora_apertura }} a
+            {{ horarioOperativo.hora_cierre }} hs
+          </span>
+          <span v-else class="text-[#F96167] font-bold"> Sede Cerrada </span>
+        </div>
       </div>
     </div>
 
@@ -269,7 +307,7 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- Selector de Fecha de Juego con BaseInput y restricción a fecha actual -->
+      <!-- Selector de Fecha de Juego -->
       <div class="w-full md:w-64">
         <BaseInput
           v-model="fechaSeleccionada"
@@ -277,11 +315,11 @@ onUnmounted(() => {
           type="date"
           :min="fechaHoy"
           required
-          hint="Turnos disponibles de 08:00 a 23:00 hs."
+          hint="Turnos disponibles según horario de sede."
         />
       </div>
 
-      <!-- Botón de Refresco Manual / Sincronización -->
+      <!-- Botón de Refresco Manual -->
       <div class="shrink-0">
         <BaseButton
           variant="outline"
@@ -306,170 +344,106 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Grilla de Disponibilidad (GrillaTurnos.vue) -->
+    <!-- Grilla de Disponibilidad -->
     <GrillaTurnos
       :canchas="canchasFiltradas"
       :disponibilidad-map="disponibilidadMap"
       :turno-seleccionado="turnoSeleccionado"
       :cargando="cargando"
       :fecha="fechaSeleccionada"
+      :horario-operativo="horarioOperativo"
       @seleccionar-turno="handleSeleccionarTurno"
     />
 
-    <!-- Barra Inferior Flotante de Turno Seleccionado -->
-    <Transition
-      enter-active-class="transform transition ease-out duration-200"
-      enter-from-class="translate-y-4 opacity-0"
-      enter-to-class="translate-y-0 opacity-100"
-      leave-active-class="transition ease-in duration-150"
-      leave-from-class="translate-y-0 opacity-100"
-      leave-to-class="translate-y-4 opacity-0"
+    <!-- Barra Inferior Flotante de Turno Seleccionado (sin Transition conflictivo) -->
+    <div
+      v-if="turnoSeleccionado"
+      class="sticky bottom-4 z-30 bg-[#202759] text-white p-4 sm:p-5 rounded-2xl shadow-xl border border-slate-700/50 flex flex-col sm:flex-row items-center justify-between gap-4 transition-all duration-200"
     >
-      <div
-        v-if="turnoSeleccionado"
-        class="sticky bottom-4 z-30 bg-[#202759] text-white p-4 sm:p-5 rounded-2xl shadow-xl border border-slate-700/50 flex flex-col sm:flex-row items-center justify-between gap-4"
-      >
-        <div class="flex items-center gap-4 text-left">
-          <div
-            class="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center shrink-0"
-          >
-            <svg
-              class="w-6 h-6 text-[#F96167]"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-          </div>
-
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-semibold text-slate-300">
-                Turno Seleccionado
-              </span>
-              <span
-                v-if="turnoSeleccionado.slot.es_horario_pico"
-                class="text-[10px] bg-[#F96167] text-white px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-wider"
-              >
-                Horario Pico (Recargo 20%)
-              </span>
-            </div>
-
-            <div
-              class="text-base font-bold text-white flex items-center gap-2 mt-0.5"
-            >
-              <span>{{ turnoSeleccionado.cancha.nombre }}</span>
-              <span class="text-slate-400">·</span>
-              <span class="font-mono tabular-nums text-slate-200"
-                >{{ turnoSeleccionado.slot.hora_inicio }} a
-                {{ turnoSeleccionado.slot.hora_fin }} hs</span
-              >
-            </div>
-
-            <div class="text-xs text-slate-300 mt-0.5">
-              Fecha:
-              <strong class="text-white">{{ turnoSeleccionado.fecha }}</strong>
-              <span class="mx-1 text-slate-400">|</span>
-              Tarifa estimada:
-              <strong class="text-[#F96167] font-mono text-sm ml-1">{{
-                formatoMoneda(turnoSeleccionado.slot.precio_estimado)
-              }}</strong>
-            </div>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-3 w-full sm:w-auto">
-          <BaseButton
-            variant="outline"
-            size="md"
-            class="flex-1 sm:flex-none !bg-white/10 !text-white !border-white/20 hover:!bg-white/20"
-            @click="turnoSeleccionado = null"
-          >
-            Deseleccionar
-          </BaseButton>
-
-          <BaseButton
-            variant="secondary"
-            size="md"
-            class="flex-1 sm:flex-none shadow-md"
-            @click="abrirConfirmacion"
-          >
-            Continuar Reserva
-          </BaseButton>
-        </div>
-      </div>
-    </Transition>
-
-    <!-- Modal de Revisión y Confirmación Inicial (BaseModal de common components) -->
-    <BaseModal
-      v-model="modalConfirmarAbierto"
-      title="Confirmar Selección de Cancha"
-      subtitle="Revisá los datos antes de proceder a la confirmación de la reserva."
-    >
-      <div v-if="turnoSeleccionado" class="space-y-4 py-2">
+      <div class="flex items-center gap-4 text-left">
         <div
-          class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 text-xs"
+          class="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center shrink-0"
         >
-          <div class="flex justify-between py-1 border-b border-slate-200/60">
-            <span class="text-slate-500">Sede:</span>
-            <span class="font-bold text-[#202759]">{{
-              sedeStore.sedeSeleccionada?.nombre
-            }}</span>
+          <svg
+            class="w-6 h-6 text-[#F96167]"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+        </div>
+
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold text-slate-300">
+              Turno Seleccionado
+            </span>
+            <span
+              v-if="turnoSeleccionado.slot.es_horario_pico"
+              class="text-[10px] bg-[#F96167] text-white px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-wider"
+            >
+              Horario Pico (Recargo 20%)
+            </span>
           </div>
-          <div class="flex justify-between py-1 border-b border-slate-200/60">
-            <span class="text-slate-500">Cancha:</span>
-            <span class="font-bold text-[#202759]">{{
-              turnoSeleccionado.cancha.nombre
-            }}</span>
-          </div>
-          <div class="flex justify-between py-1 border-b border-slate-200/60">
-            <span class="text-slate-500">Fecha elegida:</span>
-            <span class="font-bold text-[#202759]">{{
-              turnoSeleccionado.fecha
-            }}</span>
-          </div>
-          <div class="flex justify-between py-1 border-b border-slate-200/60">
-            <span class="text-slate-500">Franja horaria:</span>
-            <span class="font-mono font-bold text-[#202759]"
+
+          <div
+            class="text-base font-bold text-white flex items-center gap-2 mt-0.5"
+          >
+            <span>{{ turnoSeleccionado.cancha.nombre }}</span>
+            <span class="text-slate-400">·</span>
+            <span class="font-mono tabular-nums text-slate-200"
               >{{ turnoSeleccionado.slot.hora_inicio }} a
               {{ turnoSeleccionado.slot.hora_fin }} hs</span
             >
           </div>
-          <div class="flex justify-between py-1 items-center">
-            <span class="text-slate-500">Precio estimado:</span>
-            <span class="text-base font-bold text-[#F96167] font-mono">
-              {{ formatoMoneda(turnoSeleccionado.slot.precio_estimado) }}
-            </span>
+
+          <div class="text-xs text-slate-300 mt-0.5">
+            Fecha:
+            <strong class="text-white">{{ turnoSeleccionado.fecha }}</strong>
+            <span class="mx-1 text-slate-400">|</span>
+            Tarifa estimada:
+            <strong class="text-[#F96167] font-mono text-sm ml-1">{{
+              formatoMoneda(turnoSeleccionado.slot.precio_estimado)
+            }}</strong>
           </div>
         </div>
-
-        <p class="text-xs text-slate-500 leading-relaxed">
-          Al confirmar la reserva, se validará tu membresía activa (descuento
-          del 15% para socios activos).
-        </p>
       </div>
 
-      <template #actions>
-        <BaseButton variant="outline" @click="modalConfirmarAbierto = false">
-          Volver a la grilla
+      <div class="flex items-center gap-3 w-full sm:w-auto">
+        <BaseButton
+          variant="outline"
+          size="md"
+          class="flex-1 sm:flex-none !bg-white/10 !text-white !border-white/20 hover:!bg-white/20"
+          @click="turnoSeleccionado = null"
+        >
+          Deseleccionar
         </BaseButton>
 
         <BaseButton
-          variant="primary"
-          @click="
-            (toast.success('Turno seleccionado.'),
-            (modalConfirmarAbierto = false))
-          "
+          variant="secondary"
+          size="md"
+          class="flex-1 sm:flex-none shadow-md"
+          @click="abrirConfirmacion"
         >
-          Confirmar y continuar
+          Continuar Reserva
         </BaseButton>
-      </template>
-    </BaseModal>
+      </div>
+    </div>
+
+    <!-- Modal con v-if condicional para desmontaje limpio -->
+    <ConfirmarReserva
+      v-if="modalConfirmarAbierto"
+      v-model="modalConfirmarAbierto"
+      :turno="turnoSeleccionado"
+      :nombre-sede="sedeStore.sedeSeleccionada?.nombre || 'Sede Seleccionada'"
+      @reserva-confirmada="handleReservaConfirmada"
+      @conflicto-disponibilidad="handleConflictoDisponibilidad"
+    />
   </div>
 </template>
