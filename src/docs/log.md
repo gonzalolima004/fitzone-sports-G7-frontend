@@ -187,25 +187,26 @@
 
 ----
 
-#### XX/XX/2026
+#### 14/10/2026
 #### Angelina Viale | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  - Desarrollo de la vista de recepción (RecepcionView.vue) y del componente reutilizable de validación (ValidacionAcceso.vue) para el control de acceso en sucursales.
+  - Implementación de la opción de ingreso manual del token QR y del escaneo de códigos en tiempo real utilizando la librería html5-qrcode
+  - Conexión del flujo de validación con el servicio de accesos (accesos.service.ts) para consumir el endpoint de validación y control de aforo/ingresos
+  -Incorporación de la lógica para registrar la salida (egreso) del socio y manejo visual de los estados de éxito, errores y rechazos del servidor (QR vencido, membresía inválida, sede llena o doble ingreso).
 - **Decisiones:**
-  - 
-  - 
-- **Dificultades:** Ninguna.
+  - Extraer y centralizar la lógica del lector y validación en el componente ValidacionAcceso.vue para mantener la vista limpia, evitar la duplicación de código y cumplir con el principio de separación de responsabilidades.
+  - Implementar un mecanismo de control de estado (isLoadingIngreso y bandera de escaneo activo) para evitar múltiples disparos simultáneos y condiciones de carrera al escanear con la cámara.
+- **Dificultades:** Conflictos temporales de lecturas múltiples por segundo desde la cámara web (captura de fotogramas repetidos en paralelo), resueltos bloqueando el lector inmediatamente al detectar un código válido antes de invocar la API..
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  - `feat(M2): crear vista de recepcion y componente de validacion de acceso`
+  - `feat(M2): metodos service accesos e interfaces actualizacion`
+  - `feat(M2): actualizacion credencial`
 
 ----
 
-#### XX/XX/2026
+#### XX/10/2026
 #### Angelina Viale | Rol: Desarrollador Frontend
 
 - **Actividades:**
