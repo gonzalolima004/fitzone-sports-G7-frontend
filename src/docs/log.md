@@ -518,3 +518,22 @@
 
 ----
 
+
+---
+
+#### 14/10/2026
+#### Facundo Agüero | Rol: Team Leader
+
+- **Actividades:**
+  - Revisión del tablero y del historial integrado del frontend; identificación de las tareas propias E1 5, E1 6 y TL 2.
+  - Preparación de ramas de ocupación, panel de gerencia y corrección SQL necesaria en backend, con pruebas y entregas separadas para revisión.
+  - Registro de PR abiertos, dependencias y pendientes en [Cierre y traspaso del 14/10](./cierre-tl-2026-10-14.md).
+- **Decisiones:**
+  - Facundo abrirá los PR con las ramas publicadas. La resolución de conflictos e integración se realizará después.
+  - Tarea 6 depende de tarea 5; su PR inicial debe usar esa rama como base.
+  - Reunión prevista a las 15:00 para revisión, sorteo del nuevo TL y traspaso con inicio el 15/10.
+- **Verificación:**
+  - Frontend con ambas tareas: build y lint aprobados; 8 pruebas aprobadas. No se realizó aceptación visual ni una sesión completa contra el entorno compartido.
+- **Pendientes:**
+  - Revisiones entre compañeros, conflictos de PR #16/#17/#18/#20, aceptación integrada y resultado del sorteo. No se consideran completados por publicar estas ramas.
+
