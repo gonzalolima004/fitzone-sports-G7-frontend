@@ -541,3 +541,22 @@
 - **Verificación:** Build y lint aprobados; 5 pruebas aprobadas. Pendiente aceptación visual y prueba con una cuenta del entorno compartido.
 - **Commits:** `58042e7` — feat(reportes): consultar ocupacion y reservas por sede.
 - **Referencia:** https://trello.com/c/mmqjjDHt
+
+---
+
+#### 14/10/2026
+#### Facundo Agüero | Rol: Desarrollador Frontend
+
+- **Tarea:** E1 Tarea 6 — Integración del panel de gerencia.
+- **Actividades:**
+  - Integración de ingresos y ocupación en un panel con navegación por rutas y enlaces directos.
+  - Accesos a reportes desde el inicio para gerente/admin y mantenimiento del menú activo en rutas hijas.
+  - Adaptación del formulario de ingresos a distintos anchos, conservando filtros y formato de importes.
+  - Pruebas de navegación y regresión del reporte de ingresos.
+- **Decisiones:**
+  - Conservar `/reportes` para ingresos y `/reportes/ocupacion` para actividad.
+  - Publicar `feature/e1-tarea-6-panel-gerencia` con dependencia de `feature/e1-tarea-5-ocupacion`.
+- **Dificultades:** La aceptación integrada requiere la corrección del backend y una sesión real; no se da por realizada con pruebas simuladas.
+- **Verificación:** Build y lint aprobados; 8 pruebas aprobadas incluyendo tarea 5.
+- **Commits:** `72c3ee2` — feat(reportes): integrar panel de gerencia y navegacion.
+- **Referencia:** https://trello.com/c/K0iI9k4e
