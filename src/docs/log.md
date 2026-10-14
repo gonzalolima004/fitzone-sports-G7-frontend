@@ -75,7 +75,7 @@
 - **Commits:**
   - `feat(pagos): pago service y botón disparador de acción de pago`
   - `feat(pagos): conectar service con api iniciar-pagos`
-  - `feat(pagos): integracion de conceptos pendientes e inicio de checkout`
+  - `feat(pagos): integracion de pagos pendientes e inicio de checkout`
 
 ----
 
@@ -94,27 +94,34 @@
 - **Dificultades:**
   - Manejo de accesos directos sin identificador de pago o consultas no autorizadas, resuelto incorporando un estado defensivo con navegación segura al panel de pagos.
 - **Commits:**
-  - `feat(pagos): vista de resultado de pago y configuración de rutas con alias`
-  - `feat(pagos): consulta de estado persistido y acciones contextuales con comprobante pdf`
-  - `refactor(pagos): estructura unificada de resultado utilizando componentes base`
+  - `feat(pagos): crear vistas de resultados y sus rutas`
+  - `feat(pagos): conectar las vistas con el estado real del pago`
+  - `feat(pagos): conexión con acciones contextuales y navegación dependiendo del resultado del pago`
+  - `fix(pagos): mejoras en la ui y corrección de errores visuales`
 
 ----
 
-#### XX/XX/2026
+#### 12/10/2026
 #### Gonzalo Lima | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  -
-  -
-  -
+  - Creación del componente HistorialPagos para la consulta de pagos realizados por el usuario.
+  - Conexión para poder descargar el PDF del comprobante.
+  - Desglose de datos en mini badges visuales con iconos.
+  - Normalización estética de importes monetarios en ARS sin decimales en tarjetas, historial y modales de pago.
+  - Optimización de armonía visual en tarjetas de pagos pendientes para vista mobile.
+  - Creación del componente genérico BaseSkeleton e integración en conceptos pendientes e historial de pagos.
 - **Decisiones:**
-  -
-  -
-- **Dificultades:** Ninguna.
+  - Desacoplar el historial en un componente dedicado y reutilizable para mantener un tamaño de archivo liviano y alta legibilidad.
+  - Restringir la disponibilidad de descarga del comprobante únicamente a transacciones certificadas en estado 'Aprobado'.
+  - Implementar BaseSkeleton para estandarizar los estados de carga.
+- **Dificultades:**
+  - Desbalance visual y saltos de línea involuntarios en los badges descriptivos y botones de cobro en pantallas estrechas.
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  - `feat(pagos): creación de historial de pagos`
+  - `fix(pagos): armonizar diseño en desktop y mobile`
+  - `feat(pagos): agregar skeleton loaders base y utilizarlo en toda la sección`
+
 
 ----
 

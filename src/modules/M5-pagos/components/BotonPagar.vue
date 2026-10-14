@@ -8,6 +8,9 @@ import {
   PhIdentificationCard,
   PhWarningCircle,
   PhArrowSquareOut,
+  PhMapPin,
+  PhCalendarBlank,
+  PhClock,
 } from '@phosphor-icons/vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import BaseModal from '@/common/components/BaseModal.vue'
@@ -143,9 +146,62 @@ const montoFormateado = computed(() => {
   return new Intl.NumberFormat('es-AR', {
     style: 'currency',
     currency: 'ARS',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   }).format(props.monto)
+})
+
+const detalleDesglosado = computed(() => {
+  const det = props.detalle
+  if (!det) return null
+
+  if (tipoConcepto.value === 'cancha') {
+    if (det.includes(' • ')) {
+      const [sede, horarioStr] = det.split(' • ')
+      let fecha = ''
+      let horario = ''
+      if (horarioStr) {
+        if (horarioStr.includes(' de ')) {
+          const partes = horarioStr.split(' de ')
+          fecha = partes[0].trim()
+          horario = partes[1].trim()
+        } else {
+          horario = horarioStr.trim()
+        }
+      }
+      return {
+        tipo: 'cancha' as const,
+        sede: sede.trim(),
+        fecha,
+        horario,
+      }
+    }
+  }
+
+  if (tipoConcepto.value === 'membresia') {
+    if (det.includes(' • ')) {
+      const [plan, vigencia] = det.split(' • ')
+      return {
+        tipo: 'membresia' as const,
+        plan: plan.trim(),
+        vigencia: vigencia.trim(),
+      }
+    }
+    const matchDias = det.match(/\(?plan de (\d+)\s*días\)?/i)
+    const matchHasta = det.match(/(?:hasta|venció el)\s+([\d/]+)/i)
+    const dias = matchDias ? matchDias[1] : ''
+    const fecha = matchHasta ? matchHasta[1] : ''
+    return {
+      tipo: 'membresia' as const,
+      plan: dias ? `Plan de ${dias} días` : 'Plan de membresía',
+      vigencia: fecha ? `Hasta ${fecha}` : det,
+    }
+  }
+
+  return {
+    tipo: 'otro' as const,
+    texto: det,
+  }
 })
 
 function abrirModal() {
@@ -240,7 +296,7 @@ async function handleConfirmarPago() {
 </script>
 
 <template>
-  <div class="inline-block">
+  <div class="inline-block shrink-0">
     <!-- Botón activador con BaseButton -->
     <BaseButton
       :variant="buttonVariant"
@@ -250,7 +306,11 @@ async function handleConfirmarPago() {
       @click="abrirModal"
     >
       <template #icon>
-        <PhCreditCard :size="18" weight="bold" />
+        <PhCreditCard
+          :size="16"
+          class="sm:w-[18px] sm:h-[18px]"
+          weight="bold"
+        />
       </template>
       <slot>{{ buttonText }}</slot>
     </BaseButton>
@@ -260,7 +320,7 @@ async function handleConfirmarPago() {
       v-model="modalAbierto"
       title="Confirmar Pago"
       subtitle="Verifica el detalle de la operación antes de continuar a la pasarela"
-      max-width="md"
+      max-width="lg"
       :close-on-backdrop="!estaCargando"
       @close="cerrarModal"
     >
@@ -321,9 +381,67 @@ async function handleConfirmarPago() {
           <h4 class="text-base font-bold text-[#202759] m-0">
             {{ concepto }}
           </h4>
-          <p v-if="detalle" class="text-xs text-slate-500 mt-1 m-0">
-            {{ detalle }}
-          </p>
+          <div v-if="detalleDesglosado" class="mt-2.5">
+            <!-- Cancha: Los 3 badges en la misma línea -->
+            <div
+              v-if="detalleDesglosado.tipo === 'cancha'"
+              class="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap overflow-x-auto no-scrollbar py-0.5"
+            >
+              <span
+                v-if="detalleDesglosado.sede"
+                class="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 rounded-lg text-[11px] sm:text-xs font-medium bg-white text-slate-600 border border-slate-200/80 shadow-2xs whitespace-nowrap"
+              >
+                <PhMapPin :size="13" class="text-slate-400 shrink-0" />
+                {{ detalleDesglosado.sede }}
+              </span>
+
+              <span
+                v-if="detalleDesglosado.fecha"
+                class="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 rounded-lg text-[11px] sm:text-xs font-medium bg-white text-slate-600 border border-slate-200/80 shadow-2xs whitespace-nowrap"
+              >
+                <PhCalendarBlank :size="13" class="text-slate-400 shrink-0" />
+                {{ detalleDesglosado.fecha }}
+              </span>
+
+              <span
+                v-if="detalleDesglosado.horario"
+                class="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 rounded-lg text-[11px] sm:text-xs font-medium bg-white text-slate-600 border border-slate-200/80 shadow-2xs whitespace-nowrap"
+              >
+                <PhClock :size="13" class="text-slate-400 shrink-0" />
+                {{ detalleDesglosado.horario }}
+              </span>
+            </div>
+
+            <!-- Membresía: Badges en la misma línea -->
+            <div
+              v-else-if="detalleDesglosado.tipo === 'membresia'"
+              class="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap overflow-x-auto no-scrollbar py-0.5"
+            >
+              <span
+                v-if="detalleDesglosado.plan"
+                class="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 rounded-lg text-[11px] sm:text-xs font-medium bg-white text-slate-600 border border-slate-200/80 shadow-2xs whitespace-nowrap"
+              >
+                <PhClock :size="13" class="text-slate-400 shrink-0" />
+                {{ detalleDesglosado.plan }}
+              </span>
+              <span
+                v-if="detalleDesglosado.vigencia"
+                class="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 rounded-lg text-[11px] sm:text-xs font-medium bg-white text-slate-600 border border-slate-200/80 shadow-2xs whitespace-nowrap"
+              >
+                <PhCalendarBlank :size="13" class="text-slate-400 shrink-0" />
+                {{ detalleDesglosado.vigencia }}
+              </span>
+            </div>
+
+            <!-- Otros -->
+            <div v-else class="flex items-center">
+              <span
+                class="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 rounded-lg text-[11px] sm:text-xs font-medium bg-white text-slate-600 border border-slate-200/80 whitespace-nowrap"
+              >
+                {{ detalleDesglosado.texto }}
+              </span>
+            </div>
+          </div>
 
           <p v-if="emailPagador" class="mt-2 text-xs text-slate-500 m-0">
             <span class="font-medium text-slate-700">Email pagador:</span>
@@ -333,15 +451,17 @@ async function handleConfirmarPago() {
 
         <!-- Desglose de importe -->
         <div
-          class="flex items-center justify-between p-4 rounded-2xl bg-gradient-to-br from-[#202759]/5 to-transparent border border-[#202759]/10"
+          class="flex items-center justify-between p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-[#202759]/5 to-transparent border border-[#202759]/10"
         >
           <div>
             <span class="text-xs font-medium text-slate-500 block">
               Total a pagar
             </span>
-            <span class="text-xs text-slate-400">Pesos Argentinos</span>
+            <span class="text-[11px] sm:text-xs text-slate-400"
+              >Pesos Argentinos</span
+            >
           </div>
-          <div class="text-2xl font-black text-[#202759]">
+          <div class="text-xl sm:text-2xl font-black text-[#202759]">
             {{ montoFormateado }}
           </div>
         </div>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import type { Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   PhCheckCircle,
@@ -12,6 +13,8 @@ import {
   PhWarningCircle,
   PhSoccerBall,
   PhArrowClockwise,
+  PhMapPin,
+  PhCalendarBlank,
 } from '@phosphor-icons/vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import {
@@ -39,10 +42,37 @@ const montoFormateado = computed(() => {
   return new Intl.NumberFormat('es-AR', {
     style: 'currency',
     currency: 'ARS',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   }).format(monto.value)
 })
+
+function parsearDetalles(detalle?: string) {
+  if (!detalle) return []
+  if (detalle.includes(' • ')) {
+    const [parte1, parte2] = detalle.split(' • ')
+    if (parte2 && parte2.includes(' de ')) {
+      const badges: Array<{ icono: Component | null; texto: string }> = [
+        { icono: PhMapPin, texto: parte1.trim() },
+      ]
+      const [fecha, horas] = parte2.split(' de ')
+      badges.push({ icono: PhCalendarBlank, texto: fecha.trim() })
+      badges.push({ icono: PhClock, texto: horas.trim() })
+      return badges
+    }
+
+    return [
+      { icono: PhClock, texto: parte1.trim() },
+      { icono: PhCalendarBlank, texto: parte2 ? parte2.trim() : '' },
+    ]
+  }
+
+  if (detalle.toLowerCase().startsWith('vigencia:')) {
+    return [{ icono: PhCalendarBlank, texto: detalle }]
+  }
+
+  return [{ icono: null, texto: detalle }]
+}
 
 const infoEstado = computed(() => {
   switch (estado.value) {
@@ -289,9 +319,24 @@ defineExpose({
             <span class="text-base font-bold text-[#202759]">
               {{ conceptoTitulo }}
             </span>
-            <p v-if="conceptoDetalle" class="text-xs text-slate-500 m-0 mt-0.5">
-              {{ conceptoDetalle }}
-            </p>
+            <div
+              v-if="conceptoDetalle"
+              class="flex items-center gap-2 flex-wrap pt-1.5"
+            >
+              <span
+                v-for="(badge, idx) in parsearDetalles(conceptoDetalle)"
+                :key="idx"
+                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-white text-slate-600 border border-slate-200/80 shadow-2xs"
+              >
+                <component
+                  :is="badge.icono"
+                  v-if="badge.icono"
+                  :size="14"
+                  class="text-slate-400 shrink-0"
+                />
+                {{ badge.texto }}
+              </span>
+            </div>
           </div>
 
           <div v-if="montoFormateado" class="text-right">
