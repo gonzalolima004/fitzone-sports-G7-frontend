@@ -518,3 +518,26 @@
 
 ----
 
+
+---
+
+#### 14/10/2026
+#### Facundo Agüero | Rol: Desarrollador Frontend
+
+- **Tarea:** E1 Tarea 5 — Pantalla de ocupación y reservas por sede.
+- **Actividades:**
+  - Implementación de `/reportes/ocupacion`, conectada a `GET /reportes/ocupacion` mediante el cliente HTTP compartido.
+  - Incorporación de filtros de fechas y sede, consulta consolidada, totales y detalle de asistencias, reservas de canchas y clases.
+  - Manejo de carga, resultados vacíos, errores y reintentos; prevención de envíos simultáneos y validación de fechas.
+  - Incorporación de pruebas de pantalla con respuestas simuladas.
+- **Decisiones:**
+  - Mantener el filtro de sede del reporte independiente del selector general.
+  - Mostrar cantidades históricas del período, sin presentarlas como aforo instantáneo.
+  - Publicar la entrega en `feature/e1-tarea-5-ocupacion` para revisión hacia `dev`.
+- **Dificultades y resolución:**
+  - Se eliminaron las propiedades `target` y `lib` duplicadas que impedían compilar.
+  - Se sincronizó `package-lock.json` con las dependencias ya declaradas porque `npm ci` fallaba.
+  - Se detectó una consulta incompleta en el backend; su corrección se entregó en una rama separada.
+- **Verificación:** Build y lint aprobados; 5 pruebas aprobadas. Pendiente aceptación visual y prueba con una cuenta del entorno compartido.
+- **Commits:** `58042e7` — feat(reportes): consultar ocupacion y reservas por sede.
+- **Referencia:** https://trello.com/c/mmqjjDHt
