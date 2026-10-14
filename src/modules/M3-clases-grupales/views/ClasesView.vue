@@ -3,7 +3,12 @@ import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { PhBicycle, PhPlug, PhTray, PhWarning } from '@phosphor-icons/vue'
 import { useSedeStore } from '@/store/sede'
 import axios from 'axios'
-import { clasesService, type ClaseResponse } from '../services/clases.service'
+import {
+  clasesService,
+  type ClaseAgendaResponse,
+  type MiReservaClaseResponse,
+  type MiInscripcionListaEsperaResponse,
+} from '../services/clases.service'
 import ClaseCard, { type ClaseCardProps } from '../components/ClaseCard.vue'
 import BaseModal from '@/common/components/BaseModal.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
@@ -12,25 +17,23 @@ import { useAuthStore } from '@/store/auth'
 import { supabase } from '@/common/utils/supabase'
 
 const sedeStore = useSedeStore()
+const authStore = useAuthStore()
 
 const fechaSeleccionada = ref<string>('')
 const fechasDisponibles = ref<
   { fecha: Date; label: string; shortLabel: string }[]
 >([])
 
-const clases = ref<ClaseResponse[]>([])
+const clases = ref<ClaseAgendaResponse[]>([])
+const misReservas = ref<MiReservaClaseResponse[]>([])
+const misInscripciones = ref<MiInscripcionListaEsperaResponse[]>([])
+
 const cargando = ref(false)
 const error = ref<string | null>(null)
-const authStore = useAuthStore()
 
-// Diccionario local para rastrear id_clase -> id_reserva en esta sesión
-const misReservasLocal = ref<Record<number, number>>({})
-const misListasEsperaLocal = ref<Record<number, number>>({})
-
-// Mapeo dinámico para simular los datos que faltan en el backend
+// Mapeo dinámico usando datos reales de agenda y estado del usuario por fecha
 const clasesAgendadas = computed<ClaseCardProps[]>(() => {
-  return clases.value.map((clase, index) => {
-    // Generamos datos simulados basados en el ID para mantener consistencia
+  return clases.value.map((clase) => {
     const esSpinning = clase.nombre.toLowerCase().includes('spinning')
     const esYoga = clase.nombre.toLowerCase().includes('yoga')
 
@@ -44,35 +47,43 @@ const clasesAgendadas = computed<ClaseCardProps[]>(() => {
       icono = 'lotus'
     }
 
-    const cuposOcupados =
-      index % 3 === 0
-        ? clase.capacidad_maxima
-        : Math.floor(clase.capacidad_maxima * 0.7)
+    // Identificar si el usuario tiene reserva activa para esta clase en este horario
+    const miReserva = misReservas.value.find(
+      (r) => r.id_clase === clase.id_clase
+    )
+    const miInscripcion = misInscripciones.value.find(
+      (i) => i.id_clase === clase.id_clase
+    )
 
-    let estado: ClaseCardProps['estado'] =
-      cuposOcupados >= clase.capacidad_maxima ? 'COMPLETO' : 'DISPONIBLE'
-
-    if (misReservasLocal.value[clase.id_clase]) {
+    let estado: ClaseCardProps['estado'] = clase.estado
+    if (miReserva) {
       estado = 'MISMA_RESERVA'
-    } else if (misListasEsperaLocal.value[clase.id_clase]) {
+    } else if (miInscripcion) {
       estado = 'EN_ESPERA'
     }
 
-    // Horarios simulados secuenciales
-    const horaInicio = 8 + index * 2
-    const horario = `${horaInicio.toString().padStart(2, '0')}:30 - ${(horaInicio + 1).toString().padStart(2, '0')}:15 hs`
+    const horarioTexto =
+      clase.horario_inicio && clase.horario_fin
+        ? `${clase.horario_inicio} - ${clase.horario_fin} hs`
+        : 'Horario a confirmar'
 
     return {
       id: clase.id_clase,
       nombre: clase.nombre,
       tipo,
       icono,
-      horario,
-      profesor: `Prof. ${['Laura Méndez', 'Martín Sosa', 'Juan Pablo Rossi'][index % 3]}`,
-      sala: esSpinning ? 'Sala 1' : esYoga ? 'Sala Zen' : 'Box Central',
+      horario: horarioTexto,
+      fecha_inicio: clase.fecha_inicio,
+      fecha_fin: clase.fecha_fin,
+      profesor: clase.profesor || null,
+      sala: clase.sala || null,
       capacidadMaxima: clase.capacidad_maxima,
-      cuposOcupados,
-      enListaEspera: estado === 'COMPLETO' ? 3 : 0,
+      cuposOcupados: clase.cupos_ocupados,
+      cuposDisponibles: clase.cupos_disponibles,
+      enListaEspera: clase.en_espera,
+      ordenEnCola: miInscripcion?.orden_en_cola,
+      idReserva: miReserva?.id_clase_reserva,
+      idListaEspera: miInscripcion?.id_clase_lista_espera,
       estado,
     }
   })
@@ -84,7 +95,6 @@ let vacantesSubscription: ReturnType<typeof supabase.channel> | null = null
 function setupRealtimeNotifications() {
   if (!authStore.usuario?.id) return
 
-  // Suscribirnos a la tabla lista_espera buscando cuando nuestro estado cambie a NOTIFICADO
   vacantesSubscription = supabase
     .channel('lista-espera-vacantes')
     .on(
@@ -92,15 +102,18 @@ function setupRealtimeNotifications() {
       {
         event: 'UPDATE',
         schema: 'public',
-        table: 'lista_espera',
+        table: 'clase_lista_espera',
         filter: `id_usuario=eq.${authStore.usuario.id}`,
       },
       (payload) => {
-        const newData = payload.new as { estado: string }
-        if (newData.estado === 'NOTIFICADO') {
+        const newData = payload.new as {
+          id_clase_lista_espera_estado: number
+        }
+        // Estado 1 = En Espera, 2 = Notificado / Promovido
+        if (newData.id_clase_lista_espera_estado === 2) {
           toast.success(
             `¡Se ha liberado un lugar en tu clase! Revisa tus notificaciones para confirmar la reserva.`,
-            { autoClose: false } // No auto-cerrar para que lo vea seguro
+            { autoClose: false }
           )
           cargarClases()
         }
@@ -123,6 +136,7 @@ onUnmounted(() => {
   }
 })
 
+// Reaccionar ante cambios de sede
 watch(
   () => sedeStore.idSedeSeleccionada,
   (nuevoId) => {
@@ -130,18 +144,51 @@ watch(
       cargarClases()
     } else {
       clases.value = []
+      misReservas.value = []
+      misInscripciones.value = []
     }
   }
 )
+
+// Reaccionar ante cambios de fecha en el filtro de la agenda
+watch(fechaSeleccionada, (nuevaFecha) => {
+  if (nuevaFecha && sedeStore.idSedeSeleccionada) {
+    cargarClases()
+  }
+})
 
 async function cargarClases() {
   if (!sedeStore.idSedeSeleccionada) return
   cargando.value = true
   error.value = null
   try {
-    clases.value = await clasesService.obtenerClasesPorSede(
-      sedeStore.idSedeSeleccionada
-    )
+    const promises: [
+      Promise<ClaseAgendaResponse[]>,
+      Promise<MiReservaClaseResponse[]>,
+      Promise<MiInscripcionListaEsperaResponse[]>,
+    ] = [
+      clasesService.obtenerClasesPorSede(
+        sedeStore.idSedeSeleccionada,
+        fechaSeleccionada.value
+      ),
+      authStore.isAuthenticated
+        ? clasesService
+            .obtenerMisReservas(fechaSeleccionada.value)
+            .catch(() => [])
+        : Promise.resolve([]),
+      authStore.isAuthenticated
+        ? clasesService
+            .obtenerMisInscripciones(fechaSeleccionada.value)
+            .catch(() => [])
+        : Promise.resolve([]),
+    ]
+
+    const [agendaData, reservasData, inscripcionesData] =
+      await Promise.all(promises)
+
+    clases.value = agendaData
+    misReservas.value = reservasData
+    misInscripciones.value = inscripcionesData
   } catch (err: unknown) {
     if (axios.isAxiosError(err)) {
       error.value = err.response?.data?.message || 'Error al cargar las clases.'
@@ -210,13 +257,15 @@ async function confirmarReserva() {
 
   reservando.value = true
   try {
-    const res = await clasesService.reservarClase({
+    await clasesService.reservarClase({
       id_clase: claseAReservar.value.id,
-      fecha: fechaSeleccionada.value,
+      fecha_inicio:
+        claseAReservar.value.fecha_inicio ||
+        `${fechaSeleccionada.value}T10:00:00.000Z`,
+      fecha_fin:
+        claseAReservar.value.fecha_fin ||
+        `${fechaSeleccionada.value}T11:00:00.000Z`,
     })
-
-    // Guardar en el estado local el id_reserva
-    misReservasLocal.value[claseAReservar.value.id] = res.id_reserva
 
     toast.success(`Reserva confirmada para ${claseAReservar.value.nombre}`)
     modalReservaVisible.value = false
@@ -256,12 +305,18 @@ async function confirmarListaEspera() {
   try {
     const res = await clasesService.inscribirListaEspera({
       id_clase: claseAEsperar.value.id,
-      fecha: fechaSeleccionada.value,
+      fecha_inicio:
+        claseAEsperar.value.fecha_inicio ||
+        `${fechaSeleccionada.value}T10:00:00.000Z`,
+      fecha_fin:
+        claseAEsperar.value.fecha_fin ||
+        `${fechaSeleccionada.value}T11:00:00.000Z`,
     })
 
-    misListasEsperaLocal.value[claseAEsperar.value.id] = res.id_lista
-
-    toast.success(`Estás en lista de espera para ${claseAEsperar.value.nombre}`)
+    const orden = res.orden_en_cola ? ` (Posición #${res.orden_en_cola})` : ''
+    toast.success(
+      `Estás en lista de espera para ${claseAEsperar.value.nombre}${orden}`
+    )
     modalEsperaVisible.value = false
   } catch (err: unknown) {
     if (axios.isAxiosError(err)) {
@@ -293,14 +348,19 @@ function handleCancelar(idClase: number) {
 
 async function confirmarCancelacion() {
   if (!claseACancelar.value) return
-  const idReserva = misReservasLocal.value[claseACancelar.value.id]
-  if (!idReserva) return
+  const idReserva =
+    claseACancelar.value.idReserva ||
+    misReservas.value.find((r) => r.id_clase === claseACancelar.value?.id)
+      ?.id_clase_reserva
+
+  if (!idReserva) {
+    errorCancelacion.value = 'No se encontró la reserva activa para cancelar.'
+    return
+  }
 
   cancelando.value = true
   try {
     await clasesService.cancelarReserva(idReserva)
-    delete misReservasLocal.value[claseACancelar.value.id]
-
     toast.info(`Reserva de ${claseACancelar.value.nombre} cancelada.`)
     modalCancelacionVisible.value = false
   } catch (err: unknown) {
@@ -499,7 +559,13 @@ async function confirmarCancelacion() {
           </li>
           <li class="flex items-center gap-2">
             <span class="font-semibold w-20">Profesor:</span>
-            <span>{{ claseAReservar.profesor }}</span>
+            <span>{{
+              claseAReservar.profesor || 'Sin profesor asignado'
+            }}</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="font-semibold w-20">Sala:</span>
+            <span>{{ claseAReservar.sala || 'Sala no especificada' }}</span>
           </li>
         </ul>
       </div>

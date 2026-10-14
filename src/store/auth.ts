@@ -34,7 +34,7 @@ export const useAuthStore = defineStore('auth', () => {
   // Datos del usuario obtenidos de la sesión
   const usuario = ref<Usuario | null>(obtenerUsuarioInicial())
 
-  // Token JWT (soporta ambas claves por compatibilidad)
+  // Token JWT
   const token = ref<string | null>(
     localStorage.getItem('token') || localStorage.getItem('fitzone_token')
   )
@@ -50,12 +50,14 @@ export const useAuthStore = defineStore('auth', () => {
     usuario.value = nuevoUsuario
     if (nuevoUsuario) {
       localStorage.setItem('usuario', JSON.stringify(nuevoUsuario))
+      localStorage.setItem('fitzone_user', JSON.stringify(nuevoUsuario))
       if (nuevoUsuario.rol) {
         rol.value = nuevoUsuario.rol
         localStorage.setItem('rol', nuevoUsuario.rol)
       }
     } else {
       localStorage.removeItem('usuario')
+      localStorage.removeItem('fitzone_user')
     }
 
     if (nuevoToken) {
