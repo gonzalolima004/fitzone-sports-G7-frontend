@@ -500,24 +500,49 @@
 
 ----
 
-#### XX/XX/2026
-#### Facundo Agüero | Rol: Team Leader
 
+
+---
+
+#### 14/10/2026
+#### Facundo Agüero | Rol: Desarrollador Frontend
+
+- **Tarea:** E1 Tarea 5 — Pantalla de ocupación y reservas por sede.
 - **Actividades:**
-  - 
-  - 
-  - 
+  - Implementación de `/reportes/ocupacion`, conectada a `GET /reportes/ocupacion` mediante el cliente HTTP compartido.
+  - Incorporación de filtros de fechas y sede, consulta consolidada, totales y detalle de asistencias, reservas de canchas y clases.
+  - Manejo de carga, resultados vacíos, errores y reintentos; prevención de envíos simultáneos y validación de fechas.
+  - Incorporación de pruebas de pantalla con respuestas simuladas.
 - **Decisiones:**
-  - 
-  - 
-- **Dificultades:** Ninguna.
-- **Commits:**
-  - ``
-  - ``
-  - ``
+  - Mantener el filtro de sede del reporte independiente del selector general.
+  - Mostrar cantidades históricas del período, sin presentarlas como aforo instantáneo.
+  - Publicar la entrega en `feature/e1-tarea-5-ocupacion` para revisión hacia `dev`.
+- **Dificultades y resolución:**
+  - Se eliminaron las propiedades `target` y `lib` duplicadas que impedían compilar.
+  - Se sincronizó `package-lock.json` con las dependencias ya declaradas porque `npm ci` fallaba.
+  - Se detectó una consulta incompleta en el backend; su corrección se entregó en una rama separada.
+- **Verificación:** Build y lint aprobados; 5 pruebas aprobadas. Pendiente aceptación visual y prueba con una cuenta del entorno compartido.
+- **Commits:** `58042e7` — feat(reportes): consultar ocupacion y reservas por sede.
+- **Referencia:** https://trello.com/c/mmqjjDHt
 
-----
+---
 
+#### 14/10/2026
+#### Facundo Agüero | Rol: Desarrollador Frontend
+
+- **Tarea:** E1 Tarea 6 — Integración del panel de gerencia.
+- **Actividades:**
+  - Integración de ingresos y ocupación en un panel con navegación por rutas y enlaces directos.
+  - Accesos a reportes desde el inicio para gerente/admin y mantenimiento del menú activo en rutas hijas.
+  - Adaptación del formulario de ingresos a distintos anchos, conservando filtros y formato de importes.
+  - Pruebas de navegación y regresión del reporte de ingresos.
+- **Decisiones:**
+  - Conservar `/reportes` para ingresos y `/reportes/ocupacion` para actividad.
+  - Publicar `feature/e1-tarea-6-panel-gerencia` con dependencia de `feature/e1-tarea-5-ocupacion`.
+- **Dificultades:** La aceptación integrada requiere la corrección del backend y una sesión real; no se da por realizada con pruebas simuladas.
+- **Verificación:** Build y lint aprobados; 8 pruebas aprobadas incluyendo tarea 5.
+- **Commits:** `72c3ee2` — feat(reportes): integrar panel de gerencia y navegacion.
+- **Referencia:** https://trello.com/c/K0iI9k4e
 
 ---
 
@@ -525,15 +550,22 @@
 #### Facundo Agüero | Rol: Team Leader
 
 - **Actividades:**
-  - Revisión del tablero y del historial integrado del frontend; identificación de las tareas propias E1 5, E1 6 y TL 2.
-  - Preparación de ramas de ocupación, panel de gerencia y corrección SQL necesaria en backend, con pruebas y entregas separadas para revisión.
-  - Registro de PR abiertos, dependencias y pendientes en [Cierre y traspaso del 14/10](./cierre-tl-2026-10-14.md).
+  - Revisión del tablero de Trello, tareas propias y dependencias entre frontend y backend.
+  - Preparación y publicación de las ramas de ocupación, panel de gerencia, corrección SQL y documentación de traspaso.
+  - Normalización de las cuatro ramas propias a `feature/`, verificando el destino remoto antes de retirar los nombres anteriores.
+  - Actualización de las bitácoras con tareas de desarrollo, decisiones, dificultades, verificaciones y commits.
+  - Revisión de los PR abiertos de ambos repositorios y resolución de conflictos de los PR frontend #16, #17, #18 y #20, conservando el trabajo de sus autores.
+  - Comprobación de la dependencia #16 → #17 → #18 para propagar las resoluciones en orden.
+  - Unificación en #20 del servicio de pagos completo y del contrato vigente de lista de espera, con pruebas de regresión.
+  - Preparación del documento [Cierre y traspaso](./cierre-tl-2026-10-14.md) para la reunión del 14/10 a las 15:00 y el inicio del nuevo TL el 15/10.
 - **Decisiones:**
-  - Facundo abrirá los PR con las ramas publicadas. La resolución de conflictos e integración se realizará después.
-  - Tarea 6 depende de tarea 5; su PR inicial debe usar esa rama como base.
-  - Reunión prevista a las 15:00 para revisión, sorteo del nuevo TL y traspaso con inicio el 15/10.
-- **Verificación:**
-  - Frontend con ambas tareas: build y lint aprobados; 8 pruebas aprobadas. No se realizó aceptación visual ni una sesión completa contra el entorno compartido.
-- **Pendientes:**
-  - Revisiones entre compañeros, conflictos de PR #16/#17/#18/#20, aceptación integrada y resultado del sorteo. No se consideran completados por publicar estas ramas.
-
+  - Actualizar las ramas de los PR mediante merges, sin reescribir historial ni fusionar los PR en `dev`.
+  - Mantener la compatibilidad de las claves de sesión existentes en ambos lados del conflicto.
+  - Corregir configuración duplicada y sincronizar el lockfile para poder verificar las ramas.
+  - Mantener la apertura de los PR propios a cargo de Facundo, según lo acordado.
+- **Dificultades:**
+  - Los PR #16/#17/#18 presentaban diferencias en los archivos compartidos de sesión; sus funciones coincidían y se conservaron.
+  - La documentación previa mezclaba ramas publicadas con tareas todavía no aceptadas; se distinguen implementación, revisión e integración.
+- **Verificación:** Consultar el documento de cierre para los commits de resolución y los resultados de cada rama. El estado sin conflictos de Git no reemplaza la aceptación funcional con una cuenta y datos reales.
+- **Commits de resolución:** `f7e9073` (#16), `9f0197f` (#17), `b1afc69` (#18), `714e0e7` y `e44c72e` (#20).
+- **Pendientes:** Revisión entre compañeros, aprobación/merge de los PR, aceptación visual e integrada y registro del sorteo y acuerdos de la reunión.
