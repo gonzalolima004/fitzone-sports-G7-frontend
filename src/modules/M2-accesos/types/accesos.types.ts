@@ -1,3 +1,28 @@
+export type TipoOperacion = 'ingreso' | 'egreso'
+
+export interface ValidarAccesoRequestDto {
+  readonly qrToken: string
+  readonly id_sede: number
+}
+
+export interface ValidarAccesoResponseDto {
+  readonly exito: boolean
+  readonly mensaje: string
+  readonly socio?: {
+    readonly id: number
+    readonly nombre: string
+    readonly apellido: string
+    readonly dni: string
+    readonly email?: string
+  }
+  readonly motivoRechazo?:
+    | 'QR_VENCIDO'
+    | 'MEMBRESIA_INVALIDA'
+    | 'SEDE_LLENA'
+    | 'DOBLE_INGRESO'
+    | 'OTRO'
+}
+
 export interface BackendQrResponseDto {
   readonly token: string
   readonly expiraEnSegundos: number

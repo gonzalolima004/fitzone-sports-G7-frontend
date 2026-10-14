@@ -9,10 +9,10 @@ import {
 import { useQr } from '../composables/useQr'
 import { accesosService } from '../services/accesos.service'
 import type { SocioPerfilDto } from '../types/accesos.types'
-import { useAuthStore } from '@/store/auth'
 import BaseButton from '@/common/components/BaseButton.vue'
+import { useAuthStore } from '@/store/auth' // 1. Importar el store de autenticación
 
-const authStore = useAuthStore()
+const authStore = useAuthStore() // 2. Instanciar el store
 
 const socio = ref<SocioPerfilDto | null>(null)
 const isPerfilLoading = ref<boolean>(true)
@@ -42,7 +42,6 @@ const qrImageUrl = computed<string>(() => {
   return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrData.value.token)}`
 })
 
-// Mapeo seguro de iniciales para evitar runtime errors si el backend envía solo 'nombre' o 'nombreCompleto'
 const inicialesSocio = computed<string>(() => {
   if (!socio.value) return 'S'
   if (socio.value.iniciales) return socio.value.iniciales
@@ -57,10 +56,11 @@ const cargarPerfil = async (): Promise<void> => {
     isPerfilLoading.value = true
     perfilError.value = null
 
-    // Obtenemos el ID del usuario del authStore, fallback a 1 si no está definido para pruebas
-    const userId = authStore.usuario?.id ? Number(authStore.usuario.id) : 1
+    // 3. Obtener el ID real del usuario autenticado en Pinia (con fallback a 1 solo para pruebas si no hay sesión)
+    const userId = authStore.usuario?.id ?? 1
     const data = await accesosService.obtenerPerfilSocio(userId)
 
+    // 4. Si el backend devuelve datos, los mapeamos priorizando el store o la API
     socio.value = {
       ...data,
       nombre: data.nombre || authStore.usuario?.nombre || 'Socio FitZone',
@@ -68,21 +68,18 @@ const cargarPerfil = async (): Promise<void> => {
       dni: data.dni || 'Sin especificar',
       estado: data.estado || 'ACTIVO',
     }
-  } catch (error: unknown) {
-    // Si falla el endpoint de perfil, cargamos un perfil fallback con los datos del authStore para no bloquear la pantalla del QR
-    if (authStore.usuario) {
-      socio.value = {
-        socioId: authStore.usuario.id || 1,
-        nombre: authStore.usuario.nombre || 'Fernando',
-        dni: 'N/A',
-        iniciales: 'F',
-        estado: 'ACTIVO',
-      }
-    } else {
-      perfilError.value =
-        error instanceof Error
-          ? error.message
-          : 'Error al cargar datos del socio.'
+  } catch {
+    // Fallback independiente si el backend de perfiles no responde aún, usando datos de Pinia si existen
+    socio.value = {
+      socioId: authStore.usuario?.id ?? 1,
+      nombre: authStore.usuario?.nombre
+        ? `${authStore.usuario.nombre} ${authStore.usuario.apellido || ''}`
+        : 'Socio de Prueba',
+      dni: 'N/A',
+      iniciales: authStore.usuario?.nombre
+        ? authStore.usuario.nombre[0].toUpperCase()
+        : 'SP',
+      estado: 'ACTIVO',
     }
   } finally {
     isPerfilLoading.value = false
@@ -124,7 +121,7 @@ onMounted(async () => {
         </p>
       </header>
 
-      <!-- Skeleton / Datos de Socio -->
+      <!-- Datos de Socio / Skeleton -->
       <section
         v-if="isPerfilLoading"
         class="p-5 border-b border-slate-200 flex items-center gap-3.5 animate-pulse"
@@ -168,11 +165,10 @@ onMounted(async () => {
         </span>
       </section>
 
-      <!-- QR / Estados -->
+      <!-- Main QR -->
       <main
         class="p-6 flex flex-col items-center justify-center bg-white min-h-[320px]"
       >
-        <!-- Loading -->
         <div
           v-if="isLoadingGlobal"
           class="py-8 text-center flex flex-col items-center gap-3"
@@ -185,7 +181,6 @@ onMounted(async () => {
           </p>
         </div>
 
-        <!-- Error -->
         <div
           v-else-if="perfilError || qrErrorMessage"
           class="py-6 text-center max-w-xs flex flex-col items-center"
@@ -198,14 +193,11 @@ onMounted(async () => {
             {{ perfilError || qrErrorMessage }}
           </p>
           <BaseButton size="sm" variant="outline" @click="reintentarTodo">
-            <template #icon>
-              <PhArrowClockwise :size="16" />
-            </template>
+            <template #icon><PhArrowClockwise :size="16" /></template>
             Reintentar
           </BaseButton>
         </div>
 
-        <!-- QR Válido -->
         <template v-else-if="qrData && !isExpired">
           <div
             class="bg-rose-50 text-rose-600 text-xs font-semibold px-4 py-1.5 rounded-full mb-5 flex items-center gap-1.5"
@@ -221,7 +213,7 @@ onMounted(async () => {
           >
             <img
               :src="qrImageUrl"
-              :alt="`Código QR de acceso`"
+              alt="Código QR de acceso"
               class="w-48 h-48 object-contain block"
             />
           </div>
@@ -233,15 +225,14 @@ onMounted(async () => {
           </div>
         </template>
 
-        <!-- Expirado -->
         <div v-else class="py-6 text-center flex flex-col items-center">
           <PhWarningCircle :size="32" class="text-amber-500 mb-2" />
           <p class="text-sm text-slate-500 mb-4">
             La credencial de acceso ha expirado.
           </p>
-          <BaseButton size="sm" :loading="isQrLoading" @click="cargarQr">
-            Solicitar nuevo QR
-          </BaseButton>
+          <BaseButton size="sm" :loading="isQrLoading" @click="cargarQr"
+            >Solicitar nuevo QR</BaseButton
+          >
         </div>
       </main>
 
