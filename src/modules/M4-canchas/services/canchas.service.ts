@@ -6,6 +6,7 @@ import type {
   CanchaTipo,
   DisponibilidadCanchaResponse,
   TurnoSlot,
+  HorarioOperativoDia,
 } from '@/modules/M4-canchas/types/canchas.types'
 
 ///NOTA: Capaz es mejor que el estado lo traiga como string directamente
@@ -294,12 +295,120 @@ const MOCK_CANCHAS: Cancha[] = [
 ]
 
 /**
- * Genera slots horarios estándar (08:00 a 23:00 hs) para una cancha y fecha
+ * Determina el horario operativo de la sede según el calendario (feriados) y el día de la semana (SedeHorario)
+ */
+function calcularHorarioOperativo(
+  idSede: number,
+  fechaStr: string
+): HorarioOperativoDia {
+  const [y, m, d] = fechaStr.split('-').map((v) => parseInt(v, 10))
+  const fechaObj = new Date(y, m - 1, d)
+  const diaSemana = fechaObj.getDay() // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
+
+  // Verificación de feriados y cierres en Calendario / CalendarioSede
+  const mesDia = `${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`
+  if (mesDia === '12-25') {
+    return {
+      abierto: false,
+      hora_apertura: '00:00',
+      hora_cierre: '00:00',
+      motivo_cierre: 'Feriado Nacional: Navidad (Sede Cerrada)',
+    }
+  }
+  if (mesDia === '01-01') {
+    return {
+      abierto: false,
+      hora_apertura: '00:00',
+      hora_cierre: '00:00',
+      motivo_cierre: 'Feriado Nacional: Año Nuevo (Sede Cerrada)',
+    }
+  }
+  if (mesDia === '05-01') {
+    return {
+      abierto: false,
+      hora_apertura: '00:00',
+      hora_cierre: '00:00',
+      motivo_cierre: 'Feriado Nacional: Día del Trabajador (Sede Cerrada)',
+    }
+  }
+
+  // Horario semanal por sede (SedeHorario)
+  if (idSede === 3) {
+    // Sede Oro Verde cierra los domingos
+    if (diaSemana === 0) {
+      return {
+        abierto: false,
+        hora_apertura: '00:00',
+        hora_cierre: '00:00',
+        motivo_cierre: 'Sede cerrada los días domingos',
+      }
+    }
+    if (diaSemana === 6) {
+      return {
+        abierto: true,
+        hora_apertura: '09:00',
+        hora_cierre: '19:00',
+      }
+    }
+    return {
+      abierto: true,
+      hora_apertura: '08:00',
+      hora_cierre: '21:00',
+    }
+  }
+
+  if (idSede === 2) {
+    // Sede Costanera
+    if (diaSemana === 0 || diaSemana === 6) {
+      return {
+        abierto: true,
+        hora_apertura: '08:00',
+        hora_cierre: '20:00',
+      }
+    }
+    return {
+      abierto: true,
+      hora_apertura: '08:00',
+      hora_cierre: '22:00',
+    }
+  }
+
+  // Sede Central (id_sede 1)
+  if (diaSemana === 0) {
+    return {
+      abierto: true,
+      hora_apertura: '09:00',
+      hora_cierre: '20:00',
+    }
+  }
+  if (diaSemana === 6) {
+    return {
+      abierto: true,
+      hora_apertura: '08:00',
+      hora_cierre: '22:00',
+    }
+  }
+  return {
+    abierto: true,
+    hora_apertura: '07:00',
+    hora_cierre: '23:00',
+  }
+}
+
+/**
+ * Genera slots dinámicamente según el horario de apertura y cierre de la sede (SedeHorario y Calendario)
  * aplicando la regla de negocio de horario pico (19:00 a 21:00 hs)
  */
 function generarSlotsFallback(cancha: Cancha, fecha: string): TurnoSlot[] {
+  const horario = calcularHorarioOperativo(cancha.id_sede, fecha)
+  if (!horario.abierto) {
+    return []
+  }
+
   const slots: TurnoSlot[] = []
   const costo = cancha.costo_base
+  const horaInicioInt = parseInt(horario.hora_apertura.split(':')[0], 10)
+  const horaCierreInt = parseInt(horario.hora_cierre.split(':')[0], 10)
 
   // Semilla pseudo-determinística según fecha y cancha para simular reservas preexistentes
   const seed =
@@ -307,13 +416,12 @@ function generarSlotsFallback(cancha: Cancha, fecha: string): TurnoSlot[] {
       cancha.id_cancha) %
     7
 
-  for (let hora = 8; hora <= 22; hora++) {
+  for (let hora = horaInicioInt; hora <= horaCierreInt; hora++) {
     const horaInicioStr = `${hora.toString().padStart(2, '0')}:00`
     const horaFinStr = `${(hora + 1).toString().padStart(2, '0')}:00`
 
     // Regla de Negocio: Horario Pico entre las 19:00 y las 21:00 hs
     const esPico = hora >= 19 && hora < 21
-    // Si es horario pico, recargo del 20%
     const precio = esPico ? Math.round(costo * 1.2) : costo
 
     let estado: TurnoSlot['estado'] = 'DISPONIBLE'
@@ -340,15 +448,38 @@ function generarSlotsFallback(cancha: Cancha, fecha: string): TurnoSlot[] {
 
 export const canchasService = {
   /**
+   * Consulta el horario operativo de una sede para una fecha específica
+   */
+  async getHorarioOperativo(
+    idSede: number,
+    fecha: string
+  ): Promise<HorarioOperativoDia> {
+    try {
+      const response = await http.get<HorarioOperativoDia>(
+        `/sedes/${idSede}/horario-operativo`,
+        {
+          params: { fecha },
+        }
+      )
+      return response.data
+    } catch {
+      return calcularHorarioOperativo(idSede, fecha)
+    }
+  },
+
+  /**
    * Obtiene la lista de tipos de disciplinas deportivas
    */
   async getTiposCancha(): Promise<CanchaTipo[]> {
+    /* NOTA: Necesito el endpoint andando en backend
     try {
       const response = await http.get('/canchas/tipos')
       return response.data
     } catch {
       return MOCK_TIPOS_CANCHA
     }
+    */
+    return MOCK_TIPOS_CANCHA
   },
 
   /**
@@ -375,7 +506,43 @@ export const canchasService = {
       const response = await http.get(`/canchas/${idCancha}/disponibilidad`, {
         params: { fecha },
       })
-      return response.data
+      const data = response.data
+
+      // NestJS devuelve el arreglo directo: [ { horaInicio, horaFin, estado }, ... ]
+      const rawSlots: Array<{
+        horaInicio?: string
+        hora_inicio?: string
+        horaFin?: string
+        hora_fin?: string
+        estado: TurnoSlot['estado']
+        es_horario_pico?: boolean
+        precio_estimado?: number
+      }> = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.slots)
+          ? data.slots
+          : []
+
+      const slots: TurnoSlot[] = rawSlots.map((s) => {
+        const horaInicio = s.hora_inicio || s.horaInicio || '08:00'
+        const horaFin = s.hora_fin || s.horaFin || '09:00'
+        const horaNum = parseInt(horaInicio.split(':')[0], 10)
+        const esPico = horaNum >= 19 && horaNum < 21
+        return {
+          hora_inicio: horaInicio,
+          hora_fin: horaFin,
+          estado: s.estado,
+          es_horario_pico: s.es_horario_pico ?? esPico,
+          precio_estimado: s.precio_estimado ?? 15000,
+        }
+      })
+
+      return {
+        id_cancha: idCancha,
+        nombre_cancha: '',
+        fecha,
+        slots,
+      }
     } catch {
       const cancha =
         MOCK_CANCHAS.find((c) => c.id_cancha === idCancha) || MOCK_CANCHAS[0]
