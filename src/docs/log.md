@@ -214,12 +214,50 @@
 #### Matías Sillen | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  -
+  -
+  -
 - **Decisiones:**
-  - 
-  - 
+  -
+  -
+- **Dificultades:** Ninguna.
+- **Commits:**
+  - ``
+  - ``
+  - ``
+
+----
+
+#### 09/10/2026
+#### Angelina Viale | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Desarrollo de la vista de credencial del socio para la generación y visualización dinámica del código QR de acceso.
+  - Creación del servicio accesos.service.ts para consumir el endpoint de generación de codigo qr, adjuntando la sesión activa del usuario.
+  - Implementación del composable useQr.ts para gestionar la lógica de cuenta regresiva, expiración del token y renovación automática de la credencial.
+  - Manejo de estados de carga, fallos de red y expiración de sesión para evitar mostrar códigos no válidos o desactualizados
+- **Decisiones:**
+  -Centralizar la lógica del temporizador y temporización de renovación dentro de un composable (useQr) para limpiar correctamente los intervalos al desmontar el componente y evitar fuga de memoria o llamadas innecesarias a la API.
+  -
+- **Dificultades:** Ninguna.
+- **Commits:**
+  - `feat(M2): interfases de qrResponse y appiError`
+  - `feat(M2): crear componente de QR`
+  - `feat(M2): implementar servicio y composable para QR`
+  - `feat(M2): bitacora y arreglos`
+
+----
+
+#### XX/XX/2026
+#### Angelina Viale | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  -
+  -
+  -
+- **Decisiones:**
+  -
+  -
 - **Dificultades:** Ninguna.
 - **Commits:**
   - ``
@@ -232,48 +270,12 @@
 #### Angelina Viale | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  -
+  -
+  -
 - **Decisiones:**
-  - 
-  - 
-- **Dificultades:** Ninguna.
-- **Commits:**
-  - ``
-  - ``
-  - ``
-
-----
-
-#### XX/XX/2026
-#### Angelina Viale | Rol: Desarrollador Frontend
-
-- **Actividades:**
-  - 
-  - 
-  - 
-- **Decisiones:**
-  - 
-  - 
-- **Dificultades:** Ninguna.
-- **Commits:**
-  - ``
-  - ``
-  - ``
-
-----
-
-#### XX/XX/2026
-#### Angelina Viale | Rol: Desarrollador Frontend
-
-- **Actividades:**
-  - 
-  - 
-  - 
-- **Decisiones:**
-  - 
-  - 
+  -
+  -
 - **Dificultades:** Ninguna.
 - **Commits:**
   - ``
@@ -354,39 +356,52 @@
 
 ----
 
-#### XX/XX/2026
-#### Marcos Caravallo | Rol: Desarrollador Frontend
+#### 4/10/2026 - 12/10/2026
+#### Marcos Caraballo | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  - Desarrollo de la vista principal de canchas (`CanchasView.vue`) integrando filtros dinámicos por disciplina deportiva (Pádel y Fútbol 5) y fecha de juego (`BaseInput` tipo date con valor mínimo fijado en el día de hoy).
+  - Creación del componente `GrillaTurnos.vue` estructurando la matriz horaria (08:00 a 22:00 hs en filas y canchas en columnas), representando los estados libre, ocupado y mantenimiento, y resaltando la franja de horario pico (19:00 a 21:00 hs) con valores numéricos tabulares.
+  - Implementación de la capa de servicio `canchas.service.ts` con cliente Axios tipado para consultar el catálogo de canchas por sede y el endpoint `GET /canchas/:id/disponibilidad`.
+  - Integración de suscripción en tiempo real con Supabase Realtime a la tabla `cancha_reserva` para refrescar los casilleros tomados al instante y mitigar colisiones por concurrencia.
+  - Implementación de barra resumen inferior para el turno seleccionado y modal de confirmación con `BaseModal` para preparar la continuidad hacia la Tarea 2.
+  - Corrección de tipados utilizando `RealtimePostgresChangesPayload` para cumplir con la configuración de linter.
 - **Decisiones:**
-  - 
-  - 
-- **Dificultades:** Ninguna.
+  - Utilizar temporalmente slots de horarios fijos calculados según una hora hardcodeada, al no estar decidido todavía la implementación final de horarios.
+  - Segmentar las columnas de la grilla por disciplina seleccionada en lugar de mostrar todas las canchas juntas, evitando saturación de información y mejorando la legibilidad.
+  - Consumir la sede activa desde el store global de Pinia (`useSedeStore`) para que cualquier cambio de sede en el encabezado actualice de forma reactiva el catálogo y la grilla.
+- **Dificultades:**
+  - Curva de aprendizaje inicial con Vue 3, lo que demandó considerable tiempo inicial de investigación y estudio del framework.
+  - Discrepancias con los modelos iniciales de arquitectura,tanto diagramas como los adr y falta de endpoints en el backend para obtener información relevante, así que se tuvo que implementar temporalmente con información hardcodeada u omitirse temporalmente.
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  - `feat(M4): implementar grilla de disponibilidad de canchas y sincronizacion realtime`
+  - `docs(log): registrar avance de e5 tarea 1 en bitacora`
 
 ----
 
-#### XX/XX/2026
-#### Marcos Caravallo | Rol: Desarrollador Frontend
+#### 13/10/2026
+#### Marcos Caraballo | Rol: Desarrollador Backend y Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  - Construcción del módulo `M4-canchas`.
+  - Desarrollo de la matriz horaria estructurada con eje horizontal de canchas activas y eje vertical de horas, obtenidos consumiendo la api correctamente.
+  - Integración de filtros reactivos por disciplina deportiva y sede activa consumiendo `useSedeStore`.
+  - Desarrollo del componente modal de confirmación con resumen previo del turno (sede, cancha, deporte, fecha y horario), consulta asíncrona de cotización desglosada y botón transaccional con estado de carga.
+  - Corrección del cálculo de costos estimativos por slot en la grilla: vinculación directa con el `costo_base` real de cada cancha y aplicación del recargo del 20% en franja pico (19 a 21 hs), eliminando importes planos.
+  - Validación y control de fechas:
+    - Bloqueo de fechas pasadas.
+    - Deshabilitación de turnos del día actual cuya hora ya transcurrió, mostrándolos con estado inactivo "Pasado / No disp.".
+  - Rediseño de casilleros de slots horarios para diferenciarlos más fácilmente y que sea visualmente más agradable.
+  - Preparación para futuras integraciones con Supabase Realtime sobre la tabla `cancha_reserva` para refresco automático ante reservas concurrentes de otros usuarios.
 - **Decisiones:**
-  - 
-  - 
-- **Dificultades:** Ninguna.
+  -
+- **Dificultades:**
+  - Adaptación del frontend ante la falta de endpoints específicos o contratos incompletos en el backend preexistente, requiriendo normalizar respuestas y pausar el flujo visual hasta implementar y sincronizar los endpoints en el backend.
+  - Sincronización de zonas horarias, la hora local argentina y las marcas de tiempo ISO que esperaba el backend, para evitar que turnos de la tarde o noche se desfasaran o se computaran en días posteriores.
+  - Sobrecarga y división del tiempo de desarrollo al tener que asumir tanto el diseño y programación de la arquitectura del backend como la implementación y refinamiento de la interfaz de usuario en el frontend de manera simultánea en una ventana de tiempo acotada.
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  - `feat(M4): implementar confirmacion de reserva de canchas con slots de horarios reales`
+  - `docs(log): actualizar bitacora con tareas de calendario, horario y reservas`
 
 ----
 
@@ -471,21 +486,29 @@
   - [Actualización de dependencias](https://trello.com/c/rxq6hcEG)
   - [Alerta GitGuardian del QR](https://trello.com/c/LyyrNbDx)
 
-#### XX/XX/2026
-#### Facundo Agüero | Rol: Team Leader
+#### 11/10/2026
+#### Joaquín Ribarola | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  - Relevamiento de contratos y dependencias del backend para la agenda de clases grupales y reservas.
+  - Actualización del servicio `clases.service.ts` integrando los nuevos DTOs del backend (`ClaseAgendaResponse`, `MiReservaClaseResponse`, `MiInscripcionListaEsperaResponse`).
+  - Incorporación de los métodos `obtenerMisReservas` y `obtenerMisInscripciones`, y soporte para el filtro opcional de `fecha` en `obtenerClasesPorSede`.
+  - Estandarización de los payloads de `reservarClase` e `inscribirListaEspera` para soportar horarios en formato ISO (`fecha_inicio` y `fecha_fin`).
+  - Adaptación del componente `ClaseCard.vue` para renderizar cupos y aforo reales sin depender de simulaciones, manejando fallbacks para instructor ('Sin profesor asignado') y sala ('Sala no especificada'), e indicando la posición en cola de lista de espera.
+  - Conexión de `ClasesView.vue` con la agenda por fecha y sede, reactivando la consulta al backend al cambiar el selector de fecha. Eliminación del estado local en memoria en favor de la recuperación directa de reservas e inscripciones en espera del usuario autenticado.
+  - Actualización de las operaciones de reserva, lista de espera y cancelación para utilizar las instancias horarias ISO reales, reflejando el estado consistente en pantalla tras cada operación.
+  - Corrección de la discrepancia de almacenamiento del token JWT entre el store global de autenticación (`useAuthStore`) y el cliente Axios (`http.ts`), garantizando el envío del header `Authorization: Bearer <token>` para llamadas autenticadas de reservas.
 - **Decisiones:**
-  - 
-  - 
+  - Mantener compatibilidad hacia atrás en los DTOs de peticiones y respuestas para evitar roturas de compilación mientras se refactorizan las vistas y componentes.
+  - Manejar valores no disponibles de forma explícita en la UI en lugar de generar valores ficticios, y extender `ClaseCardProps` de forma flexible para integrarse con la agenda por fecha.
+  - Consultar en paralelo la agenda y el estado del usuario mediante `Promise.all` para optimizar el tiempo de respuesta, distinguiendo las reservas por fecha para evitar solapamientos visuales entre días.
+  - Sincronizar bidireccionalmente las claves `'token'` y `'fitzone_token'` tanto en el cliente Axios (`http.ts`) como en `useAuthStore` para evitar errores 401 y rebotes de redirección cuando la sesión del usuario está activa.
 - **Dificultades:** Ninguna.
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  - `feat(clases): actualizar clases.service con contratos reales de agenda y reservas`
+  - `feat(clases): adaptar ClaseCard para datos reales de agenda y lista de espera`
+  - `feat(clases): conectar agenda y estado de reservas del usuario por fecha`
+  - `fix(auth): sincronizar lectura y guardado de token jwt entre http y auth store`
 
 ----
 
@@ -493,12 +516,12 @@
 #### Facundo Agüero | Rol: Team Leader
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  -
+  -
+  -
 - **Decisiones:**
-  - 
-  - 
+  -
+  -
 - **Dificultades:** Ninguna.
 - **Commits:**
   - ``
