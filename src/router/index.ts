@@ -44,6 +44,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../modules/M5-pagos/views/PagosView.vue'),
       },
       {
+        path: 'reportes/ocupacion',
+        name: 'reportes-ocupacion',
+        component: () =>
+          import('../modules/M6-reportes/views/OcupacionView.vue'),
+      },
+      {
         path: 'reportes',
         name: 'reportes',
         component: () =>
