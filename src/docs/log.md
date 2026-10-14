@@ -365,21 +365,29 @@
 
 ----
 
-#### XX/XX/2026
-#### Marcos Caravallo | Rol: Desarrollador Frontend
+#### 13/10/2026
+#### Marcos Caraballo | Rol: Desarrollador Backend y Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  - Construcción del módulo `M4-canchas`.
+  - Desarrollo de la matriz horaria estructurada con eje horizontal de canchas activas y eje vertical de horas, obtenidos consumiendo la api correctamente.
+  - Integración de filtros reactivos por disciplina deportiva y sede activa consumiendo `useSedeStore`.
+  - Desarrollo del componente modal de confirmación con resumen previo del turno (sede, cancha, deporte, fecha y horario), consulta asíncrona de cotización desglosada y botón transaccional con estado de carga.
+  - Corrección del cálculo de costos estimativos por slot en la grilla: vinculación directa con el `costo_base` real de cada cancha y aplicación del recargo del 20% en franja pico (19 a 21 hs), eliminando importes planos.
+  - Validación y control de fechas:
+    - Bloqueo de fechas pasadas.
+    - Deshabilitación de turnos del día actual cuya hora ya transcurrió, mostrándolos con estado inactivo "Pasado / No disp.".
+  - Rediseño de casilleros de slots horarios para diferenciarlos más fácilmente y que sea visualmente más agradable.
+  - Preparación para futuras integraciones con Supabase Realtime sobre la tabla `cancha_reserva` para refresco automático ante reservas concurrentes de otros usuarios.
 - **Decisiones:**
   - 
-  - 
-- **Dificultades:** Ninguna.
+- **Dificultades:**
+  - Adaptación del frontend ante la falta de endpoints específicos o contratos incompletos en el backend preexistente, requiriendo normalizar respuestas y pausar el flujo visual hasta implementar y sincronizar los endpoints en el backend.
+  - Sincronización de zonas horarias, la hora local argentina y las marcas de tiempo ISO que esperaba el backend, para evitar que turnos de la tarde o noche se desfasaran o se computaran en días posteriores.
+  - Sobrecarga y división del tiempo de desarrollo al tener que asumir tanto el diseño y programación de la arquitectura del backend como la implementación y refinamiento de la interfaz de usuario en el frontend de manera simultánea en una ventana de tiempo acotada.
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  - `feat(M4): implementar confirmacion de reserva de canchas con slots de horarios reales`
+  - `docs(log): actualizar bitacora con tareas de calendario, horario y reservas`
 
 ----
 
