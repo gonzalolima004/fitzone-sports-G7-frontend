@@ -198,21 +198,32 @@
 * `refactor(login): migrar UI a tailwind, implementar BaseInput/BaseButton e integrar toastify`
 
 ---
-#### XX/XX/2026
+#### 07/10/2026 - 13/10/2026
 #### Matías Sillen | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  - Refactorización completa de MembresiaView.vue para asegurar un uso estricto de Tailwind CSS, eliminando etiquetas <style scoped> y animaciones @keyframes.
+  - Reemplazo de la animación custom por el componente <Transition> nativo de Vue combinado con utilidades de Tailwind para el efecto fade-in.
+  - Corrección del paso de propiedades en PlanCard.vue hacia CheckoutModal.vue, emitiendo el objeto completo del plan para asegurar la visualización del precio correcto.
+  - Inyección manual del token JWT desde Pinia (authStore) hacia el pagosService para resolver errores de autorización 401 en endpoints protegidos.
+  - Modificación del layout principal (Layout.vue) ajustando el contenedor general a h-screen overflow-hidden para mantener la barra lateral fija y habilitar el scroll independiente del área de contenido.
 - **Decisiones:**
-  - 
-  - 
-- **Dificultades:** Ninguna.
+  - Pasar el objeto completo del plan desde la tarjeta al modal (en lugar de emitir únicamente el ID) para hacer el componente más robusto frente a posibles cambios o filtrados de claves del lado del backend.
+  - Mantener la responsabilidad del inicio de pago enviando el payload correcto, pero delegar el manejo del webhook y la confirmación final a la Épica 6 correspondiente al módulo de pagos.
+- **Dificultades:** 
+  - Problemas de renderizado de precios debido a que el ID del plan llegaba como undefined, causando que el frontend siempre seleccionara el primer plan por defecto. Se resolvió enviando la entidad completa.
+  - El componente de layout inicial generaba un scroll a nivel de página entera que arrastraba el menú lateral; requirió un reajuste de las clases flexbox y overflow de Tailwind.
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  -  `feat(membresias): mapear endpoints de planes y verificacion de estado`
+  -  `feat(pagos): agregar servicio HTTP para iniciar preferencia de pago`
+  -  `feat(membresias): crear componente reutilizable PlanCard`
+  -  `feat(pagos): maquetar modal de checkout seguro con integracion de metodos`
+  -  `refactor(ui): reemplazar svgs en duro por componentes de phosphor icons en PlanCard.vue`
+  -  `feat(membresias): implementar pantalla de membresías integrando estados, mora y retorno de checkout`
+  -  `fix(membresias): unificar id_membresia_plan en UI y adjuntar token JWT en servicio de pagos`
+  -  `fix(membresias): pasar objeto plan completo al modal para garantizar la visualización del precio correcto`
+  -  `refactor(membresias): enviar objeto plan completo al modal, eliminar css custom y aplicar tailwind estricto`
+  -  `fix(layout): cambiar min-h-screen por h-screen para mantener sidebar fijo y habilitar scroll interno`
 
 ----
 
