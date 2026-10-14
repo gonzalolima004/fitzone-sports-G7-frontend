@@ -17,6 +17,13 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true }, // Ruta protegida
       },
       {
+        path: 'membresia',
+        name: 'membresia',
+        component: () =>
+          import('../modules/M1-usuarios/views/MembresiaView.vue'),
+        meta: { requiresAuth: true }, // Ruta protegida
+      },
+      {
         path: '',
         name: 'home',
         component: () => import('../common/views/HomeView.vue'),
@@ -42,6 +49,13 @@ const routes: RouteRecordRaw[] = [
         path: 'pagos',
         name: 'pagos',
         component: () => import('../modules/M5-pagos/views/PagosView.vue'),
+      },
+      {
+        path: 'pagos/resultado',
+        name: 'pagos-resultado',
+        alias: ['/pagos/exito', '/pagos/error', '/pagos/pendiente'],
+        component: () =>
+          import('../modules/M5-pagos/views/ResultadoPagoView.vue'),
       },
       {
         path: 'reportes',
