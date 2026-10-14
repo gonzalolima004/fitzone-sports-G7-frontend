@@ -33,7 +33,7 @@ const inicialUsuario = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#f4f6fa] text-slate-800 flex">
+  <div class="h-screen overflow-hidden bg-[#f4f6fa] text-slate-800 flex">
     <!-- Telón oscuro de fondo para móvil cuando el menú está abierto -->
     <div
       v-if="menuAbierto"
