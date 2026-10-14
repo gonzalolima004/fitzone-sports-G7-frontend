@@ -51,6 +51,13 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../modules/M5-pagos/views/PagosView.vue'),
       },
       {
+        path: 'pagos/resultado',
+        name: 'pagos-resultado',
+        alias: ['/pagos/exito', '/pagos/error', '/pagos/pendiente'],
+        component: () =>
+          import('../modules/M5-pagos/views/ResultadoPagoView.vue'),
+      },
+      {
         path: 'reportes',
         name: 'reportes',
         component: () =>

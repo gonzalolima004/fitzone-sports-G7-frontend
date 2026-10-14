@@ -59,57 +59,69 @@
 
 ----
 
-#### XX/XX/2026
+#### 12/10/2026
 #### Gonzalo Lima | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  - Creación del servicio de pagos para conectar la interfaz con la API de cobros.
+  - Creación del botón y modal de confirmación de pago con validación y estados de carga.
+  - Listado dinámico de conceptos pendientes (membresías adeudadas y reservas de canchas).
+  - Redirección al checkout de Mercado Pago al confirmar el pago.
 - **Decisiones:**
-  - 
-  - 
-- **Dificultades:** Ninguna.
+  - Reutilizar los componentes base del sistema (botones y modales) para mantener la consistencia visual.
+  - Mostrar mensajes de estado claros cuando el socio está al día con sus pagos.
+- **Dificultades:**
+  - Problema con el token de sesión en las peticiones que provocaba error de autenticación, resuelto unificando su lectura en el cliente HTTP.
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  - `feat(pagos): pago service y botón disparador de acción de pago`
+  - `feat(pagos): conectar service con api iniciar-pagos`
+  - `feat(pagos): integracion de pagos pendientes e inicio de checkout`
 
 ----
 
-#### XX/XX/2026
+#### 12/10/2026
 #### Gonzalo Lima | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  - Creación de la vista de resultado del pago con soporte para estados Aprobado, Pendiente, Rechazado y No identificado.
+  - Configuración de la ruta /pagos/resultado y para los retornos de MercadoPago (pagos/exito, pagos/error, pagos/pendiente).
+  - Consulta al backend (GET /pagos/:id) para certificar el estado real del pago a partir de localStorage o parámetros de URL.
+  - Integración de botones contextuales.
 - **Decisiones:**
-  - 
-  - 
-- **Dificultades:** Ninguna.
+  - Validar siempre el estado persistido en la base de datos para no depender únicamente de los parámetros de retorno de la pasarela.
+  - Unificar la estructura de la tarjeta mediante propiedades reactivas computadas para mantener el código conciso y sin duplicaciones.
+  - Uso estricto de componentes base (BaseButton) respetando la guía de diseño institucional.
+- **Dificultades:**
+  - Manejo de accesos directos sin identificador de pago o consultas no autorizadas, resuelto incorporando un estado defensivo con navegación segura al panel de pagos.
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  - `feat(pagos): crear vistas de resultados y sus rutas`
+  - `feat(pagos): conectar las vistas con el estado real del pago`
+  - `feat(pagos): conexión con acciones contextuales y navegación dependiendo del resultado del pago`
+  - `fix(pagos): mejoras en la ui y corrección de errores visuales`
 
 ----
 
-#### XX/XX/2026
+#### 12/10/2026
 #### Gonzalo Lima | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  - Creación del componente HistorialPagos para la consulta de pagos realizados por el usuario.
+  - Conexión para poder descargar el PDF del comprobante.
+  - Desglose de datos en mini badges visuales con iconos.
+  - Normalización estética de importes monetarios en ARS sin decimales en tarjetas, historial y modales de pago.
+  - Optimización de armonía visual en tarjetas de pagos pendientes para vista mobile.
+  - Creación del componente genérico BaseSkeleton e integración en conceptos pendientes e historial de pagos.
 - **Decisiones:**
-  - 
-  - 
-- **Dificultades:** Ninguna.
+  - Desacoplar el historial en un componente dedicado y reutilizable para mantener un tamaño de archivo liviano y alta legibilidad.
+  - Restringir la disponibilidad de descarga del comprobante únicamente a transacciones certificadas en estado 'Aprobado'.
+  - Implementar BaseSkeleton para estandarizar los estados de carga.
+- **Dificultades:**
+  - Desbalance visual y saltos de línea involuntarios en los badges descriptivos y botones de cobro en pantallas estrechas.
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  - `feat(pagos): creación de historial de pagos`
+  - `fix(pagos): armonizar diseño en desktop y mobile`
+  - `feat(pagos): agregar skeleton loaders base y utilizarlo en toda la sección`
+
 
 ----
 
@@ -210,7 +222,7 @@
 - **Decisiones:**
   - Pasar el objeto completo del plan desde la tarjeta al modal (en lugar de emitir únicamente el ID) para hacer el componente más robusto frente a posibles cambios o filtrados de claves del lado del backend.
   - Mantener la responsabilidad del inicio de pago enviando el payload correcto, pero delegar el manejo del webhook y la confirmación final a la Épica 6 correspondiente al módulo de pagos.
-- **Dificultades:** 
+- **Dificultades:**
   - Problemas de renderizado de precios debido a que el ID del plan llegaba como undefined, causando que el frontend siempre seleccionara el primer plan por defecto. Se resolvió enviando la entidad completa.
   - El componente de layout inicial generaba un scroll a nivel de página entera que arrastraba el menú lateral; requirió un reajuste de las clases flexbox y overflow de Tailwind.
 - **Commits:**
@@ -234,10 +246,10 @@
   - Desarrollo de la vista de credencial del socio para la generación y visualización dinámica del código QR de acceso.
   - Creación del servicio accesos.service.ts para consumir el endpoint de generación de codigo qr, adjuntando la sesión activa del usuario.
   - Implementación del composable useQr.ts para gestionar la lógica de cuenta regresiva, expiración del token y renovación automática de la credencial.
-  - Manejo de estados de carga, fallos de red y expiración de sesión para evitar mostrar códigos no válidos o desactualizados 
+  - Manejo de estados de carga, fallos de red y expiración de sesión para evitar mostrar códigos no válidos o desactualizados
 - **Decisiones:**
-  -Centralizar la lógica del temporizador y temporización de renovación dentro de un composable (useQr) para limpiar correctamente los intervalos al desmontar el componente y evitar fuga de memoria o llamadas innecesarias a la API. 
-  - 
+  -Centralizar la lógica del temporizador y temporización de renovación dentro de un composable (useQr) para limpiar correctamente los intervalos al desmontar el componente y evitar fuga de memoria o llamadas innecesarias a la API.
+  -
 - **Dificultades:** Ninguna.
 - **Commits:**
   - `feat(M2): interfases de qrResponse y appiError`
@@ -251,12 +263,12 @@
 #### Angelina Viale | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  -
+  -
+  -
 - **Decisiones:**
-  - 
-  - 
+  -
+  -
 - **Dificultades:** Ninguna.
 - **Commits:**
   - ``
@@ -269,12 +281,12 @@
 #### Angelina Viale | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  -
+  -
+  -
 - **Decisiones:**
-  - 
-  - 
+  -
+  -
 - **Dificultades:** Ninguna.
 - **Commits:**
   - ``
@@ -369,7 +381,7 @@
   - Utilizar temporalmente slots de horarios fijos calculados según una hora hardcodeada, al no estar decidido todavía la implementación final de horarios.
   - Segmentar las columnas de la grilla por disciplina seleccionada en lugar de mostrar todas las canchas juntas, evitando saturación de información y mejorando la legibilidad.
   - Consumir la sede activa desde el store global de Pinia (`useSedeStore`) para que cualquier cambio de sede en el encabezado actualice de forma reactiva el catálogo y la grilla.
-- **Dificultades:** 
+- **Dificultades:**
   - Curva de aprendizaje inicial con Vue 3, lo que demandó considerable tiempo inicial de investigación y estudio del framework.
   - Discrepancias con los modelos iniciales de arquitectura,tanto diagramas como los adr y falta de endpoints en el backend para obtener información relevante, así que se tuvo que implementar temporalmente con información hardcodeada u omitirse temporalmente.
 - **Commits:**
@@ -393,7 +405,7 @@
   - Rediseño de casilleros de slots horarios para diferenciarlos más fácilmente y que sea visualmente más agradable.
   - Preparación para futuras integraciones con Supabase Realtime sobre la tabla `cancha_reserva` para refresco automático ante reservas concurrentes de otros usuarios.
 - **Decisiones:**
-  - 
+  -
 - **Dificultades:**
   - Adaptación del frontend ante la falta de endpoints específicos o contratos incompletos en el backend preexistente, requiriendo normalizar respuestas y pausar el flujo visual hasta implementar y sincronizar los endpoints en el backend.
   - Sincronización de zonas horarias, la hora local argentina y las marcas de tiempo ISO que esperaba el backend, para evitar que turnos de la tarde o noche se desfasaran o se computaran en días posteriores.
@@ -515,12 +527,12 @@
 #### Facundo Agüero | Rol: Team Leader
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  -
+  -
+  -
 - **Decisiones:**
-  - 
-  - 
+  -
+  -
 - **Dificultades:** Ninguna.
 - **Commits:**
   - ``
