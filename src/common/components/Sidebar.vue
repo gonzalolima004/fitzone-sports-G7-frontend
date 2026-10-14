@@ -72,12 +72,12 @@ const todasLasSecciones: NavSection[] = [
     items: [
       {
         nombre: 'Pagos y Membresía',
-        ruta: '/pagos',
+        ruta: '/membresia',
         icono: 'credit-card',
         roles: ['socio', 'admin'],
       },
       {
-        nombre: 'Reportes',
+        nombre: 'Panel de gerencia',
         ruta: '/reportes',
         icono: 'chart',
         roles: ['gerente', 'admin'],
@@ -158,7 +158,8 @@ function cerrarSesion() {
                 :to="item.ruta"
                 class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200"
                 :class="
-                  route.path === item.ruta
+                  route.path === item.ruta ||
+                  (item.ruta !== '/' && route.path.startsWith(item.ruta + '/'))
                     ? 'bg-[#F96167] text-white font-bold shadow-md'
                     : 'text-white/80 hover:text-white hover:bg-white/10 hover:translate-x-1'
                 "
@@ -168,32 +169,68 @@ function cerrarSesion() {
                 <PhSquaresFour
                   v-if="item.icono === 'grid'"
                   class="w-5 h-5 flex-shrink-0"
-                  :weight="route.path === item.ruta ? 'bold' : 'regular'"
+                  :weight="
+                    route.path === item.ruta ||
+                    (item.ruta !== '/' &&
+                      route.path.startsWith(item.ruta + '/'))
+                      ? 'bold'
+                      : 'regular'
+                  "
                 />
                 <PhCalendar
                   v-else-if="item.icono === 'calendar'"
                   class="w-5 h-5 flex-shrink-0"
-                  :weight="route.path === item.ruta ? 'bold' : 'regular'"
+                  :weight="
+                    route.path === item.ruta ||
+                    (item.ruta !== '/' &&
+                      route.path.startsWith(item.ruta + '/'))
+                      ? 'bold'
+                      : 'regular'
+                  "
                 />
                 <PhCourtBasketball
                   v-else-if="item.icono === 'sports'"
                   class="w-5 h-5 flex-shrink-0"
-                  :weight="route.path === item.ruta ? 'bold' : 'regular'"
+                  :weight="
+                    route.path === item.ruta ||
+                    (item.ruta !== '/' &&
+                      route.path.startsWith(item.ruta + '/'))
+                      ? 'bold'
+                      : 'regular'
+                  "
                 />
                 <PhQrCode
                   v-else-if="item.icono === 'qr'"
                   class="w-5 h-5 flex-shrink-0"
-                  :weight="route.path === item.ruta ? 'bold' : 'regular'"
+                  :weight="
+                    route.path === item.ruta ||
+                    (item.ruta !== '/' &&
+                      route.path.startsWith(item.ruta + '/'))
+                      ? 'bold'
+                      : 'regular'
+                  "
                 />
                 <PhCreditCard
                   v-else-if="item.icono === 'credit-card'"
                   class="w-5 h-5 flex-shrink-0"
-                  :weight="route.path === item.ruta ? 'bold' : 'regular'"
+                  :weight="
+                    route.path === item.ruta ||
+                    (item.ruta !== '/' &&
+                      route.path.startsWith(item.ruta + '/'))
+                      ? 'bold'
+                      : 'regular'
+                  "
                 />
                 <PhChartBar
                   v-else-if="item.icono === 'chart'"
                   class="w-5 h-5 flex-shrink-0"
-                  :weight="route.path === item.ruta ? 'bold' : 'regular'"
+                  :weight="
+                    route.path === item.ruta ||
+                    (item.ruta !== '/' &&
+                      route.path.startsWith(item.ruta + '/'))
+                      ? 'bold'
+                      : 'regular'
+                  "
                 />
                 <span>{{ item.nombre }}</span>
               </RouterLink>

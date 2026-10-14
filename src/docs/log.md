@@ -59,57 +59,69 @@
 
 ----
 
-#### XX/XX/2026
+#### 12/10/2026
 #### Gonzalo Lima | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  - Creación del servicio de pagos para conectar la interfaz con la API de cobros.
+  - Creación del botón y modal de confirmación de pago con validación y estados de carga.
+  - Listado dinámico de conceptos pendientes (membresías adeudadas y reservas de canchas).
+  - Redirección al checkout de Mercado Pago al confirmar el pago.
 - **Decisiones:**
-  - 
-  - 
-- **Dificultades:** Ninguna.
+  - Reutilizar los componentes base del sistema (botones y modales) para mantener la consistencia visual.
+  - Mostrar mensajes de estado claros cuando el socio está al día con sus pagos.
+- **Dificultades:**
+  - Problema con el token de sesión en las peticiones que provocaba error de autenticación, resuelto unificando su lectura en el cliente HTTP.
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  - `feat(pagos): pago service y botón disparador de acción de pago`
+  - `feat(pagos): conectar service con api iniciar-pagos`
+  - `feat(pagos): integracion de pagos pendientes e inicio de checkout`
 
 ----
 
-#### XX/XX/2026
+#### 12/10/2026
 #### Gonzalo Lima | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  - Creación de la vista de resultado del pago con soporte para estados Aprobado, Pendiente, Rechazado y No identificado.
+  - Configuración de la ruta /pagos/resultado y para los retornos de MercadoPago (pagos/exito, pagos/error, pagos/pendiente).
+  - Consulta al backend (GET /pagos/:id) para certificar el estado real del pago a partir de localStorage o parámetros de URL.
+  - Integración de botones contextuales.
 - **Decisiones:**
-  - 
-  - 
-- **Dificultades:** Ninguna.
+  - Validar siempre el estado persistido en la base de datos para no depender únicamente de los parámetros de retorno de la pasarela.
+  - Unificar la estructura de la tarjeta mediante propiedades reactivas computadas para mantener el código conciso y sin duplicaciones.
+  - Uso estricto de componentes base (BaseButton) respetando la guía de diseño institucional.
+- **Dificultades:**
+  - Manejo de accesos directos sin identificador de pago o consultas no autorizadas, resuelto incorporando un estado defensivo con navegación segura al panel de pagos.
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  - `feat(pagos): crear vistas de resultados y sus rutas`
+  - `feat(pagos): conectar las vistas con el estado real del pago`
+  - `feat(pagos): conexión con acciones contextuales y navegación dependiendo del resultado del pago`
+  - `fix(pagos): mejoras en la ui y corrección de errores visuales`
 
 ----
 
-#### XX/XX/2026
+#### 12/10/2026
 #### Gonzalo Lima | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  - Creación del componente HistorialPagos para la consulta de pagos realizados por el usuario.
+  - Conexión para poder descargar el PDF del comprobante.
+  - Desglose de datos en mini badges visuales con iconos.
+  - Normalización estética de importes monetarios en ARS sin decimales en tarjetas, historial y modales de pago.
+  - Optimización de armonía visual en tarjetas de pagos pendientes para vista mobile.
+  - Creación del componente genérico BaseSkeleton e integración en conceptos pendientes e historial de pagos.
 - **Decisiones:**
-  - 
-  - 
-- **Dificultades:** Ninguna.
+  - Desacoplar el historial en un componente dedicado y reutilizable para mantener un tamaño de archivo liviano y alta legibilidad.
+  - Restringir la disponibilidad de descarga del comprobante únicamente a transacciones certificadas en estado 'Aprobado'.
+  - Implementar BaseSkeleton para estandarizar los estados de carga.
+- **Dificultades:**
+  - Desbalance visual y saltos de línea involuntarios en los badges descriptivos y botones de cobro en pantallas estrechas.
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  - `feat(pagos): creación de historial de pagos`
+  - `fix(pagos): armonizar diseño en desktop y mobile`
+  - `feat(pagos): agregar skeleton loaders base y utilizarlo en toda la sección`
+
 
 ----
 
@@ -198,21 +210,32 @@
 * `refactor(login): migrar UI a tailwind, implementar BaseInput/BaseButton e integrar toastify`
 
 ---
-#### XX/XX/2026
+#### 07/10/2026 - 13/10/2026
 #### Matías Sillen | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  - Refactorización completa de MembresiaView.vue para asegurar un uso estricto de Tailwind CSS, eliminando etiquetas <style scoped> y animaciones @keyframes.
+  - Reemplazo de la animación custom por el componente <Transition> nativo de Vue combinado con utilidades de Tailwind para el efecto fade-in.
+  - Corrección del paso de propiedades en PlanCard.vue hacia CheckoutModal.vue, emitiendo el objeto completo del plan para asegurar la visualización del precio correcto.
+  - Inyección manual del token JWT desde Pinia (authStore) hacia el pagosService para resolver errores de autorización 401 en endpoints protegidos.
+  - Modificación del layout principal (Layout.vue) ajustando el contenedor general a h-screen overflow-hidden para mantener la barra lateral fija y habilitar el scroll independiente del área de contenido.
 - **Decisiones:**
-  - 
-  - 
-- **Dificultades:** Ninguna.
+  - Pasar el objeto completo del plan desde la tarjeta al modal (en lugar de emitir únicamente el ID) para hacer el componente más robusto frente a posibles cambios o filtrados de claves del lado del backend.
+  - Mantener la responsabilidad del inicio de pago enviando el payload correcto, pero delegar el manejo del webhook y la confirmación final a la Épica 6 correspondiente al módulo de pagos.
+- **Dificultades:**
+  - Problemas de renderizado de precios debido a que el ID del plan llegaba como undefined, causando que el frontend siempre seleccionara el primer plan por defecto. Se resolvió enviando la entidad completa.
+  - El componente de layout inicial generaba un scroll a nivel de página entera que arrastraba el menú lateral; requirió un reajuste de las clases flexbox y overflow de Tailwind.
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  -  `feat(membresias): mapear endpoints de planes y verificacion de estado`
+  -  `feat(pagos): agregar servicio HTTP para iniciar preferencia de pago`
+  -  `feat(membresias): crear componente reutilizable PlanCard`
+  -  `feat(pagos): maquetar modal de checkout seguro con integracion de metodos`
+  -  `refactor(ui): reemplazar svgs en duro por componentes de phosphor icons en PlanCard.vue`
+  -  `feat(membresias): implementar pantalla de membresías integrando estados, mora y retorno de checkout`
+  -  `fix(membresias): unificar id_membresia_plan en UI y adjuntar token JWT en servicio de pagos`
+  -  `fix(membresias): pasar objeto plan completo al modal para garantizar la visualización del precio correcto`
+  -  `refactor(membresias): enviar objeto plan completo al modal, eliminar css custom y aplicar tailwind estricto`
+  -  `fix(layout): cambiar min-h-screen por h-screen para mantener sidebar fijo y habilitar scroll interno`
 
 ----
 
@@ -223,10 +246,10 @@
   - Desarrollo de la vista de credencial del socio para la generación y visualización dinámica del código QR de acceso.
   - Creación del servicio accesos.service.ts para consumir el endpoint de generación de codigo qr, adjuntando la sesión activa del usuario.
   - Implementación del composable useQr.ts para gestionar la lógica de cuenta regresiva, expiración del token y renovación automática de la credencial.
-  - Manejo de estados de carga, fallos de red y expiración de sesión para evitar mostrar códigos no válidos o desactualizados 
+  - Manejo de estados de carga, fallos de red y expiración de sesión para evitar mostrar códigos no válidos o desactualizados
 - **Decisiones:**
-  -Centralizar la lógica del temporizador y temporización de renovación dentro de un composable (useQr) para limpiar correctamente los intervalos al desmontar el componente y evitar fuga de memoria o llamadas innecesarias a la API. 
-  - 
+  -Centralizar la lógica del temporizador y temporización de renovación dentro de un composable (useQr) para limpiar correctamente los intervalos al desmontar el componente y evitar fuga de memoria o llamadas innecesarias a la API.
+  -
 - **Dificultades:** Ninguna.
 - **Commits:**
   - `feat(M2): interfases de qrResponse y appiError`
@@ -240,12 +263,12 @@
 #### Angelina Viale | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  -
+  -
+  -
 - **Decisiones:**
-  - 
-  - 
+  -
+  -
 - **Dificultades:** Ninguna.
 - **Commits:**
   - ``
@@ -258,12 +281,12 @@
 #### Angelina Viale | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  - 
-  - 
-  - 
+  -
+  -
+  -
 - **Decisiones:**
-  - 
-  - 
+  -
+  -
 - **Dificultades:** Ninguna.
 - **Commits:**
   - ``
@@ -358,7 +381,7 @@
   - Utilizar temporalmente slots de horarios fijos calculados según una hora hardcodeada, al no estar decidido todavía la implementación final de horarios.
   - Segmentar las columnas de la grilla por disciplina seleccionada en lugar de mostrar todas las canchas juntas, evitando saturación de información y mejorando la legibilidad.
   - Consumir la sede activa desde el store global de Pinia (`useSedeStore`) para que cualquier cambio de sede en el encabezado actualice de forma reactiva el catálogo y la grilla.
-- **Dificultades:** 
+- **Dificultades:**
   - Curva de aprendizaje inicial con Vue 3, lo que demandó considerable tiempo inicial de investigación y estudio del framework.
   - Discrepancias con los modelos iniciales de arquitectura,tanto diagramas como los adr y falta de endpoints en el backend para obtener información relevante, así que se tuvo que implementar temporalmente con información hardcodeada u omitirse temporalmente.
 - **Commits:**
@@ -382,7 +405,7 @@
   - Rediseño de casilleros de slots horarios para diferenciarlos más fácilmente y que sea visualmente más agradable.
   - Preparación para futuras integraciones con Supabase Realtime sobre la tabla `cancha_reserva` para refresco automático ante reservas concurrentes de otros usuarios.
 - **Decisiones:**
-  - 
+  -
 - **Dificultades:**
   - Adaptación del frontend ante la falta de endpoints específicos o contratos incompletos en el backend preexistente, requiriendo normalizar respuestas y pausar el flujo visual hasta implementar y sincronizar los endpoints en el backend.
   - Sincronización de zonas horarias, la hora local argentina y las marcas de tiempo ISO que esperaba el backend, para evitar que turnos de la tarde o noche se desfasaran o se computaran en días posteriores.
@@ -500,6 +523,7 @@
 
 ----
 
+----
 
 
 ---
@@ -549,24 +573,11 @@
 #### 14/10/2026
 #### Facundo Agüero | Rol: Team Leader
 
-- **Actividades:**
-  - Revisión del tablero de Trello, tareas propias y dependencias entre frontend y backend.
-  - Preparación y publicación de las ramas de ocupación, panel de gerencia, corrección SQL y documentación de traspaso.
-  - Normalización de las cuatro ramas propias a `feature/`, verificando el destino remoto antes de retirar los nombres anteriores.
-  - Actualización de las bitácoras con tareas de desarrollo, decisiones, dificultades, verificaciones y commits.
-  - Revisión de los PR abiertos de ambos repositorios y resolución de conflictos de los PR frontend #16, #17, #18 y #20, conservando el trabajo de sus autores.
-  - Comprobación de la dependencia #16 → #17 → #18 para propagar las resoluciones en orden.
-  - Unificación en #20 del servicio de pagos completo y del contrato vigente de lista de espera, con pruebas de regresión.
-  - Comprobación de #18 y #20 contra `dev` en `5294b0d` después de que #16 y #17 se integraran en GitHub durante el trabajo; Git confirmó combinaciones sin conflictos.
-  - Preparación del documento [Cierre y traspaso](./cierre-tl-2026-10-14.md) para la reunión del 14/10 a las 15:00 y el inicio del nuevo TL el 15/10.
-- **Decisiones:**
-  - Actualizar las ramas de los PR mediante merges, sin reescribir historial ni fusionar los PR en `dev`.
-  - Mantener la compatibilidad de las claves de sesión existentes en ambos lados del conflicto.
-  - Corregir configuración duplicada y sincronizar el lockfile para poder verificar las ramas.
-  - Mantener la apertura de los PR propios a cargo de Facundo, según lo acordado.
-- **Dificultades:**
-  - Los PR #16/#17/#18 presentaban diferencias en los archivos compartidos de sesión; sus funciones coincidían y se conservaron.
-  - La documentación previa mezclaba ramas publicadas con tareas todavía no aceptadas; se distinguen implementación, revisión e integración.
-- **Verificación:** Consultar el documento de cierre para los commits de resolución y los resultados de cada rama. El estado sin conflictos de Git no reemplaza la aceptación funcional con una cuenta y datos reales.
-- **Commits de resolución:** `f7e9073` (#16), `9f0197f` (#17), `b1afc69` (#18), `714e0e7` y `e44c72e` (#20).
-- **Pendientes:** Revisión entre compañeros, aprobación/merge de los PR, aceptación visual e integrada y registro del sorteo y acuerdos de la reunión.
+- **Actividades:** Revisión del tablero y dependencias; publicación y normalización de las cuatro ramas propias a `feature/`; actualización de bitácoras dev/TL; resolución de conflictos frontend #16, #17, #18 y #20 conservando los cambios de sus autores; preparación del [traspaso](./cierre-tl-2026-10-14.md).
+- **Integración propia:** A solicitud de Facundo, creación y merge hacia dev de frontend [#21](https://github.com/gonzalolima004/fitzone-sports-G7-frontend/pull/21), [#22](https://github.com/gonzalolima004/fitzone-sports-G7-frontend/pull/22) y backend [#56](https://github.com/gonzalolima004/fitzone-sports-G7-backend/pull/56). Se resolvieron conflictos en rutas y bitácoras conservando los registros completos y las pantallas de pagos. El PR de esta rama entrega la documentación de cierre.
+- **Decisiones:** Preservar el historial mediante merges y conservar ocupación como ruta hija única del panel. La solicitud de crear y fusionar los PR reemplazó el acuerdo previo de apertura manual. Las integraciones previas de #16/#17/#18/#20 fueron externas a esta asistencia.
+- **Dificultades y resolución:** Regeneración local de Prisma Client por el esquema de clases actualizado; conflicto de entradas de log; ruta de ocupación duplicada al incorporar dev. Se conservaron las entradas de todos los autores y se reemplazó la plantilla vacía de TL.
+- **Verificación final de código:** Frontend build/lint y 11 pruebas aprobados; backend build/typecheck y 9 pruebas aprobados más verificación SQL con PGlite. No se modificó la base compartida ni se acredita aceptación visual o sesión real con tests simulados.
+- **Trello:** Tareas frontend 5 y 6 documentadas y finalizadas como desarrollo integrado; backend ocupación actualizado conservando Finalizado. TL tarea 2 mantiene pendientes de revisión entre compañeros y aceptación integrada.
+- **Commits de resolución:** `f7e9073`, `9f0197f`, `b1afc69`, `714e0e7`, `e44c72e`; integraciones propias `c354c59`, `1a3c1e1`, `0f0f93a`.
+- **Pendientes:** Revisión humana, aceptación visual y con datos reales, contrato de checkout de membresías, sorteo y acuerdos de la reunión del 14/10 a las 15:00; nuevo TL asume el 15/10.

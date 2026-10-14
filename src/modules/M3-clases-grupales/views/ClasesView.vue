@@ -105,7 +105,7 @@ function setupRealtimeNotifications() {
         table: 'clase_lista_espera',
         filter: `id_usuario=eq.${authStore.usuario.id}`,
       },
-      (payload) => {
+      (payload: { new: Record<string, unknown> }) => {
         const newData = payload.new as {
           id_clase_lista_espera_estado: number
         }
