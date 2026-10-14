@@ -523,22 +523,6 @@
 
 ----
 
-#### XX/XX/2026
-#### Facundo Agüero | Rol: Team Leader
-
-- **Actividades:**
-  -
-  -
-  -
-- **Decisiones:**
-  -
-  -
-- **Dificultades:** Ninguna.
-- **Commits:**
-  - ``
-  - ``
-  - ``
-
 ----
 
 
@@ -583,3 +567,17 @@
 - **Verificación:** Build y lint aprobados; 8 pruebas aprobadas incluyendo tarea 5.
 - **Commits:** `72c3ee2` — feat(reportes): integrar panel de gerencia y navegacion.
 - **Referencia:** https://trello.com/c/K0iI9k4e
+
+---
+
+#### 14/10/2026
+#### Facundo Agüero | Rol: Team Leader
+
+- **Actividades:** Revisión del tablero y dependencias; publicación y normalización de las cuatro ramas propias a `feature/`; actualización de bitácoras dev/TL; resolución de conflictos frontend #16, #17, #18 y #20 conservando los cambios de sus autores; preparación del [traspaso](./cierre-tl-2026-10-14.md).
+- **Integración propia:** A solicitud de Facundo, creación y merge hacia dev de frontend [#21](https://github.com/gonzalolima004/fitzone-sports-G7-frontend/pull/21), [#22](https://github.com/gonzalolima004/fitzone-sports-G7-frontend/pull/22) y backend [#56](https://github.com/gonzalolima004/fitzone-sports-G7-backend/pull/56). Se resolvieron conflictos en rutas y bitácoras conservando los registros completos y las pantallas de pagos. El PR de esta rama entrega la documentación de cierre.
+- **Decisiones:** Preservar el historial mediante merges y conservar ocupación como ruta hija única del panel. La solicitud de crear y fusionar los PR reemplazó el acuerdo previo de apertura manual. Las integraciones previas de #16/#17/#18/#20 fueron externas a esta asistencia.
+- **Dificultades y resolución:** Regeneración local de Prisma Client por el esquema de clases actualizado; conflicto de entradas de log; ruta de ocupación duplicada al incorporar dev. Se conservaron las entradas de todos los autores y se reemplazó la plantilla vacía de TL.
+- **Verificación final de código:** Frontend build/lint y 11 pruebas aprobados; backend build/typecheck y 9 pruebas aprobados más verificación SQL con PGlite. No se modificó la base compartida ni se acredita aceptación visual o sesión real con tests simulados.
+- **Trello:** Tareas frontend 5 y 6 documentadas y finalizadas como desarrollo integrado; backend ocupación actualizado conservando Finalizado. TL tarea 2 mantiene pendientes de revisión entre compañeros y aceptación integrada.
+- **Commits de resolución:** `f7e9073`, `9f0197f`, `b1afc69`, `714e0e7`, `e44c72e`; integraciones propias `c354c59`, `1a3c1e1`, `0f0f93a`.
+- **Pendientes:** Revisión humana, aceptación visual y con datos reales, contrato de checkout de membresías, sorteo y acuerdos de la reunión del 14/10 a las 15:00; nuevo TL asume el 15/10.
