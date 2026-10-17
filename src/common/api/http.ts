@@ -1,8 +1,8 @@
 import axios from 'axios'
 import router from '../../router'
+import { supabase } from './supabase'
 
 export const http = axios.create({
-  // Asegurate de tener VITE_API_URL="http://localhost:3000" en tu .env
   baseURL: import.meta.env.VITE_API_URL,
   headers: {
     'Content-Type': 'application/json',
@@ -10,12 +10,12 @@ export const http = axios.create({
   timeout: 10000,
 })
 
-// Interceptor de solicitud: adjunta el token de sesión si existe en localStorage
 http.interceptors.request.use(
-  (config) => {
-    // Compatibilidad: busca el token tanto bajo 'token' (useAuthStore) como 'fitzone_token'
-    const token =
-      localStorage.getItem('token') || localStorage.getItem('fitzone_token')
+  async (config) => {
+    // Obtener sesión actual directamente de Supabase para evitar tokens vencidos en Pinia
+    const { data } = await supabase.auth.getSession()
+    const token = data.session?.access_token
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -24,29 +24,21 @@ http.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// Interceptor de respuesta: centraliza errores y redirige si la sesión expiró (401)
 http.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     const status = error.response?.status
     const message =
       error.response?.data?.message || error.message || 'Error de conexión'
 
     console.error(`[HTTP ${status ?? 'Network Error'}]:`, message)
 
-    // Si la sesión no es válida o expiró, limpiamos y mandamos a login
     if (status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('fitzone_token')
-      localStorage.removeItem('usuario')
-      localStorage.removeItem('fitzone_user')
-      localStorage.removeItem('rol')
-
+      await supabase.auth.signOut()
       if (router.currentRoute.value.path !== '/login') {
         router.push('/login')
       }
     }
-
     return Promise.reject(error)
   }
 )
