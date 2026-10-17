@@ -67,25 +67,40 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // NUEVO: Función para realizar el inicio de sesión contra el backend
+  // Función para realizar el inicio de sesión con Supabase
   async function login(credenciales: LoginPayload) {
-    // 1. Llama al servicio HTTP
+    // 1. Llama al servicio de autenticación
     const data = await authService.login(credenciales)
 
-    // 2. Mapea la respuesta a tu interfaz Usuario
+    // 2. Extrae usuario y sesión de Supabase
+    const user = data.user
+    const session = data.session
+
+    const userMetadata = user?.user_metadata || {}
+    const rolUsuario = (userMetadata.rol || 'socio') as RolUsuario
+
     const nuevoUsuario: Usuario = {
-      id: data.usuario.id_usuario,
-      nombre: data.usuario.nombre,
-      apellido: data.usuario.apellido,
-      email: data.usuario.email,
-      rol: data.usuario.rol as RolUsuario,
+      id: user
+        ? Number(user.id) || (userMetadata.id_usuario as number | undefined)
+        : undefined,
+      nombre:
+        (userMetadata.nombre as string | undefined) ||
+        user?.email?.split('@')[0],
+      apellido: userMetadata.apellido as string | undefined,
+      email: user?.email,
+      rol: rolUsuario,
     }
 
-    // 3. Utiliza tu función existente para guardar todo
-    setUsuario(nuevoUsuario, data.token)
+    // 3. Utiliza la función existente para guardar el usuario y token de sesión
+    setUsuario(nuevoUsuario, session?.access_token)
   }
 
-  function logout() {
+  async function logout() {
+    try {
+      await authService.logout()
+    } catch (e) {
+      console.warn('Error cerrando sesión en Supabase:', e)
+    }
     usuario.value = null
     token.value = null
     localStorage.removeItem('token')
