@@ -44,7 +44,16 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function login(credenciales: LoginPayload) {
-    await authService.login(credenciales)
+    const data = await authService.login(credenciales)
+
+    // CORRECCIÓN CRÍTICA: Forzar actualización síncrona para que Vue Router
+    // no rebote la solicitud antes de que onAuthStateChange se dispare.
+    if (data.session) {
+      session.value = data.session
+    }
+
+    // TODO: En el futuro, aquí deberías llamar a tu API de FitZone (e.g., /usuarios/perfil)
+    // para traerte el rol y los datos del perfil interno y setearlos en `usuario.value`.
   }
 
   async function logout() {
