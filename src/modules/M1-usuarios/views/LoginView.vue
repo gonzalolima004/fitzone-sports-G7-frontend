@@ -57,22 +57,24 @@ const handleLogin = async () => {
             required
             :disabled="isLoading"
           />
-          <BaseInput
-            id="password"
-            v-model="password"
-            type="password"
-            label="Contraseña"
-            required
-            :disabled="isLoading"
-          />
 
-          <div class="text-right">
-            <router-link
-              to="/cambiar-password"
-              class="text-sm text-[#202759] font-bold hover:underline"
-            >
-              Cambiar contraseña
-            </router-link>
+          <div class="space-y-1">
+            <BaseInput
+              id="password"
+              v-model="password"
+              type="password"
+              label="Contraseña"
+              required
+              :disabled="isLoading"
+            />
+            <div class="text-right">
+              <router-link
+                to="/cambiar-password"
+                class="text-xs text-[#202759] hover:underline font-semibold"
+              >
+                ¿Olvidaste o quieres cambiar tu contraseña?
+              </router-link>
+            </div>
           </div>
 
           <BaseButton
@@ -85,6 +87,18 @@ const handleLogin = async () => {
             Iniciar Sesión
           </BaseButton>
         </form>
+
+        <div class="mt-8 text-center text-sm text-gray-600">
+          <p>
+            ¿No tienes cuenta?
+            <router-link
+              to="/registro"
+              class="font-bold text-[#202759] hover:underline"
+            >
+              Regístrate
+            </router-link>
+          </p>
+        </div>
       </div>
     </div>
   </div>
