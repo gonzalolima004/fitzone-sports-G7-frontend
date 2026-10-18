@@ -45,21 +45,23 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(credenciales: LoginPayload) {
     const data = await authService.login(credenciales)
-
-    // CORRECCIÓN CRÍTICA: Forzar actualización síncrona para que Vue Router
-    // no rebote la solicitud antes de que onAuthStateChange se dispare.
     if (data.session) {
       session.value = data.session
     }
-
-    // TODO: En el futuro, aquí deberías llamar a tu API de FitZone (e.g., /usuarios/perfil)
-    // para traerte el rol y los datos del perfil interno y setearlos en `usuario.value`.
   }
 
   async function logout() {
-    await authService.logout()
+    // 1. Limpiamos Pinia de forma síncrona INMEDIATAMENTE para que el router.push('/login') no rebote
+    session.value = null
     usuario.value = null
     localStorage.removeItem('rol')
+
+    // 2. Cerramos sesión en Supabase en segundo plano
+    try {
+      await authService.logout()
+    } catch {
+      console.warn('Sesión de Supabase ya estaba inactiva.')
+    }
   }
 
   function setPerfilInterno(perfil: Usuario) {
