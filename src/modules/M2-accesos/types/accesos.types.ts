@@ -50,3 +50,9 @@ export interface SocioPerfilDto {
   readonly iniciales: string
   readonly estado: 'ACTIVO' | 'INACTIVO' | 'SUSPENDIDO' | string
 }
+export interface AforoResponseDto {
+  readonly idSede: number
+  readonly aforoActual: number
+  readonly aforoMaximo: number
+  readonly [key: string]: unknown
+}

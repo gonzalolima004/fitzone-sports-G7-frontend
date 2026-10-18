@@ -278,21 +278,32 @@
 
 ----
 
-#### XX/10/2026
+#### 18/10/2026
 #### Angelina Viale | Rol: Desarrollador Frontend
 
 - **Actividades:**
-  -
-  -
-  -
+  -Desarrollo del monitor de aforo en tiempo real para la vista de recepción (AforoView.vue) e integración del componente visual IndicadorAforo.vue.
+
+  -Conexión con el endpoint inicial GET /accesos/aforo/:id_sede para obtener el aforo actual y la capacidad máxima configurada por sede.
+
+  -Creación del composable reutilizable useAforo.ts para encapsular la lógica de consulta inicial, cálculo de porcentajes/alertas de capacidad y la suscripción al canal de eventos en tiempo real.
+
+  -Implementación de la gestión de ciclo de vida del WebSocket/suscripción en tiempo real, garantizando la desconexión limpia al cambiar de sede.
+
+  -Integración de estados de carga, manejo de errores de conexión y alertas visuales al alcanzar o superar el límite de capacidad permitido de la sede.
 - **Decisiones:**
-  -
-  -
+  -Encapsular toda la lógica de estado y suscripción en vivo en el composable useAforo.ts para separar la capa de datos de la interfaz de usuario.
+  -Centralizar la notificación de cambios de aforo mediante la reactividad de Vue, asegurando que las actualizaciones de ingresos/egresos desde la recepción se reflejen inmediatamente en el monitor sin requerir recargar la pantalla.
+  
 - **Dificultades:** Ninguna.
 - **Commits:**
-  - ``
-  - ``
-  - ``
+  - `feat(M2): creacion de componente Indicador aforo`
+  - `feat(M2): creacion del composables useAforo`
+  - `feat(M2): actualizacion de accesos.service se agrega funcion obtener aforo`
+  - `feat(M2): actualizacion composable, importaciones y nombre de tipos`
+  -`feat(M2): actualizacion accesos.types creacion de una nueva interfaz`
+  -`feat(M2): creacion vista aforoView`
+  -`feat(M2): actualizacion bitacora`
 
 ----
 
