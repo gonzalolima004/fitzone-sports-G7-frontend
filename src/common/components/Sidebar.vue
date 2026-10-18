@@ -13,13 +13,8 @@ import {
 } from '@phosphor-icons/vue'
 import { useAuthStore, type RolUsuario } from '../../store/auth'
 
-defineProps<{
-  abierto?: boolean
-}>()
-
-const emit = defineEmits<{
-  (e: 'cerrar'): void
-}>()
+defineProps<{ abierto?: boolean }>()
+const emit = defineEmits<{ (e: 'cerrar'): void }>()
 
 const route = useRoute()
 const router = useRouter()
@@ -86,7 +81,6 @@ const todasLasSecciones: NavSection[] = [
   },
 ]
 
-// Filtrar las opciones del menú según el rol activo del usuario
 const seccionesFiltradas = computed(() => {
   const rolActivo = authStore.rol
   return todasLasSecciones
@@ -97,8 +91,9 @@ const seccionesFiltradas = computed(() => {
     .filter((seccion) => seccion.items.length > 0)
 })
 
-function cerrarSesion() {
-  authStore.logout()
+// Corrección: Función asíncrona para asegurar el borrado del token antes de navegar
+async function cerrarSesion() {
+  await authStore.logout()
   router.push('/login')
 }
 </script>
@@ -127,24 +122,20 @@ function cerrarSesion() {
             </h1>
             <span
               class="text-[11px] font-semibold tracking-wider text-white/60 uppercase"
+              >Sports Club</span
             >
-              Sports Club
-            </span>
           </div>
         </div>
-
-        <!-- Botón cerrar visible únicamente en móviles -->
         <button
           type="button"
           class="md:hidden text-white/70 hover:text-white p-1 rounded-lg text-lg cursor-pointer"
-          title="Cerrar menú"
           @click="emit('cerrar')"
         >
           <PhX :size="20" weight="bold" />
         </button>
       </div>
 
-      <!-- Menú de Navegación Dinámico según el Rol -->
+      <!-- Menú -->
       <nav class="px-4 py-4 space-y-6">
         <div v-for="seccion in seccionesFiltradas" :key="seccion.titulo">
           <h2
@@ -165,72 +156,35 @@ function cerrarSesion() {
                 "
                 @click="emit('cerrar')"
               >
-                <!-- Iconos de Phosphor -->
                 <PhSquaresFour
                   v-if="item.icono === 'grid'"
                   class="w-5 h-5 flex-shrink-0"
-                  :weight="
-                    route.path === item.ruta ||
-                    (item.ruta !== '/' &&
-                      route.path.startsWith(item.ruta + '/'))
-                      ? 'bold'
-                      : 'regular'
-                  "
+                  :weight="route.path === item.ruta ? 'bold' : 'regular'"
                 />
                 <PhCalendar
                   v-else-if="item.icono === 'calendar'"
                   class="w-5 h-5 flex-shrink-0"
-                  :weight="
-                    route.path === item.ruta ||
-                    (item.ruta !== '/' &&
-                      route.path.startsWith(item.ruta + '/'))
-                      ? 'bold'
-                      : 'regular'
-                  "
+                  :weight="route.path === item.ruta ? 'bold' : 'regular'"
                 />
                 <PhCourtBasketball
                   v-else-if="item.icono === 'sports'"
                   class="w-5 h-5 flex-shrink-0"
-                  :weight="
-                    route.path === item.ruta ||
-                    (item.ruta !== '/' &&
-                      route.path.startsWith(item.ruta + '/'))
-                      ? 'bold'
-                      : 'regular'
-                  "
+                  :weight="route.path === item.ruta ? 'bold' : 'regular'"
                 />
                 <PhQrCode
                   v-else-if="item.icono === 'qr'"
                   class="w-5 h-5 flex-shrink-0"
-                  :weight="
-                    route.path === item.ruta ||
-                    (item.ruta !== '/' &&
-                      route.path.startsWith(item.ruta + '/'))
-                      ? 'bold'
-                      : 'regular'
-                  "
+                  :weight="route.path === item.ruta ? 'bold' : 'regular'"
                 />
                 <PhCreditCard
                   v-else-if="item.icono === 'credit-card'"
                   class="w-5 h-5 flex-shrink-0"
-                  :weight="
-                    route.path === item.ruta ||
-                    (item.ruta !== '/' &&
-                      route.path.startsWith(item.ruta + '/'))
-                      ? 'bold'
-                      : 'regular'
-                  "
+                  :weight="route.path === item.ruta ? 'bold' : 'regular'"
                 />
                 <PhChartBar
                   v-else-if="item.icono === 'chart'"
                   class="w-5 h-5 flex-shrink-0"
-                  :weight="
-                    route.path === item.ruta ||
-                    (item.ruta !== '/' &&
-                      route.path.startsWith(item.ruta + '/'))
-                      ? 'bold'
-                      : 'regular'
-                  "
+                  :weight="route.path === item.ruta ? 'bold' : 'regular'"
                 />
                 <span>{{ item.nombre }}</span>
               </RouterLink>
@@ -240,7 +194,7 @@ function cerrarSesion() {
       </nav>
     </div>
 
-    <!-- Footer del Sidebar / Cerrar Sesión -->
+    <!-- Footer / Cerrar Sesión -->
     <div class="p-4 border-t border-white/10">
       <button
         class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-[#F96167] transition-all duration-200 cursor-pointer"
