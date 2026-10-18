@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { z } from 'zod'
 import { useAuthStore } from '@/store/auth'
 import BaseInput from '@/common/components/BaseInput.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
@@ -13,9 +14,29 @@ const isLoading = ref(false)
 const authStore = useAuthStore()
 const router = useRouter()
 
+const loginSchema = z.object({
+  email: z
+    .string()
+    .min(1, 'El correo electrónico es obligatorio.')
+    .email('El formato del correo es inválido.'),
+  password: z.string().min(1, 'La contraseña es obligatoria.'),
+})
+
+const traducirErrorSupabase = (msg: string) => {
+  if (msg.includes('Invalid login credentials'))
+    return 'Credenciales incorrectas. Verifica tu correo y contraseña.'
+  if (msg.includes('Email not confirmed'))
+    return 'Debes confirmar tu correo electrónico antes de ingresar.'
+  return msg
+}
+
 const handleLogin = async () => {
-  if (!email.value || !password.value) {
-    toast.warning('Por favor, completa todos los campos.')
+  const validation = loginSchema.safeParse({
+    email: email.value,
+    password: password.value,
+  })
+  if (!validation.success) {
+    validation.error.issues.forEach((err) => toast.warning(err.message))
     return
   }
 
@@ -23,11 +44,13 @@ const handleLogin = async () => {
 
   try {
     await authStore.login({ email: email.value, password: password.value })
-    toast.success('¡Bienvenido al ecosistema FitZone!')
-    router.push({ name: 'home' })
+    router.push({ name: 'home' }) // Redirige sin mostrar Toast
   } catch (error: unknown) {
     const err = error as { message?: string }
-    toast.error(err.message || 'Credenciales incorrectas o error de conexión.')
+    const mensajeReal = err.message
+      ? traducirErrorSupabase(err.message)
+      : 'Error de conexión.'
+    toast.error(mensajeReal)
   } finally {
     isLoading.value = false
   }
@@ -94,9 +117,8 @@ const handleLogin = async () => {
             <router-link
               to="/registro"
               class="font-bold text-[#202759] hover:underline"
+              >Regístrate</router-link
             >
-              Regístrate
-            </router-link>
           </p>
         </div>
       </div>
