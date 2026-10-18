@@ -1,27 +1,26 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import MainLayout from '../common/layouts/MainLayout.vue'
-import { useAuthStore } from '../store/auth' // Agregamos la importación del store
-import RegistroView from '@/modules/M1-usuarios/views/RegistroView.vue'
+import { useAuthStore } from '../store/auth'
 import PerfilView from '@/modules/M1-usuarios/views/PerfilView.vue'
 
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
     component: MainLayout,
-    meta: { requiresAuth: true }, // Protege a MainLayout y TODAS sus rutas hijas
+    meta: { requiresAuth: true },
     children: [
       {
         path: 'perfil',
         name: 'perfil',
         component: PerfilView,
-        meta: { requiresAuth: true }, // Ruta protegida
+        meta: { requiresAuth: true },
       },
       {
         path: 'membresia',
         name: 'membresia',
         component: () =>
           import('../modules/M1-usuarios/views/MembresiaView.vue'),
-        meta: { requiresAuth: true }, // Ruta protegida
+        meta: { requiresAuth: true },
       },
       {
         path: '',
@@ -82,16 +81,22 @@ const routes: RouteRecordRaw[] = [
     path: '/login',
     name: 'login',
     component: () => import('../modules/M1-usuarios/views/LoginView.vue'),
-    meta: { requiresAuth: false }, // Ruta explícitamente pública
+    meta: { requiresAuth: false },
   },
   {
     path: '/registro',
     name: 'registro',
-    component: RegistroView,
-    meta: { requiresAuth: false }, // Ruta explícitamente pública y fuera del layout
+    component: () => import('@/modules/M1-usuarios/views/RegistroView.vue'), // Lazy Loading aplicado
+    meta: { requiresAuth: false },
   },
   {
-    // Ruta comodín para manejar direcciones inexistentes (404)
+    path: '/cambiar-password',
+    name: 'cambiar-password',
+    component: () =>
+      import('@/modules/M1-usuarios/views/CambiarPasswordView.vue'),
+    meta: { requiresAuth: false },
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
     component: () => import('../common/views/NotFoundView.vue'),
@@ -106,18 +111,13 @@ export const router = createRouter({
 // Guard de navegación global
 router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore()
-
-  // Revisa si la ruta destino (o alguno de sus padres) requiere autenticación
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
 
   if (requiresAuth && !authStore.isAuthenticated) {
-    // Si quiere entrar a zona privada sin estar logueado -> Al login
     next({ name: 'login' })
   } else if (to.name === 'login' && authStore.isAuthenticated) {
-    // Si ya está logueado y quiere ir al login -> Al home del dashboard
     next({ name: 'home' })
   } else {
-    // Todo en orden -> Que pase
     next()
   }
 })
