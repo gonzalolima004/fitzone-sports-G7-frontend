@@ -8,8 +8,7 @@ import type {
   AforoResponseDto,
 } from '../types/accesos.types'
 import { useAuthStore } from '@/store/auth'
-import { supabase } from '@/common/api/supabase'
-
+import { supabase } from '@/common/utils/supabase'
 
 export const accesosService = {
   async obtenerQr(): Promise<QrResponseDto> {
