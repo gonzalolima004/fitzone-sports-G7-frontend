@@ -593,3 +593,23 @@
 - **Trello:** Tareas frontend 5 y 6 documentadas y finalizadas como desarrollo integrado; backend ocupación actualizado conservando Finalizado. TL tarea 2 mantiene pendientes de revisión entre compañeros y aceptación integrada.
 - **Commits de resolución:** `f7e9073`, `9f0197f`, `b1afc69`, `714e0e7`, `e44c72e`; integraciones propias `c354c59`, `1a3c1e1`, `0f0f93a`.
 - **Pendientes:** Revisión humana, aceptación visual y con datos reales, contrato de checkout de membresías, sorteo y acuerdos de la reunión del 14/10 a las 15:00; nuevo TL asume el 15/10.
+
+---
+
+#### 20/10/2026
+#### Marcos Caraballo | Rol: Desarrollador Frontend
+- **Actividades**:
+  - Reestructuración del módulo de visualización y reserva de canchas (CanchasView, DetalleReservaView, canchasService).
+  - Implementación de arquitectura resiliente de disponibilidad con fallback automático: el frontend intenta consultar la grilla agrupada de la sede (GET /canchas/disponibilidad) y, ante respuestas no implementadas o versiones previas del backend, conmuta automáticamente a consultas unitarias concurrentes (GET /canchas/:id/disponibilidad).
+  - Normalización del flujo de selección de turnos, confirmación de reserva y redirección a la pantalla de detalle/pago (/reservas/:id/detalle).
+- **Decisiones**:
+  - Optar por hacer una petición a la API de disponibilidad para una sede, en una fecha, para evitar hacer demasiadas peticiones al backend.
+- **Dificultades**:
+  - Múltiples intentos fallidos e implementaciones descartadas debido a la falta de endpoints en el backend, generando errores y obligando a replantear el servicio varias veces.
+  - Consultar la disponibilidad cancha por cancha generaba demoras notables y condiciones de carrera si el usuario cambiaba rápidamente de fecha o sede antes de que terminaran de resolver las promesas.
+  - Gestión de estado y reactividad en Vue 3 con Pinia para garantizar que el rol de socio, la fecha seleccionada y los precios calculados se trasladen de forma transparente y sin desfases horarios hacia el modal y la vista final de pago.
+  - Gran inversión de tiempo y pruebas para lograr que la grilla fuera fluida, no realizara peticiones redundantes y muestre precios y disponibilidad de las canchas de forma correcta.
+- **Commits:**
+- `feat(M4): reserva de canchas funcionando y arreglos varios en modulo de canchas, adaptado a cambios backend`
+- `chore: comando format`
+- `docs(log): actualizacion de bitacora`

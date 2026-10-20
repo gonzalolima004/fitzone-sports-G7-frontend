@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import BaseModal from '@/common/components/BaseModal.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import { toast } from '@/common/utils/toast'
+import { useAuthStore } from '@/store/auth'
 import reservasService from '@/modules/M4-canchas/services/reservas.service'
 import type {
   TurnoSeleccionado,
@@ -24,6 +25,16 @@ const emit = defineEmits<{
   (e: 'conflictoDisponibilidad', mensaje: string): void
 }>()
 
+const authStore = useAuthStore()
+
+// Determina si el usuario en sesión es socio activo
+const esSocio = computed(() => {
+  return (
+    (authStore.isAuthenticated || !!authStore.token) &&
+    (authStore.rol === 'socio' || authStore.usuario?.rol === 'socio')
+  )
+})
+
 const cargandoCotizacion = ref(false)
 const confirmando = ref(false)
 const errorConflicto = ref<string | null>(null)
@@ -38,7 +49,7 @@ function formatoMoneda(valor: number): string {
   }).format(valor)
 }
 
-// Al abrir el modal o cambiar el turno, obtenemos la cotización del backend (Subtarea 2.2)
+// Al abrir el modal o cambiar el turno, obtenemos la cotización del backend
 watch(
   () => [props.modelValue, props.turno],
   async ([abierto, turnoNuevo]) => {
@@ -51,7 +62,8 @@ watch(
           turno.cancha.id_cancha,
           turno.fecha,
           turno.slot.hora_inicio,
-          turno.cancha.costo_base
+          Number(turno.cancha.costo_base) || 8000,
+          esSocio.value
         )
       } catch (err) {
         console.error('[ConfirmarReserva] Error al cotizar:', err)
@@ -72,7 +84,7 @@ function cerrar() {
 }
 
 /**
- * Confirmar reserva transaccional (Subtarea 2.3 y 2.4)
+ * Confirmar reserva transaccional
  */
 async function handleConfirmar() {
   if (!props.turno) return
@@ -107,11 +119,48 @@ async function handleConfirmar() {
       fecha_fin: fechaFinISO,
     })
 
+    // Guardar detalles completos en cache para la pantalla de detalle
+    const numPrecio =
+      Number(reserva.precio_congelado) &&
+      Number(reserva.precio_congelado) !== 15000
+        ? Number(reserva.precio_congelado)
+        : Number(cotizacion.value?.precio_final) ||
+          Number(props.turno.slot.precio_estimado)
+    const precioFinal =
+      !isNaN(numPrecio) && numPrecio > 0
+        ? numPrecio
+        : cotizacion.value?.precio_final ||
+          props.turno.slot.precio_estimado ||
+          8000
+
+    reservasService.guardarReservaEnCache({
+      id_cancha_reserva: reserva.id_cancha_reserva,
+      id_cancha: props.turno.cancha.id_cancha,
+      id_usuario: reserva.id_usuario || 1,
+      fecha_inicio: fechaInicioISO,
+      fecha_fin: fechaFinISO,
+      precio_congelado: precioFinal,
+      id_cancha_reserva_estado: reserva.id_cancha_reserva_estado || 1,
+      estado_nombre: reserva.estado_nombre || 'Pendiente de Pago',
+      created_at: reserva.created_at || new Date().toISOString(),
+      cancha: props.turno.cancha,
+      nombre_cancha: props.turno.cancha.nombre,
+      tipo_cancha: props.turno.cancha.tipo?.nombre || 'Pádel',
+      nombre_sede: props.nombreSede,
+      costo_base: cotizacion.value?.costo_base || props.turno.cancha.costo_base,
+      descuento_porcentaje: cotizacion.value?.descuento_porcentaje || 15,
+      monto_descuento: cotizacion.value?.monto_descuento || 0,
+      es_horario_pico:
+        cotizacion.value?.es_horario_pico || props.turno.slot.es_horario_pico,
+      monto_recargo_pico: cotizacion.value?.monto_recargo_pico || 0,
+      cancha_en_mantenimiento: false,
+    })
+
     toast.success('¡Reserva confirmada con éxito!')
     emit('reservaConfirmada', reserva)
     cerrar()
   } catch (err: unknown) {
-    // Subtarea 2.4: Manejo de conflictos de disponibilidad y concurrencia (RN-02)
+    // Manejo de conflictos de disponibilidad y concurrencia
     let mensajeError =
       'El turno seleccionado ya fue reservado por otro usuario.'
 
@@ -146,7 +195,7 @@ async function handleConfirmar() {
     @update:model-value="emit('update:modelValue', $event)"
   >
     <div v-if="turno" class="space-y-4">
-      <!-- Subtarea 2.1: Detalle del Turno -->
+      <!-- Detalle del Turno -->
       <div
         class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 text-xs"
       >
@@ -178,7 +227,7 @@ async function handleConfirmar() {
         </div>
       </div>
 
-      <!-- Subtarea 2.2: Desglose de Precio Informado por Backend (Strategy) -->
+      <!-- Desglose de Precio Informado por Backend -->
       <div
         class="rounded-xl border border-slate-200 p-4 bg-white space-y-2 text-xs"
       >
@@ -258,7 +307,7 @@ async function handleConfirmar() {
         </template>
       </div>
 
-      <!-- Subtarea 2.4: Alerta de Conflicto de Disponibilidad / Concurrencia -->
+      <!-- Alerta de Conflicto de Disponibilidad / Concurrencia -->
       <div
         v-if="errorConflicto"
         class="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-800 space-y-1.5"
