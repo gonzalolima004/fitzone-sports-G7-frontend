@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import MainLayout from '../common/layouts/MainLayout.vue'
-import { useAuthStore } from '../store/auth' // Agregamos la importación del store
+import { useAuthStore } from '../store/auth'
+import { rutaPorRol } from '@/common/guards/ruta-por-rol'
 import RegistroView from '@/modules/M1-usuarios/views/RegistroView.vue'
 import PerfilView from '@/modules/M1-usuarios/views/PerfilView.vue'
 
@@ -26,6 +27,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: '',
         name: 'home',
+        alias: ['inicio', '/inicio'],
         component: () => import('../common/views/HomeView.vue'),
       },
       {
@@ -114,8 +116,8 @@ router.beforeEach((to, _from, next) => {
     // Si quiere entrar a zona privada sin estar logueado -> Al login
     next({ name: 'login' })
   } else if (to.name === 'login' && authStore.isAuthenticated) {
-    // Si ya está logueado y quiere ir al login -> Al home del dashboard
-    next({ name: 'home' })
+    // Si ya está logueado y quiere ir al login -> A su ruta correspondiente por rol
+    next(rutaPorRol(authStore.rol))
   } else {
     // Todo en orden -> Que pase
     next()

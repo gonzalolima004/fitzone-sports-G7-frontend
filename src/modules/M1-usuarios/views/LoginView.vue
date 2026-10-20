@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/store/auth'
+import { rutaPorRol } from '@/common/guards/ruta-por-rol'
 import BaseInput from '@/common/components/BaseInput.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import { toast } from '@/common/utils/toast'
@@ -24,7 +25,7 @@ const handleLogin = async () => {
   try {
     await authStore.login({ email: email.value, password: password.value })
     toast.success('¡Bienvenido al ecosistema FitZone!')
-    router.push({ name: 'home' })
+    router.push(rutaPorRol(authStore.rol))
   } catch (error: unknown) {
     const err = error as {
       response?: { data?: { message?: string | string[] } }
