@@ -76,6 +76,30 @@ export interface SedeHorario {
   abierto: boolean
 }
 
+export interface DetalleReservaCancha {
+  id_cancha_reserva: number
+  id_cancha: number
+  id_usuario: number
+  fecha_inicio: string
+  fecha_fin: string
+  precio_congelado: number
+  id_cancha_reserva_estado: number
+  estado_nombre: string
+  created_at: string
+  cancha?: Cancha
+  nombre_cancha?: string
+  tipo_cancha?: string
+  nombre_sede?: string
+  direccion_sede?: string
+  costo_base?: number
+  descuento_porcentaje?: number
+  monto_descuento?: number
+  es_horario_pico?: boolean
+  monto_recargo_pico?: number
+  cancha_en_mantenimiento?: boolean
+  motivo_mantenimiento?: string
+}
+
 export interface Calendario {
   id_calendario: number
   fecha: string

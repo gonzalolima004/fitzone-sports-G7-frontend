@@ -30,14 +30,6 @@ function esSlotPasado(slot: TurnoSlot): boolean {
     new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
       .toISOString()
       .split('T')[0]
-  console.log('prop:', props.fechaHoy)
-  console.log(
-    'cod:',
-    new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-      .toISOString()
-      .split('T')[0]
-  )
-  console.log('final:', hoyRef)
   if (props.fecha < hoyRef) return true
   if (props.fecha === hoyRef) {
     const ahora = new Date()
@@ -132,17 +124,15 @@ function formatoMoneda(valor: number): string {
       >
         <div class="flex items-center gap-1.5">
           <span
-            class="w-3.5 h-3.5 rounded-md border-2 border-rose-300 bg-rose-100 inline-block shadow-2xs"
+            class="w-3.5 h-3.5 rounded-md border border-slate-300 bg-white inline-block shadow-2xs"
           />
-          <span class="text-[#F96167] font-bold">Horario Pico (19 a 21h)</span>
+          <span class="text-slate-700 font-medium">Disponible</span>
         </div>
         <div class="flex items-center gap-1.5">
           <span
-            class="w-3.5 h-3.5 rounded-md border border-[#F96167]/30 bg-[#F96167]/10 inline-block"
+            class="w-3.5 h-3.5 rounded-md border border-[#F96167]/40 bg-[#F96167]/10 inline-block"
           />
-          <span class="text-[#202759] font-semibold"
-            >Horario Pico (19 a 21h)</span
-          >
+          <span class="text-[#F96167] font-bold">Horario Pico (19 a 21h)</span>
         </div>
         <div class="flex items-center gap-1.5">
           <span class="w-3.5 h-3.5 rounded-md bg-slate-200 inline-block" />
@@ -442,7 +432,7 @@ function formatoMoneda(valor: number): string {
                   >
                 </div>
 
-                <!-- SLOT EN MANTENIMIENTO (RF-12) - Borde discontinuo y advertencia inconfundible -->
+                <!-- SLOT EN MANTENIMIENTO -->
                 <div
                   v-else-if="
                     getSlot(cancha.id_cancha, hora)!.estado === 'MANTENIMIENTO'
