@@ -523,8 +523,8 @@ onMounted(cargarDetalleReserva)
           />
           <p class="m-0 leading-relaxed">
             Las transacciones se procesan mediante
-            <strong>Mercado Pago</strong>. FitZone no captura ni
-            almacena datos de tarjeta de crédito.
+            <strong>Mercado Pago</strong>. FitZone no captura ni almacena datos
+            de tarjeta de crédito.
           </p>
         </div>
 
