@@ -43,7 +43,7 @@ const todasLasSecciones: NavSection[] = [
     items: [
       {
         nombre: 'Dashboard',
-        ruta: '/',
+        ruta: '/inicio',
         icono: 'grid',
         roles: ['socio', 'recepcion', 'recepcionista', 'gerente'],
       },
@@ -78,7 +78,7 @@ const todasLasSecciones: NavSection[] = [
       },
       {
         nombre: 'Panel de gerencia',
-        ruta: '/reportes',
+        ruta: '/gerencia/reportes',
         icono: 'chart',
         roles: ['gerente'],
       },

@@ -6,11 +6,7 @@ import {
 } from '@/modules/M1-usuarios/services/auth.service'
 
 export type RolUsuario =
-  | 'socio'
-  | 'externo'
-  | 'recepcion'
-  | 'recepcionista'
-  | 'gerente'
+  'socio' | 'externo' | 'recepcion' | 'recepcionista' | 'gerente'
 
 export interface Usuario {
   id?: number

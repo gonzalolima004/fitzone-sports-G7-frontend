@@ -5,8 +5,7 @@ import { useSedeStore } from '../../store/sede'
 import { useAuthStore } from '../../store/auth'
 
 const sedeStore = useSedeStore()
-const authStore = useAuthStore()
-const esGerencia = computed(() => ['gerente', 'admin'].includes(authStore.rol))
+const esGerencia = computed(() => authStore.rol === 'gerente')
 </script>
 
 <template>

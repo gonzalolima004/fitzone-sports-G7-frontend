@@ -1,11 +1,20 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import MainLayout from '../common/layouts/MainLayout.vue'
-import { useAuthStore } from '../store/auth'
+import { useAuthStore, type RolUsuario } from '../store/auth'
 import { rutaPorRol } from '@/common/guards/ruta-por-rol'
+import { rutasLanding } from '@/modules/landing/routes'
 import RegistroView from '@/modules/M1-usuarios/views/RegistroView.vue'
 import PerfilView from '@/modules/M1-usuarios/views/PerfilView.vue'
 
+declare module 'vue-router' {
+  interface RouteMeta {
+    requiresAuth?: boolean
+    roles?: RolUsuario[]
+  }
+}
+
 const routes: RouteRecordRaw[] = [
+  ...rutasLanding,
   {
     path: '/',
     component: MainLayout,
@@ -15,42 +24,76 @@ const routes: RouteRecordRaw[] = [
         path: 'perfil',
         name: 'perfil',
         component: PerfilView,
-        meta: { requiresAuth: true }, // Ruta protegida
+        meta: {
+          requiresAuth: true,
+          roles: ['socio', 'externo', 'recepcion', 'recepcionista', 'gerente'],
+        },
       },
       {
         path: 'membresia',
         name: 'membresia',
         component: () =>
           import('../modules/M1-usuarios/views/MembresiaView.vue'),
-        meta: { requiresAuth: true }, // Ruta protegida
+        meta: {
+          requiresAuth: true,
+          roles: ['socio', 'recepcion', 'recepcionista', 'gerente'],
+        },
       },
       {
-        path: '',
+        path: 'inicio',
         name: 'home',
-        alias: ['inicio', '/inicio'],
         component: () => import('../common/views/HomeView.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['socio', 'recepcion', 'recepcionista', 'gerente'],
+        },
       },
       {
         path: 'accesos',
         name: 'accesos',
         component: () =>
           import('../modules/M2-accesos/views/CredencialView.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['socio', 'recepcion', 'recepcionista', 'gerente'],
+        },
+      },
+      {
+        path: 'aforo',
+        name: 'aforo',
+        component: () => import('../modules/M2-accesos/views/AforoView.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['recepcion', 'recepcionista', 'gerente'],
+        },
       },
       {
         path: 'clases',
         name: 'clases',
         component: () =>
           import('../modules/M3-clases-grupales/views/ClasesView.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['socio', 'recepcion', 'recepcionista', 'gerente'],
+        },
       },
       {
         path: 'canchas',
         name: 'canchas',
         component: () => import('../modules/M4-canchas/views/CanchasView.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['socio', 'externo', 'recepcion', 'recepcionista', 'gerente'],
+        },
       },
       {
         path: 'pagos',
         name: 'pagos',
         component: () => import('../modules/M5-pagos/views/PagosView.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['socio', 'externo', 'recepcion', 'recepcionista', 'gerente'],
+        },
       },
       {
         path: 'pagos/resultado',
@@ -58,25 +101,51 @@ const routes: RouteRecordRaw[] = [
         alias: ['/pagos/exito', '/pagos/error', '/pagos/pendiente'],
         component: () =>
           import('../modules/M5-pagos/views/ResultadoPagoView.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['socio', 'externo', 'recepcion', 'recepcionista', 'gerente'],
+        },
       },
       {
-        path: 'reportes',
-        component: () =>
-          import('../modules/M6-reportes/views/PanelGerenciaView.vue'),
+        path: 'gerencia',
+        meta: {
+          requiresAuth: true,
+          roles: ['gerente'], // Protege el prefijo /gerencia y todas sus rutas hijas
+        },
         children: [
           {
             path: '',
-            name: 'reportes',
-            component: () =>
-              import('../modules/M6-reportes/views/ReportesView.vue'),
+            redirect: '/gerencia/reportes',
           },
           {
-            path: 'ocupacion',
-            name: 'reportes-ocupacion',
+            path: 'reportes',
             component: () =>
-              import('../modules/M6-reportes/views/OcupacionView.vue'),
+              import('../modules/M6-reportes/views/PanelGerenciaView.vue'),
+            children: [
+              {
+                path: '',
+                name: 'reportes',
+                component: () =>
+                  import('../modules/M6-reportes/views/ReportesView.vue'),
+              },
+              {
+                path: 'ocupacion',
+                name: 'reportes-ocupacion',
+                component: () =>
+                  import('../modules/M6-reportes/views/OcupacionView.vue'),
+              },
+            ],
           },
         ],
+      },
+      // Redirecciones de retrocompatibilidad para /reportes
+      {
+        path: 'reportes',
+        redirect: '/gerencia/reportes',
+      },
+      {
+        path: 'reportes/ocupacion',
+        redirect: '/gerencia/reportes/ocupacion',
       },
     ],
   },
@@ -105,23 +174,53 @@ export const router = createRouter({
   routes,
 })
 
-// Guard de navegación global
+// Guard de navegación global con RBAC jerárquico
 router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore()
 
-  // Revisa si la ruta destino (o alguno de sus padres) requiere autenticación
-  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
+  // 1. Revisa si la ruta destino (o alguno de sus ancestros) requiere autenticación
+  const requiresAuth = to.matched.some((record) => record.meta?.requiresAuth)
 
   if (requiresAuth && !authStore.isAuthenticated) {
     // Si quiere entrar a zona privada sin estar logueado -> Al login
     next({ name: 'login' })
-  } else if (to.name === 'login' && authStore.isAuthenticated) {
-    // Si ya está logueado y quiere ir al login -> A su ruta correspondiente por rol
-    next(rutaPorRol(authStore.rol))
-  } else {
-    // Todo en orden -> Que pase
-    next()
+    return
   }
+
+  // 2. Si ya está logueado y quiere ir al login o registro público -> A su ruta correspondiente por rol
+  if (
+    (to.name === 'login' || to.name === 'registro') &&
+    authStore.isAuthenticated
+  ) {
+    next(rutaPorRol(authStore.rol))
+    return
+  }
+
+  // 3. Control de acceso por roles (RBAC)
+  if (authStore.isAuthenticated) {
+    const rolActual = authStore.rol
+    // Comprueba si alguna ruta padre o hija en la jerarquía define restricción de roles
+    const tieneRestriccionRoles = to.matched.some(
+      (record) => record.meta?.roles
+    )
+
+    if (tieneRestriccionRoles) {
+      // Debe cumplir las restricciones de todos los niveles que definan roles
+      const tienePermiso = to.matched.every((record) => {
+        const roles = record.meta?.roles as RolUsuario[] | undefined
+        return !roles || (rolActual && roles.includes(rolActual))
+      })
+
+      if (!tienePermiso) {
+        // Redirige automáticamente a su ruta inicial autorizada según su rol
+        next(rutaPorRol(rolActual))
+        return
+      }
+    }
+  }
+
+  // Todo en orden -> Que pase
+  next()
 })
 
 export default router

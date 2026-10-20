@@ -5,7 +5,7 @@ export const RUTA_POR_ROL: Record<RolUsuario, string> = {
   externo: '/canchas',
   recepcion: '/aforo',
   recepcionista: '/aforo',
-  gerente: '/reportes',
+  gerente: '/gerencia/reportes',
 }
 
 export function rutaPorRol(rol?: RolUsuario | null): string {
