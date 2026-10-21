@@ -5,7 +5,6 @@ import {
   PhPlug,
   PhTray,
   PhWarning,
-  PhCalendar,
   PhCaretLeft,
   PhCaretRight,
   PhClock,
@@ -476,37 +475,6 @@ async function confirmarCancelacion() {
       </div>
     </div>
 
-    <!-- Alert / Info -->
-    <div
-      class="bg-sky-50 border border-sky-100 rounded-2xl p-5 mb-8 flex items-start gap-4 shadow-sm"
-    >
-      <div
-        class="bg-sky-200/50 p-2 rounded-lg flex-shrink-0 mt-0.5 text-sky-600"
-      >
-        <svg
-          class="w-5 h-5"
-          fill="currentColor"
-          viewBox="0 0 20 20"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            fill-rule="evenodd"
-            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-            clip-rule="evenodd"
-          ></path>
-        </svg>
-      </div>
-      <div class="text-sky-800 text-sm leading-relaxed">
-        <strong class="font-bold"
-          >Regla de Reserva y Cancelación (RF-07):</strong
-        >
-        Las reservas abren 48 hs antes de cada clase. Podés cancelar tu reserva
-        sin penalidad hasta
-        <strong class="font-bold text-sky-900">2 horas antes</strong> del inicio
-        para liberar el cupo al siguiente socio en lista de espera.
-      </div>
-    </div>
-
     <!-- Calendario y Navegación de Agenda -->
     <div
       class="bg-white border border-slate-200 rounded-3xl p-5 mb-8 shadow-sm"
@@ -551,25 +519,6 @@ async function confirmarCancelacion() {
           >
             <PhCaretRight :size="18" weight="bold" />
           </button>
-
-          <!-- Selector de Calendario Completo (Datepicker nativo accesible) -->
-          <div class="relative">
-            <button
-              class="flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-100 text-slate-700 hover:bg-rose-50 hover:text-rose-600 transition-all border border-slate-200 shadow-sm"
-              title="Elegir otra fecha en el calendario"
-            >
-              <PhCalendar :size="18" weight="duotone" class="text-rose-500" />
-              <span>Calendario</span>
-            </button>
-            <input
-              type="date"
-              class="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
-              :value="fechaSeleccionada"
-              @change="
-                (e) => seleccionarFecha((e.target as HTMLInputElement).value)
-              "
-            />
-          </div>
         </div>
       </div>
 

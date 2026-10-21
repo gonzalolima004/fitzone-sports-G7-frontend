@@ -623,7 +623,8 @@
   - Creación del módulo utilitario `date-formatter.ts` en `src/common/utils` estandarizando el formateo a `dd/mm/aaaa`, nombres de días y meses en español, y helpers para generación de días de agenda y comparación cronológica de horarios.
   - Integración en `clases.service.ts` de la interfaz y método para consultar el horario operativo de la sede (`GET /sedes/:id/horario-operativo?fecha=YYYY-MM-DD`).
   - Incorporación en `clases.service.ts` del método para baja y eliminación de clases grupales (`DELETE /clases/:id`).
-  - Implementación en `ClasesView.vue` de una agenda con calendario interactivo: reemplazo de los botones estáticos por una barra de navegación con tira semanal de 7 días, controles de navegación rápida (día y semana), botón "Hoy" y datepicker accesible.
+  - Implementación en `ClasesView.vue` de una agenda interactiva: reemplazo de los botones estáticos por una barra de navegación con tira semanal de 7 días, controles de navegación rápida (día y semana) y botón "Hoy".
+  - Limpieza de interfaz: eliminación de la alerta estática de RF-07 y remoción del botón no funcional de calendario para maximizar el área de trabajo y la visualización directa de la grilla de clases.
   - Conexión de la agenda con el horario operativo del gimnasio/sede, mostrando badge de apertura/cierre y estado visual informativo cuando la sede se encuentra cerrada.
   - Aplicación de ordenamiento cronológico por horario de inicio para las clases agendadas.
 - **Decisiones:**
