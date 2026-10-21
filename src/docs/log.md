@@ -613,3 +613,19 @@
 - `feat(M4): reserva de canchas funcionando y arreglos varios en modulo de canchas, adaptado a cambios backend`
 - `chore: comando format`
 - `docs(log): actualizacion de bitacora`
+
+---
+
+#### 21/10/2026
+#### Joaquín Ribarola | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Creación del módulo utilitario `date-formatter.ts` en `src/common/utils` estandarizando el formateo a `dd/mm/aaaa`, nombres de días y meses en español, y helpers para generación de días de agenda y comparación cronológica de horarios.
+  - Integración en `clases.service.ts` de la interfaz y método para consultar el horario operativo de la sede (`GET /sedes/:id/horario-operativo?fecha=YYYY-MM-DD`).
+  - Incorporación en `clases.service.ts` del método para baja y eliminación de clases grupales (`DELETE /clases/:id`).
+- **Decisiones:**
+  - Centralizar el formateo y parseo de fechas en `common/utils/date-formatter.ts` para evitar duplicidad de lógica y prevenir desfases de zona horaria local.
+  - Tipar la respuesta de horario operativo de la sede en `clases.service.ts` para mantener el aislamiento del módulo M3 y desacoplar de `M0-sedes`.
+- **Dificultades:** Ninguna. Se resolvió la falta de dependencias (`html5-qrcode`) heredadas del último pull de `dev` mediante `npm install`.
+- **Commits:**
+  - `feat(clases): crear date-formatter e integrar servicio de horario operativo de sede`
