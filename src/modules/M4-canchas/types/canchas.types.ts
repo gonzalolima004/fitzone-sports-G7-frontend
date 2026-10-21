@@ -1,8 +1,6 @@
 export interface CanchaTipo {
   id_cancha_tipo: number
-  nombre: string
   descripcion?: string
-  icono?: string
 }
 
 export interface Cancha {

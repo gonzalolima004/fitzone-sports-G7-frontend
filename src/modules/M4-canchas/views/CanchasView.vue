@@ -308,7 +308,7 @@ onUnmounted(() => {
             ]"
             @click="deporteSeleccionadoId = tipo.id_cancha_tipo"
           >
-            {{ tipo.nombre }}
+            {{ tipo.descripcion }}
           </button>
         </div>
       </div>
