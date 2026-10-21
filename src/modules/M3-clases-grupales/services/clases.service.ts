@@ -5,7 +5,13 @@ export interface ClaseResponse {
   id_sede: number
   nombre: string
   descripcion: string | null
+  profesor?: string | null
+  sala?: string | null
+  horario_inicio?: string | null
+  horario_fin?: string | null
   capacidad_maxima: number
+  dias_semana?: number[]
+  fecha?: string | null
   activo: boolean
 }
 
@@ -26,6 +32,8 @@ export interface ClaseAgendaResponse {
   en_espera: number
   estado: 'DISPONIBLE' | 'COMPLETO'
   activo: boolean
+  dias_semana?: number[]
+  fecha?: string | null
 }
 
 export interface CreateReservaRequest {

@@ -46,9 +46,15 @@ export function normalizarFecha(fecha: string | Date): Date {
   if (fecha instanceof Date) {
     return new Date(fecha.getTime())
   }
-  if (typeof fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
-    const [year, month, day] = fecha.split('-').map(Number)
-    return new Date(year, month - 1, day, 12, 0, 0)
+  if (typeof fecha === 'string') {
+    // Si contiene formato YYYY-MM-DD (ej: "2026-10-25" o "2026-10-25T00:00:00.000Z")
+    const match = fecha.match(/^(\d{4})-(\d{2})-(\d{2})/)
+    if (match) {
+      const year = Number(match[1])
+      const month = Number(match[2])
+      const day = Number(match[3])
+      return new Date(year, month - 1, day, 12, 0, 0)
+    }
   }
   return new Date(fecha)
 }
@@ -161,4 +167,51 @@ export function generarDiasAgenda(
  */
 export function compararHorarios(horarioA = '', horarioB = ''): number {
   return horarioA.localeCompare(horarioB)
+}
+
+/**
+ * Convierte un array de índices de días (0=Dom..6=Sáb) a un texto legible (ej: "Lun, Mié, Vie").
+ */
+export function formatearDiasSemana(dias?: number[]): string {
+  if (!dias || dias.length === 0) return ''
+  if (dias.length === 7) return 'Todos los días'
+
+  // Orden natural de semana laboral: Lun (1) a Dom (0)
+  const ordenSemana = [1, 2, 3, 4, 5, 6, 0]
+  const diasOrdenados = [...dias].sort(
+    (a, b) => ordenSemana.indexOf(a) - ordenSemana.indexOf(b)
+  )
+
+  return diasOrdenados
+    .map((d) => DIAS_SEMANA_CORTOS[d] || '')
+    .filter(Boolean)
+    .join(', ')
+}
+
+/**
+ * Evalúa si una clase aplica para una fecha determinada según su fecha puntual o sus días de semana recurrentes.
+ * @param criterio Objeto con fecha puntual opcional y/o array de días_semana (0=Dom..6=Sáb)
+ * @param fecha Fecha a comparar (string YYYY-MM-DD o Date)
+ */
+export function coincideFechaClase(
+  criterio: { fecha?: string | null; dias_semana?: number[] },
+  fecha: string | Date
+): boolean {
+  const d = normalizarFecha(fecha)
+  const fechaISO = obtenerFechaLocalISO(d)
+  const diaSemana = d.getDay() // 0..6 (0=Domingo, 1=Lunes, ...)
+
+  // Si tiene fecha específica asignada (evento o clase puntual)
+  if (criterio.fecha) {
+    const fechaClaseISO = obtenerFechaLocalISO(criterio.fecha)
+    return fechaClaseISO === fechaISO
+  }
+
+  // Si tiene días de semana recurrentes configurados
+  if (Array.isArray(criterio.dias_semana) && criterio.dias_semana.length > 0) {
+    return criterio.dias_semana.includes(diaSemana)
+  }
+
+  // Si no tiene fecha puntual ni días de semana configurados (clase general / sin restricción)
+  return true
 }

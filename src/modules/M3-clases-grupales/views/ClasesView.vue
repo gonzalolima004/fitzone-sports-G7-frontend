@@ -25,6 +25,7 @@ import {
   generarDiasAgenda,
   compararHorarios,
   normalizarFecha,
+  coincideFechaClase,
   type DiaAgendaItem,
 } from '@/common/utils/date-formatter'
 import ClaseCard, { type ClaseCardProps } from '../components/ClaseCard.vue'
@@ -65,7 +66,15 @@ const clasesAgendadas = computed<ClaseCardProps[]>(() => {
     return []
   }
 
-  const mapeadas = clases.value.map((clase) => {
+  // Filtrar según coincidencia con la fecha actual seleccionada (días de semana recurrentes o fecha puntual)
+  const clasesFiltradas = clases.value.filter((clase) =>
+    coincideFechaClase(
+      { fecha: clase.fecha, dias_semana: clase.dias_semana },
+      fechaSeleccionada.value
+    )
+  )
+
+  const mapeadas = clasesFiltradas.map((clase) => {
     const esSpinning = clase.nombre.toLowerCase().includes('spinning')
     const esYoga = clase.nombre.toLowerCase().includes('yoga')
 
@@ -117,6 +126,8 @@ const clasesAgendadas = computed<ClaseCardProps[]>(() => {
       idReserva: miReserva?.id_clase_reserva,
       idListaEspera: miInscripcion?.id_clase_lista_espera,
       estado,
+      dias_semana: clase.dias_semana,
+      fecha: clase.fecha,
     }
   })
 

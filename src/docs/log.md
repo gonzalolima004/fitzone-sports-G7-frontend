@@ -627,11 +627,17 @@
   - Limpieza de interfaz: eliminación de la alerta estática de RF-07 y remoción del botón no funcional de calendario para maximizar el área de trabajo y la visualización directa de la grilla de clases.
   - Conexión de la agenda con el horario operativo del gimnasio/sede, mostrando badge de apertura/cierre y estado visual informativo cuando la sede se encuentra cerrada.
   - Aplicación de ordenamiento cronológico por horario de inicio para las clases agendadas.
+  - Integración del modelo de periodicidad de clases grupales: soporte de campos `dias_semana` (0=Dom..6=Sáb) y `fecha` puntual en interfaces de servicio, componentes y vistas.
+  - Creación de helpers `formatearDiasSemana` y `coincideFechaClase` en `date-formatter.ts`, con normalización segura ante cadenas ISO para evitar desfases de zona horaria local.
+  - Incorporación en `ClaseCard.vue` de badges contextuales que exhiben los días recurrentes de la clase o su fecha especial de dictado.
+  - Filtrado reactivo en `ClasesView.vue` garantizando que la grilla diaria únicamente muestre las clases que aplican para el día de la semana seleccionado.
 - **Decisiones:**
   - Centralizar el formateo y parseo de fechas en `common/utils/date-formatter.ts` para evitar duplicidad de lógica y prevenir desfases de zona horaria local.
   - Tipar la respuesta de horario operativo de la sede en `clases.service.ts` para mantener el aislamiento del módulo M3 y desacoplar de `M0-sedes`.
   - Diseñar un empty state específico y amigable para "Sede Cerrada", evitando confusión en el socio cuando no hay clases por feriado o cierre dominical.
+  - Alinear los índices numéricos de `dias_semana` (0..6) con el estándar de JavaScript `Date.getDay()` y el DTO del backend, formateando su visualización con orden de semana laboral (Lunes a Domingo).
 - **Dificultades:** Ninguna. Se resolvió la falta de dependencias (`html5-qrcode`) heredadas del último pull de `dev` mediante `npm install`.
 - **Commits:**
   - `feat(clases): crear date-formatter e integrar servicio de horario operativo de sede`
   - `feat(clases): implementar selector de calendario interactivo y horario operativo en agenda`
+  - `feat(clases): incorporar periodicidad por dias de la semana y fecha puntual en agenda`

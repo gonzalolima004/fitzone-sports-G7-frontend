@@ -8,6 +8,11 @@ import {
   PhFlowerLotus,
 } from '@phosphor-icons/vue'
 
+import {
+  formatearDiasSemana,
+  formatearFechaDDMMAAAA,
+} from '@/common/utils/date-formatter'
+
 export interface ClaseCardProps {
   id: number
   nombre: string
@@ -26,6 +31,8 @@ export interface ClaseCardProps {
   idReserva?: number
   idListaEspera?: number
   estado: 'DISPONIBLE' | 'COMPLETO' | 'MISMA_RESERVA' | 'EN_ESPERA'
+  dias_semana?: number[]
+  fecha?: string | null
 }
 
 const props = defineProps<{
@@ -54,6 +61,16 @@ const lugaresDisponibles = computed(() => {
 })
 
 const estaCompleto = computed(() => props.clase.estado === 'COMPLETO')
+
+const etiquetaPeriodicidad = computed(() => {
+  if (props.clase.fecha) {
+    return `Puntual: ${formatearFechaDDMMAAAA(props.clase.fecha)}`
+  }
+  if (props.clase.dias_semana && props.clase.dias_semana.length > 0) {
+    return formatearDiasSemana(props.clase.dias_semana)
+  }
+  return null
+})
 </script>
 
 <template>
@@ -91,11 +108,24 @@ const estaCompleto = computed(() => props.clase.estado === 'COMPLETO')
       </div>
     </div>
 
-    <!-- Info: Título, Profesor y Sala -->
+    <!-- Info: Título, Profesor, Sala y Periodicidad -->
     <div class="mb-6 flex-grow">
-      <h3 class="text-xl font-bold text-slate-800 mb-1 leading-tight">
-        {{ clase.nombre }}
-      </h3>
+      <div class="flex items-start justify-between gap-2 mb-1">
+        <h3 class="text-xl font-bold text-slate-800 leading-tight">
+          {{ clase.nombre }}
+        </h3>
+        <span
+          v-if="etiquetaPeriodicidad"
+          class="shrink-0 text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200"
+          :title="
+            clase.fecha
+              ? 'Clase especial de fecha única'
+              : 'Días programados de la clase'
+          "
+        >
+          {{ etiquetaPeriodicidad }}
+        </span>
+      </div>
       <p class="text-slate-500 text-sm font-medium">
         {{ clase.profesor || 'Sin profesor asignado' }} &middot;
         {{ clase.sala || 'Sala no especificada' }}
