@@ -5,8 +5,7 @@ import {
   type LoginPayload,
 } from '@/modules/M1-usuarios/services/auth.service'
 
-export type RolUsuario =
-  'socio' | 'externo' | 'recepcion' | 'recepcionista' | 'gerente'
+export type RolUsuario = 'socio' | 'externo' | 'recepcionista' | 'gerente'
 
 export interface Usuario {
   id?: number

@@ -26,7 +26,7 @@ const routes: RouteRecordRaw[] = [
         component: PerfilView,
         meta: {
           requiresAuth: true,
-          roles: ['socio', 'externo', 'recepcion', 'recepcionista', 'gerente'],
+          roles: ['socio', 'externo', 'recepcionista', 'gerente'],
         },
       },
       {
@@ -36,7 +36,7 @@ const routes: RouteRecordRaw[] = [
           import('../modules/M1-usuarios/views/MembresiaView.vue'),
         meta: {
           requiresAuth: true,
-          roles: ['socio', 'recepcion', 'recepcionista', 'gerente'],
+          roles: ['socio', 'recepcionista', 'gerente'],
         },
       },
       {
@@ -45,7 +45,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../common/views/HomeView.vue'),
         meta: {
           requiresAuth: true,
-          roles: ['socio', 'recepcion', 'recepcionista', 'gerente'],
+          roles: ['socio', 'recepcionista', 'gerente'],
         },
       },
       {
@@ -55,7 +55,7 @@ const routes: RouteRecordRaw[] = [
           import('../modules/M2-accesos/views/CredencialView.vue'),
         meta: {
           requiresAuth: true,
-          roles: ['socio', 'recepcion', 'recepcionista', 'gerente'],
+          roles: ['socio', 'recepcionista', 'gerente'],
         },
       },
       {
@@ -64,7 +64,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../modules/M2-accesos/views/AforoView.vue'),
         meta: {
           requiresAuth: true,
-          roles: ['recepcion', 'recepcionista', 'gerente'],
+          roles: ['recepcionista', 'gerente'],
         },
       },
       {
@@ -74,7 +74,7 @@ const routes: RouteRecordRaw[] = [
           import('../modules/M3-clases-grupales/views/ClasesView.vue'),
         meta: {
           requiresAuth: true,
-          roles: ['socio', 'recepcion', 'recepcionista', 'gerente'],
+          roles: ['socio', 'recepcionista', 'gerente'],
         },
       },
       {
@@ -83,7 +83,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../modules/M4-canchas/views/CanchasView.vue'),
         meta: {
           requiresAuth: true,
-          roles: ['socio', 'externo', 'recepcion', 'recepcionista', 'gerente'],
+          roles: ['socio', 'externo', 'recepcionista', 'gerente'],
         },
       },
       {
@@ -92,7 +92,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../modules/M5-pagos/views/PagosView.vue'),
         meta: {
           requiresAuth: true,
-          roles: ['socio', 'externo', 'recepcion', 'recepcionista', 'gerente'],
+          roles: ['socio', 'externo', 'recepcionista', 'gerente'],
         },
       },
       {
@@ -103,7 +103,7 @@ const routes: RouteRecordRaw[] = [
           import('../modules/M5-pagos/views/ResultadoPagoView.vue'),
         meta: {
           requiresAuth: true,
-          roles: ['socio', 'externo', 'recepcion', 'recepcionista', 'gerente'],
+          roles: ['socio', 'externo', 'recepcionista', 'gerente'],
         },
       },
       {

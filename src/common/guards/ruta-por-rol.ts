@@ -3,7 +3,6 @@ import type { RolUsuario } from '@/store/auth'
 export const RUTA_POR_ROL: Record<RolUsuario, string> = {
   socio: '/inicio',
   externo: '/canchas',
-  recepcion: '/aforo',
   recepcionista: '/aforo',
   gerente: '/gerencia/reportes',
 }
