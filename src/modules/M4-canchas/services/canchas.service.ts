@@ -7,6 +7,10 @@ import type {
   DisponibilidadCanchaResponse,
   TurnoSlot,
   HorarioOperativoDia,
+  CrearCanchaDto,
+  ActualizarCanchaDto,
+  CrearMantenimientoDto,
+  MantenimientoResponseDto,
 } from '@/modules/M4-canchas/types/canchas.types'
 
 ///NOTA: Capaz es mejor que el estado lo traiga como string directamente
@@ -27,13 +31,11 @@ export interface CanchaReservaRealtimePayload {
 const MOCK_TIPOS_CANCHA: CanchaTipo[] = [
   {
     id_cancha_tipo: 1,
-    nombre: 'Pádel',
-    descripcion: 'Pistas de césped sintético y cristal templado',
+    descripcion: 'Pádel',
   },
   {
     id_cancha_tipo: 2,
-    nombre: 'Fútbol 5',
-    descripcion: 'Canchas techadas de césped sintético pro',
+    descripcion: 'Fútbol 5',
   },
 ]
 */
@@ -505,8 +507,37 @@ export const canchasService = {
   },
 
   /**
-   * Obtiene las canchas asociadas a una sede específica
+   * Obtiene la lista completa de canchas con filtros opcionales (sede, tipo, activo)
    */
+  async getCanchas(filtros?: {
+    id_sede?: number
+    sedeId?: number
+    id_cancha_tipo?: number
+    activo?: boolean
+  }): Promise<Cancha[]> {
+    try {
+      const params = new URLSearchParams()
+      const sede = filtros?.sedeId ?? filtros?.id_sede
+      if (sede) params.append('sedeId', String(sede))
+      if (filtros?.id_cancha_tipo)
+        params.append('id_cancha_tipo', String(filtros.id_cancha_tipo))
+      if (filtros?.activo !== undefined)
+        params.append('activo', String(filtros.activo))
+
+      const queryString = params.toString() ? `?${params.toString()}` : ''
+      const response = await http.get(`/canchas${queryString}`)
+      if (Array.isArray(response.data)) {
+        return response.data
+      }
+    } catch (err) {
+      console.warn('Error al consultar /canchas en el backend:', err)
+    }
+    return []
+  },
+  /* NOTA: VIEJO
+  **
+   * Obtiene las canchas asociadas a una sede específica
+   *
   async getCanchasPorSede(idSede: number): Promise<Cancha[]> {
     try {
       const response = await http.get(`/canchas?sedeId=${idSede}`)
@@ -520,6 +551,54 @@ export const canchasService = {
       )
     }
     return []
+  },
+*/
+
+  /**
+   * Obtiene las canchas asociadas a una sede específica desde el backend.
+   */
+  async getCanchasPorSede(idSede: number): Promise<Cancha[]> {
+    return this.getCanchas({ sedeId: idSede })
+  },
+
+  /**
+   * Da de alta una nueva cancha en el backend
+   */
+  async crearCancha(dto: CrearCanchaDto): Promise<Cancha> {
+    const response = await http.post<Cancha>('/canchas', dto)
+    return response.data
+  },
+
+  /**
+   * Actualiza los atributos de una cancha existente
+   */
+  async actualizarCancha(
+    id: number,
+    dto: ActualizarCanchaDto
+  ): Promise<Cancha> {
+    const response = await http.patch<Cancha>(`/canchas/${id}`, dto)
+    return response.data
+  },
+
+  /**
+   * Elimina una cancha (baja lógica) en el backend
+   */
+  async eliminarCancha(id: number): Promise<void> {
+    await http.delete(`/canchas/${id}`)
+  },
+
+  /**
+   * Programa un mantenimiento para una cancha inhabilitando turnos futuros
+   */
+  async programarMantenimiento(
+    idCancha: number,
+    dto: CrearMantenimientoDto
+  ): Promise<MantenimientoResponseDto> {
+    const response = await http.post<MantenimientoResponseDto>(
+      `/canchas/${idCancha}/mantenimiento`,
+      dto
+    )
+    return response.data
   },
 
   /**

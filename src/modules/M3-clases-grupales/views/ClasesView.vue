@@ -428,9 +428,7 @@ async function confirmarCancelacion() {
         </svg>
       </div>
       <div class="text-sky-800 text-sm leading-relaxed">
-        <strong class="font-bold"
-          >Regla de Reserva y Cancelación (RF-07):</strong
-        >
+        <strong class="font-bold">Regla de Reserva y Cancelación</strong>
         Las reservas abren 48 hs antes de cada clase. Podés cancelar tu reserva
         sin penalidad hasta
         <strong class="font-bold text-sky-900">2 horas antes</strong> del inicio

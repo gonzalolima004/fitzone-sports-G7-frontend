@@ -9,8 +9,37 @@ export interface Cancha {
   id_cancha_tipo: number
   nombre: string
   costo_base: number
-  activa: boolean
+  activo: boolean
   tipo?: CanchaTipo
+}
+
+export interface CrearCanchaDto {
+  id_sede: number
+  id_cancha_tipo: number
+  nombre: string
+  costo_base: number
+}
+
+export interface ActualizarCanchaDto {
+  id_sede?: number
+  id_cancha_tipo?: number
+  nombre?: string
+  costo_base?: number
+  activo?: boolean
+}
+
+export interface CrearMantenimientoDto {
+  fecha_inicio: string
+  fecha_fin: string
+  motivo?: string
+}
+
+export interface MantenimientoResponseDto {
+  id_cancha_mantenimiento: number
+  id_cancha: number
+  fecha_inicio: string
+  fecha_fin: string
+  motivo?: string
 }
 
 export type SlotEstado = 'DISPONIBLE' | 'RESERVADO' | 'MANTENIMIENTO'
