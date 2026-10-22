@@ -97,6 +97,13 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: false },
   },
   {
+    path: '/completar-perfil',
+    name: 'completar-perfil',
+    component: () =>
+      import('@/modules/M1-usuarios/views/CompletarPerfilView.vue'),
+    meta: { requiresAuth: true }, // Debe estar logueado en Supabase para verla
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
     component: () => import('../common/views/NotFoundView.vue'),
@@ -109,15 +116,26 @@ export const router = createRouter({
 })
 
 // Guard de navegación global
-router.beforeEach((to, _from, next) => {
+// Guard de navegación global
+router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
+
+  // 1. ESPERAR a que Supabase lea la URL (vital para Google OAuth)
+  if (!authStore.isInitialized) {
+    await authStore.initialize()
+  }
+
+  // Revisa si la ruta destino (o alguno de sus padres) requiere autenticación
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
 
   if (requiresAuth && !authStore.isAuthenticated) {
+    // Si quiere entrar a zona privada sin estar logueado -> Al login
     next({ name: 'login' })
   } else if (to.name === 'login' && authStore.isAuthenticated) {
+    // Si ya está logueado y quiere ir al login -> Al home del dashboard
     next({ name: 'home' })
   } else {
+    // Todo en orden -> Que pase
     next()
   }
 })
