@@ -40,14 +40,18 @@ const fetchDatos = async () => {
 
     planes.value = planesData.map((p) => {
       let desc =
-        'Acceso ilimitado a 25+ sedes|Clases grupales incluidas|15% off en Canchas|Credencial QR dinámica'
+        'Acceso a musculación y clases grupales|Credencial digital QR|15% off en canchas|Sin matrícula'
 
-      if (p.duracion_dias === 90) {
+      const nombre = (p.nombre || '').toLowerCase()
+      if (nombre.includes('2')) {
         desc =
-          'Todo lo del Plan Básico|Reserva prioritaria de clases (48 hs antes)|Renovación automática sin cortes|2 pases de invitado por trimestre'
-      } else if (p.duracion_dias >= 365) {
+          '2 accesos por semana a musculación y clases|Acreditación digital instantánea por QR|15% de descuento en canchas|Sin matrícula ni costo de inscripción'
+      } else if (nombre.includes('3')) {
         desc =
-          'Todo lo del Plan Pro|2 meses gratis incluidos en el año|Turno fijo semanal en canchas|Kit de bienvenida FitZone Sports'
+          '3 accesos por semana a musculación y clases|Acreditación digital instantánea por QR|15% de descuento en canchas|Sin matrícula ni costo de inscripción'
+      } else if (nombre.includes('libre')) {
+        desc =
+          'Acceso ilimitado todos los días a musculación y clases|Libre acceso a todas las sedes provinciales|Acreditación digital instantánea por QR|15% de descuento en canchas'
       }
 
       return { ...p, descripcion: desc }

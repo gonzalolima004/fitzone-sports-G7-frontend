@@ -63,7 +63,7 @@ const sizeClasses = computed(() => {
   <button
     :type="type"
     :disabled="disabled || loading"
-    class="inline-flex items-center justify-center select-none transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+    class="inline-flex items-center justify-center select-none transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#202759] motion-reduce:transition-none"
     :class="[variantClasses, sizeClasses]"
     @click="handleClick"
   >

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/store/auth'
 import { rutaPorRol } from '@/common/guards/ruta-por-rol'
 import BaseInput from '@/common/components/BaseInput.vue'
@@ -13,6 +13,7 @@ const isLoading = ref(false)
 
 const authStore = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 
 const handleLogin = async () => {
   if (!email.value || !password.value) {
@@ -25,7 +26,9 @@ const handleLogin = async () => {
   try {
     await authStore.login({ email: email.value, password: password.value })
     toast.success('¡Bienvenido al ecosistema FitZone!')
-    router.push(rutaPorRol(authStore.rol))
+    const destino =
+      (route.query.redirect as string) || rutaPorRol(authStore.rol)
+    router.push(destino)
   } catch (error: unknown) {
     const err = error as {
       response?: { data?: { message?: string | string[] } }

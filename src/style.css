@@ -1,9 +1,25 @@
 @import 'tailwindcss';
 
+@theme {
+  --color-primary: #202759;
+  --color-primary-dark: #161b3d;
+  --color-primary-light: #2d377d;
+  --color-secondary: #f96167;
+  --color-secondary-hover: #e0484e;
+  --color-secondary-dark: #b82a30;
+  --color-surface-light: #f4f6fa;
+}
+
 :root {
   --color-primary: #202759;
   --color-secondary: #f96167;
+  --color-secondary-dark: #b82a30;
   --color-bg-light: #f4f6fa;
+}
+
+::selection {
+  background-color: #202759;
+  color: #ffffff;
 }
 
 body {
