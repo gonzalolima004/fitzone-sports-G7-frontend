@@ -36,6 +36,33 @@ export interface ClaseAgendaResponse {
   fecha?: string | null
 }
 
+export interface CreateClaseRequest {
+  id_sede: number
+  nombre: string
+  descripcion?: string | null
+  profesor?: string | null
+  sala?: string | null
+  horario_inicio: string
+  horario_fin: string
+  capacidad_maxima: number
+  dias_semana?: number[]
+  fecha?: string | null
+}
+
+export interface UpdateClaseRequest {
+  id_sede?: number
+  nombre?: string
+  descripcion?: string | null
+  profesor?: string | null
+  sala?: string | null
+  horario_inicio?: string
+  horario_fin?: string
+  capacidad_maxima?: number
+  dias_semana?: number[]
+  fecha?: string | null
+  activo?: boolean
+}
+
 export interface CreateReservaRequest {
   id_clase: number
   fecha_inicio?: string
@@ -137,6 +164,31 @@ export const clasesService = {
       {
         params: { fecha },
       }
+    )
+    return response.data
+  },
+
+  /**
+   * Crea una nueva clase grupal (admin o gerente).
+   * @param data Datos de la clase a crear
+   */
+  async crearClase(data: CreateClaseRequest): Promise<ClaseResponse> {
+    const response = await http.post<ClaseResponse>('/clases', data)
+    return response.data
+  },
+
+  /**
+   * Actualiza los datos de una clase grupal existente.
+   * @param id_clase ID de la clase
+   * @param data Datos a modificar
+   */
+  async actualizarClase(
+    id_clase: number,
+    data: UpdateClaseRequest
+  ): Promise<ClaseResponse> {
+    const response = await http.patch<ClaseResponse>(
+      `/clases/${id_clase}`,
+      data
     )
     return response.data
   },

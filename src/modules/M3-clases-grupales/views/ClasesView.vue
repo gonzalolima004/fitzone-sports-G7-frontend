@@ -9,6 +9,8 @@ import {
   PhCaretRight,
   PhClock,
   PhDoor,
+  PhPlus,
+  PhTrash,
 } from '@phosphor-icons/vue'
 import { useSedeStore } from '@/store/sede'
 import axios from 'axios'
@@ -30,6 +32,7 @@ import {
   type DiaAgendaItem,
 } from '@/common/utils/date-formatter'
 import ClaseCard, { type ClaseCardProps } from '../components/ClaseCard.vue'
+import ModalClaseForm from '../components/ModalClaseForm.vue'
 import BaseModal from '@/common/components/BaseModal.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import { toast } from '@/common/utils/toast'
@@ -463,6 +466,60 @@ async function confirmarCancelacion() {
     await cargarClases()
   }
 }
+
+// GESTIÓN CRUD DE CLASES (ADMIN / GERENTE)
+const esAdminOGerente = computed(
+  () => authStore.rol === 'admin' || authStore.rol === 'gerente'
+)
+
+const modalFormVisible = ref(false)
+const claseAEditar = ref<ClaseCardProps | null>(null)
+const modalEliminarVisible = ref(false)
+const claseAEliminar = ref<ClaseCardProps | null>(null)
+const eliminando = ref(false)
+
+function abrirModalCrearClase() {
+  claseAEditar.value = null
+  modalFormVisible.value = true
+}
+
+function handleEditarClase(idClase: number) {
+  const clase = clasesAgendadas.value.find((c) => c.id === idClase)
+  if (clase) {
+    claseAEditar.value = clase
+    modalFormVisible.value = true
+  }
+}
+
+function handleAbrirEliminarClase(idClase: number) {
+  const clase = clasesAgendadas.value.find((c) => c.id === idClase)
+  if (clase) {
+    claseAEliminar.value = clase
+    modalEliminarVisible.value = true
+  }
+}
+
+async function confirmarEliminacion() {
+  if (!claseAEliminar.value) return
+  eliminando.value = true
+  try {
+    await clasesService.eliminarClase(claseAEliminar.value.id)
+    toast.success(`Clase "${claseAEliminar.value.nombre}" eliminada con éxito`)
+    modalEliminarVisible.value = false
+    claseAEliminar.value = null
+    await cargarClases()
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      toast.error(
+        err.response?.data?.message || 'Error al dar de baja la clase.'
+      )
+    } else {
+      toast.error('Ocurrió un error inesperado al eliminar la clase.')
+    }
+  } finally {
+    eliminando.value = false
+  }
+}
 </script>
 
 <template>
@@ -518,6 +575,16 @@ async function confirmarCancelacion() {
         >
           Reserva con 48 hs de anticipación
         </div>
+
+        <!-- Botón Nueva Clase (Admin / Gerente) -->
+        <button
+          v-if="esAdminOGerente"
+          class="flex items-center gap-2 bg-[#202759] hover:bg-[#161b3d] text-white px-4 py-2 rounded-full font-bold shadow-sm transition-all active:scale-95 cursor-pointer text-xs md:text-sm"
+          @click="abrirModalCrearClase"
+        >
+          <PhPlus :size="16" weight="bold" class="text-rose-400" />
+          <span>Nueva Clase</span>
+        </button>
       </div>
     </div>
 
@@ -726,9 +793,12 @@ async function confirmarCancelacion() {
         v-for="clase in clasesAgendadas"
         :key="clase.id"
         :clase="clase"
+        :es-admin-o-gerente="esAdminOGerente"
         @reservar="handleReservar"
         @lista-espera="handleListaEspera"
         @cancelar="handleCancelar"
+        @editar="handleEditarClase"
+        @eliminar="handleAbrirEliminarClase"
       />
     </div>
 
@@ -877,6 +947,54 @@ async function confirmarCancelacion() {
           @click="confirmarListaEspera"
         >
           Anotarme
+        </BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- Modal Crear / Editar Clase Grupal (Admin / Gerente) -->
+    <ModalClaseForm
+      v-model="modalFormVisible"
+      :id-sede="sedeStore.idSedeSeleccionada || 1"
+      :clase-a-editar="claseAEditar"
+      :fecha-por-defecto="fechaSeleccionada"
+      @guardado="cargarClases"
+    />
+
+    <!-- Modal Confirmar Eliminación de Clase -->
+    <BaseModal
+      v-model="modalEliminarVisible"
+      title="Eliminar Clase Grupal"
+      subtitle="Confirmación de baja en el cronograma"
+      max-width="sm"
+    >
+      <div class="text-center py-2">
+        <div
+          class="w-14 h-14 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4"
+        >
+          <PhTrash :size="32" weight="bold" />
+        </div>
+        <p class="text-slate-700 font-semibold mb-2 text-base">
+          ¿Estás seguro de eliminar "{{ claseAEliminar?.nombre }}"?
+        </p>
+        <p class="text-xs text-slate-500">
+          Esta acción dará de baja la clase del cronograma activo de la sede.
+        </p>
+      </div>
+
+      <template #actions>
+        <BaseButton
+          variant="outline"
+          :disabled="eliminando"
+          @click="modalEliminarVisible = false"
+        >
+          Cancelar
+        </BaseButton>
+        <BaseButton
+          variant="danger"
+          :loading="eliminando"
+          @click="confirmarEliminacion"
+        >
+          Eliminar Clase
         </BaseButton>
       </template>
     </BaseModal>

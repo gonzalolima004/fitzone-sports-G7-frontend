@@ -7,6 +7,8 @@ import {
   PhBicycle,
   PhFlowerLotus,
   PhClock,
+  PhPencilSimple,
+  PhTrash,
 } from '@phosphor-icons/vue'
 
 import {
@@ -40,14 +42,22 @@ export interface ClaseCardProps {
   fechaSeleccionada?: string
 }
 
-const props = defineProps<{
-  clase: ClaseCardProps
-}>()
+const props = withDefaults(
+  defineProps<{
+    clase: ClaseCardProps
+    esAdminOGerente?: boolean
+  }>(),
+  {
+    esAdminOGerente: false,
+  }
+)
 
 const emit = defineEmits<{
   (e: 'reservar', id: number): void
   (e: 'lista-espera', id: number): void
   (e: 'cancelar', id: number): void
+  (e: 'editar', id: number): void
+  (e: 'eliminar', id: number): void
 }>()
 
 const porcentajeOcupacion = computed(() => {
@@ -115,11 +125,33 @@ const estadoVentana = computed(() => {
         <PhBarbell v-else :size="16" weight="bold" />
         {{ clase.tipo }}
       </div>
-      <div
-        class="font-extrabold text-sm"
-        :class="estaCompleto ? 'text-rose-500' : 'text-slate-800'"
-      >
-        {{ clase.horario }}
+      <div class="flex items-center gap-2">
+        <div
+          class="font-extrabold text-sm"
+          :class="estaCompleto ? 'text-rose-500' : 'text-slate-800'"
+        >
+          {{ clase.horario }}
+        </div>
+
+        <div
+          v-if="esAdminOGerente"
+          class="flex items-center gap-1 ml-2 border-l border-slate-200 pl-2"
+        >
+          <button
+            class="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all active:scale-95 cursor-pointer"
+            title="Editar clase"
+            @click.stop="emit('editar', clase.id)"
+          >
+            <PhPencilSimple :size="16" weight="bold" />
+          </button>
+          <button
+            class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all active:scale-95 cursor-pointer"
+            title="Eliminar clase"
+            @click.stop="emit('eliminar', clase.id)"
+          >
+            <PhTrash :size="16" weight="bold" />
+          </button>
+        </div>
       </div>
     </div>
 
