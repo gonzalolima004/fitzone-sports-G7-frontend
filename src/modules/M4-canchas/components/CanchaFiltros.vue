@@ -17,7 +17,7 @@ interface Props {
   tiposCancha: CanchaTipo[]
   sedeId: number | ''
   tipoId: number | ''
-  estado: 'todas' | 'activas' | 'inactivas'
+  estado: 'todas' | 'disponibles' | 'no_disponibles'
   busqueda: string
 }
 
@@ -26,7 +26,7 @@ defineProps<Props>()
 const emit = defineEmits<{
   (e: 'update:sedeId', value: number | ''): void
   (e: 'update:tipoId', value: number | ''): void
-  (e: 'update:estado', value: 'todas' | 'activas' | 'inactivas'): void
+  (e: 'update:estado', value: 'todas' | 'disponibles' | 'no_disponibles'): void
   (e: 'update:busqueda', value: string): void
   (e: 'crearCancha'): void
 }>()
@@ -131,7 +131,9 @@ const emit = defineEmits<{
 
       <!-- Selector de Estado -->
       <div class="flex flex-col gap-1.5">
-        <label class="text-xs font-semibold text-slate-600"> Estado </label>
+        <label class="text-xs font-semibold text-slate-600">
+          Disponibilidad
+        </label>
         <select
           :value="estado"
           class="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#202759]/20 focus:border-[#202759] transition-all text-slate-700"
@@ -139,13 +141,13 @@ const emit = defineEmits<{
             emit(
               'update:estado',
               ($event.target as HTMLSelectElement).value as
-                'todas' | 'activas' | 'inactivas'
+                'todas' | 'disponibles' | 'no_disponibles'
             )
           "
         >
           <option value="todas">Todos los estados</option>
-          <option value="activas">Solo activas</option>
-          <option value="inactivas">Solo inactivas</option>
+          <option value="disponibles">Solo disponibles</option>
+          <option value="no_disponibles">No disponibles</option>
         </select>
       </div>
     </div>

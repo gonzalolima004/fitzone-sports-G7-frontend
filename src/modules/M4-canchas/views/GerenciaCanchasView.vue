@@ -37,7 +37,7 @@ const procesandoEliminar = ref(false)
 const idSedeFiltro = ref<number | ''>('')
 const idTipoFiltro = ref<number | ''>('')
 const busquedaTexto = ref('')
-const estadoFiltro = ref<'todas' | 'activas' | 'inactivas'>('todas')
+const estadoFiltro = ref<'todas' | 'disponibles' | 'no_disponibles'>('todas')
 
 // Modal Cancha (Creación / Edición)
 const modalCanchaAbierto = ref(false)
@@ -77,6 +77,11 @@ async function cargarCanchas() {
 // Canchas filtradas según sede, tipo, estado y texto de búsqueda
 const canchasFiltradas = computed(() => {
   return canchas.value.filter((cancha) => {
+    // REGLA CRÍTICA: Ocultar siempre y de forma estricta las canchas dadas de baja lógica (activo === false)
+    if (cancha.activo === false) {
+      return false
+    }
+
     // Filtro por Sede
     if (
       idSedeFiltro.value !== '' &&
@@ -93,11 +98,14 @@ const canchasFiltradas = computed(() => {
       return false
     }
 
-    // Filtro por Estado (activa / inactiva)
-    if (estadoFiltro.value === 'activas' && !cancha.activo) {
+    // Filtro por Disponibilidad operativa
+    if (estadoFiltro.value === 'disponibles' && cancha.disponible === false) {
       return false
     }
-    if (estadoFiltro.value === 'inactivas' && cancha.activo) {
+    if (
+      estadoFiltro.value === 'no_disponibles' &&
+      cancha.disponible !== false
+    ) {
       return false
     }
 
@@ -118,13 +126,19 @@ const canchasFiltradas = computed(() => {
   })
 })
 
-// Métricas cuantitativas
-const totalCanchas = computed(() => canchas.value.length)
-const totalActivas = computed(
-  () => canchas.value.filter((c) => c.activo).length
+// Métricas cuantitativas (excluyendo bajas lógicas)
+const totalCanchas = computed(
+  () => canchas.value.filter((c) => c.activo !== false).length
 )
-const totalInactivas = computed(
-  () => canchas.value.filter((c) => !c.activo).length
+const totalDisponibles = computed(
+  () =>
+    canchas.value.filter((c) => c.activo !== false && c.disponible !== false)
+      .length
+)
+const totalNoDisponibles = computed(
+  () =>
+    canchas.value.filter((c) => c.activo !== false && c.disponible === false)
+      .length
 )
 
 // Mapa de nombres de sedes
@@ -159,6 +173,7 @@ async function handleGuardarCancha(datos: {
   id_sede: number
   id_cancha_tipo: number
   costo_base: number
+  disponible?: boolean
   activo?: boolean
 }) {
   guardandoCancha.value = true
@@ -169,7 +184,8 @@ async function handleGuardarCancha(datos: {
         id_sede: datos.id_sede,
         id_cancha_tipo: datos.id_cancha_tipo,
         costo_base: datos.costo_base,
-        activo: datos.activo,
+        disponible: datos.disponible,
+        activo: datos.activo ?? true,
       }
       await canchasService.actualizarCancha(
         canchaSeleccionada.value.id_cancha,
@@ -182,6 +198,7 @@ async function handleGuardarCancha(datos: {
         id_sede: datos.id_sede,
         id_cancha_tipo: datos.id_cancha_tipo,
         costo_base: datos.costo_base,
+        disponible: datos.disponible ?? true,
       }
       await canchasService.crearCancha(dto)
       toast.success('Nueva cancha creada exitosamente.')
@@ -228,17 +245,21 @@ function abrirModalEliminar(cancha: Cancha) {
   modalEliminarAbierto.value = true
 }
 
-// Confirmar baja / eliminación
+// Confirmar baja / eliminación (baja lógica)
 async function handleConfirmarEliminar(cancha: Cancha) {
   procesandoEliminar.value = true
   try {
     await canchasService.eliminarCancha(cancha.id_cancha)
-    toast.success(`Cancha "${cancha.nombre}" dada de baja.`)
+    // Ocultar inmediatamente de la lista local
+    canchas.value = canchas.value.filter(
+      (c) => c.id_cancha !== cancha.id_cancha
+    )
+    toast.success(`Cancha "${cancha.nombre}" dada de baja exitosamente.`)
     modalEliminarAbierto.value = false
     await cargarCanchas()
   } catch (error) {
     console.error('Error al eliminar cancha:', error)
-    toast.error('No se pudo eliminar la cancha.')
+    toast.error('No se pudo dar de baja la cancha.')
   } finally {
     procesandoEliminar.value = false
   }
@@ -256,6 +277,14 @@ onMounted(async () => {
       class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-slate-200"
     >
       <div>
+        <div class="flex items-center gap-2">
+          <span
+            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-[#202759]/10 text-[#202759]"
+          >
+            Módulo Gerencia
+          </span>
+          <span class="text-xs text-slate-400 font-medium">RF-11 / RF-12</span>
+        </div>
         <h1 class="text-2xl font-bold text-[#202759] tracking-tight mt-1">
           Gestión de Canchas Deportivas
         </h1>
@@ -288,7 +317,7 @@ onMounted(async () => {
           </div>
         </div>
 
-        <!-- Activas -->
+        <!-- Disponibles -->
         <div
           class="px-3.5 py-2 bg-white rounded-xl border border-slate-200 shadow-2xs flex items-center gap-2.5"
         >
@@ -299,33 +328,33 @@ onMounted(async () => {
           </div>
           <div>
             <div class="text-[10px] uppercase font-bold text-slate-400">
-              Activas
+              Disponibles
             </div>
             <div
               class="text-base font-bold text-emerald-700 tabular-nums leading-none"
             >
-              {{ totalActivas }}
+              {{ totalDisponibles }}
             </div>
           </div>
         </div>
 
-        <!-- Inactivas -->
+        <!-- No disponibles -->
         <div
           class="px-3.5 py-2 bg-white rounded-xl border border-slate-200 shadow-2xs flex items-center gap-2.5"
         >
           <div
-            class="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center text-[#F96167]"
+            class="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600"
           >
             <PhXCircle :size="18" weight="bold" />
           </div>
           <div>
             <div class="text-[10px] uppercase font-bold text-slate-400">
-              Inactivas
+              No disponibles
             </div>
             <div
-              class="text-base font-bold text-[#F96167] tabular-nums leading-none"
+              class="text-base font-bold text-amber-700 tabular-nums leading-none"
             >
-              {{ totalInactivas }}
+              {{ totalNoDisponibles }}
             </div>
           </div>
         </div>
@@ -415,6 +444,7 @@ onMounted(async () => {
       :sedes="sedeStore.sedes"
       :tipos-cancha="tiposCancha"
       :guardando="guardandoCancha"
+      :id-sede-actual="sedeStore.idSedeSeleccionada"
       @guardar="handleGuardarCancha"
     />
 

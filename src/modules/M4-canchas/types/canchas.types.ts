@@ -10,6 +10,7 @@ export interface Cancha {
   nombre: string
   costo_base: number
   activo: boolean
+  disponible?: boolean
   tipo?: CanchaTipo
 }
 
@@ -18,6 +19,7 @@ export interface CrearCanchaDto {
   id_cancha_tipo: number
   nombre: string
   costo_base: number
+  disponible?: boolean
 }
 
 export interface ActualizarCanchaDto {
@@ -26,6 +28,7 @@ export interface ActualizarCanchaDto {
   nombre?: string
   costo_base?: number
   activo?: boolean
+  disponible?: boolean
 }
 
 export interface CrearMantenimientoDto {
@@ -94,15 +97,6 @@ export interface ReservaCanchaResponse {
   created_at: string
 }
 
-export interface SedeHorario {
-  id_sede_horario: number
-  id_sede: number
-  dia_semana: number // 0: Domingo, 1: Lunes, ..., 6: Sábado
-  hora_apertura: string // "07:00"
-  hora_cierre: string // "23:00"
-  abierto: boolean
-}
-
 export interface DetalleReservaCancha {
   id_cancha_reserva: number
   id_cancha: number
@@ -125,6 +119,15 @@ export interface DetalleReservaCancha {
   monto_recargo_pico?: number
   cancha_en_mantenimiento?: boolean
   motivo_mantenimiento?: string
+}
+
+export interface SedeHorario {
+  id_sede_horario: number
+  id_sede: number
+  dia_semana: number // 0: Domingo, 1: Lunes, ..., 6: Sábado
+  hora_apertura: string // "07:00"
+  hora_cierre: string // "23:00"
+  abierto: boolean
 }
 
 export interface Calendario {

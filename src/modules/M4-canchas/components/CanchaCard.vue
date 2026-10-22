@@ -44,7 +44,9 @@ function formatoMoneda(valor: number): string {
 <template>
   <div
     class="bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col justify-between"
-    :class="{ 'opacity-85 border-slate-200 bg-slate-50/50': !cancha.activo }"
+    :class="{
+      'opacity-85 border-slate-200 bg-slate-50/50': cancha.disponible === false,
+    }"
   >
     <!-- Contenido Superior -->
     <div class="p-5 space-y-4">
@@ -57,21 +59,25 @@ function formatoMoneda(valor: number): string {
           {{ tipoEtiqueta }}
         </span>
 
-        <!-- Badge de Estado (Activa / Inactiva) -->
+        <!-- Badge de Estado Operativo (Disponible / No disponible) -->
         <span
           class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold"
           :class="
-            cancha.activo
+            cancha.disponible !== false
               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-              : 'bg-rose-50 text-[#F96167] border border-rose-200'
+              : 'bg-amber-50 text-amber-700 border border-amber-200'
           "
         >
           <PhCircle
             :size="8"
             weight="fill"
-            :class="cancha.activo ? 'text-emerald-500' : 'text-[#F96167]'"
+            :class="
+              cancha.disponible !== false
+                ? 'text-emerald-500'
+                : 'text-amber-500'
+            "
           />
-          {{ cancha.activo ? 'Activa' : 'Inactiva' }}
+          {{ cancha.disponible !== false ? 'Disponible' : 'No disponible' }}
         </span>
       </div>
 

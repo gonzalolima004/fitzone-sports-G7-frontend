@@ -47,8 +47,9 @@ function handleConfirmar() {
       </div>
 
       <p class="text-xs text-slate-500 leading-relaxed">
-        Esta acción desactivará la cancha para que no aparezca en las búsquedas
-        ni en la grilla de disponibilidad de turnos.
+        Esta acción dará de baja lógica la cancha en el sistema. Quedará oculta
+        de la gestión y de las reservas, preservando la integridad de los
+        registros históricos.
       </p>
     </div>
 

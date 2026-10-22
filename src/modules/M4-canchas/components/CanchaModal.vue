@@ -16,6 +16,7 @@ interface Props {
   sedes: SedeOpcion[]
   tiposCancha: CanchaTipo[]
   guardando: boolean
+  idSedeActual?: number | null
 }
 
 const props = defineProps<Props>()
@@ -29,6 +30,7 @@ const emit = defineEmits<{
       id_sede: number
       id_cancha_tipo: number
       costo_base: number
+      disponible?: boolean
       activo?: boolean
     }
   ): void
@@ -39,13 +41,13 @@ const form = ref<{
   id_sede: number | ''
   id_cancha_tipo: number | ''
   costo_base: number | ''
-  activo: boolean
+  disponible: boolean
 }>({
   nombre: '',
   id_sede: '',
   id_cancha_tipo: '',
   costo_base: '',
-  activo: true,
+  disponible: true,
 })
 
 const errorValidacion = ref<string | null>(null)
@@ -62,18 +64,29 @@ watch(
           id_sede: props.cancha.id_sede,
           id_cancha_tipo: props.cancha.id_cancha_tipo,
           costo_base: props.cancha.costo_base,
-          activo: props.cancha.activo ?? true,
+          disponible: props.cancha.disponible !== false,
         }
       } else {
+        // Pre-seleccionar automáticamente la sede actual del sedeStore si está disponible
+        let sedeInicial: number | '' = ''
+        if (
+          props.idSedeActual &&
+          props.sedes.some((s) => s.id_sede === props.idSedeActual)
+        ) {
+          sedeInicial = props.idSedeActual
+        } else if (props.sedes.length > 0) {
+          sedeInicial = props.sedes[0].id_sede
+        }
+
         form.value = {
           nombre: '',
-          id_sede: props.sedes.length > 0 ? props.sedes[0].id_sede : '',
+          id_sede: sedeInicial,
           id_cancha_tipo:
             props.tiposCancha.length > 0
               ? props.tiposCancha[0].id_cancha_tipo
               : '',
           costo_base: '',
-          activo: true,
+          disponible: true,
         }
       }
     }
@@ -110,7 +123,8 @@ function handleGuardar() {
     id_sede: Number(form.value.id_sede),
     id_cancha_tipo: Number(form.value.id_cancha_tipo),
     costo_base: Number(form.value.costo_base),
-    activo: form.value.activo,
+    disponible: form.value.disponible,
+    activo: true,
   })
 }
 </script>
@@ -215,21 +229,25 @@ function handleGuardar() {
         >
       </div>
 
-      <!-- Switch de Estado Activo (solo en edición) -->
+      <!-- Switch de Estado Operativo: Disponible para Reservas -->
       <div
-        v-if="esEdicion"
         class="pt-2 border-t border-slate-100 flex items-center justify-between"
       >
         <div>
           <span class="text-xs font-semibold text-slate-700"
-            >Cancha Activa</span
+            >Disponible para Reservas</span
           >
           <p class="text-[11px] text-slate-400">
-            Las canchas inactivas no reciben nuevas reservas.
+            Si se deshabilita, la cancha queda temporalmente no disponible para
+            turnos.
           </p>
         </div>
         <label class="relative inline-flex items-center cursor-pointer">
-          <input v-model="form.activo" type="checkbox" class="sr-only peer" />
+          <input
+            v-model="form.disponible"
+            type="checkbox"
+            class="sr-only peer"
+          />
           <div
             class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"
           ></div>
