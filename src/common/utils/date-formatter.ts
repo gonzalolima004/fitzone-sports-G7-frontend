@@ -215,3 +215,74 @@ export function coincideFechaClase(
   // Si no tiene fecha puntual ni días de semana configurados (clase general / sin restricción)
   return true
 }
+
+export interface EstadoVentanaReserva {
+  puedeReservar: boolean
+  motivoBloqueo?: 'FUTURO_LEJANO' | 'PASADO'
+  mensajeBloqueo?: string
+}
+
+/**
+ * Evalúa si una clase puede ser reservada según la ventana de tiempo permitida:
+ * - Las reservas abren con un máximo de 48 horas de anticipación.
+ * - No se permite reservar si la clase ya inició o ya finalizó.
+ * @param fecha Fecha de la clase (YYYY-MM-DD o Date o ISO string con hora)
+ * @param horario Horario de inicio opcional en formato "HH:mm"
+ */
+export function obtenerEstadoVentanaReserva(
+  fecha?: string | Date | null,
+  horario?: string | null
+): EstadoVentanaReserva {
+  if (!fecha) {
+    return { puedeReservar: true }
+  }
+
+  let fechaClase: Date
+
+  // Si se pasa un string ISO que ya contiene fecha y hora (ej: "2026-10-25T18:00:00.000Z")
+  if (typeof fecha === 'string' && fecha.includes('T') && !horario) {
+    fechaClase = new Date(fecha)
+  } else {
+    const d = normalizarFecha(fecha)
+    if (Number.isNaN(d.getTime())) {
+      return { puedeReservar: true }
+    }
+    const [h = '0', m = '0'] = (horario || '00:00').split(':')
+    fechaClase = new Date(
+      d.getFullYear(),
+      d.getMonth(),
+      d.getDate(),
+      Number(h),
+      Number(m),
+      0,
+      0
+    )
+  }
+
+  if (Number.isNaN(fechaClase.getTime())) {
+    return { puedeReservar: true }
+  }
+
+  const ahora = new Date()
+  const diffHoras = (fechaClase.getTime() - ahora.getTime()) / (1000 * 60 * 60)
+
+  // Si la clase ya inició o ya pasó
+  if (diffHoras < 0) {
+    return {
+      puedeReservar: false,
+      motivoBloqueo: 'PASADO',
+      mensajeBloqueo: 'Clase finalizada',
+    }
+  }
+
+  // Si faltan más de 48 horas para la clase (la reserva aún no abre)
+  if (diffHoras > 48) {
+    return {
+      puedeReservar: false,
+      motivoBloqueo: 'FUTURO_LEJANO',
+      mensajeBloqueo: 'Abre 48 hs antes',
+    }
+  }
+
+  return { puedeReservar: true }
+}

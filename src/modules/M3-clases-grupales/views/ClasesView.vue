@@ -26,6 +26,7 @@ import {
   compararHorarios,
   normalizarFecha,
   coincideFechaClase,
+  obtenerEstadoVentanaReserva,
   type DiaAgendaItem,
 } from '@/common/utils/date-formatter'
 import ClaseCard, { type ClaseCardProps } from '../components/ClaseCard.vue'
@@ -108,14 +109,29 @@ const clasesAgendadas = computed<ClaseCardProps[]>(() => {
         ? `${clase.horario_inicio} - ${clase.horario_fin} hs`
         : 'Horario a confirmar'
 
+    // Construir fecha_inicio y fecha_fin precisas combinando la fecha seleccionada y los horarios
+    const horaInicio = clase.horario_inicio || '00:00'
+    const horaFin = clase.horario_fin || '00:00'
+
+    const [hI = '0', mI = '0'] = horaInicio.split(':')
+    const dInicio = normalizarFecha(fechaSeleccionada.value)
+    dInicio.setHours(Number(hI), Number(mI), 0, 0)
+
+    const [hF = '0', mF = '0'] = horaFin.split(':')
+    const dFin = normalizarFecha(fechaSeleccionada.value)
+    dFin.setHours(Number(hF), Number(mF), 0, 0)
+
+    const fechaInicioISO = dInicio.toISOString()
+    const fechaFinISO = dFin.toISOString()
+
     return {
       id: clase.id_clase,
       nombre: clase.nombre,
       tipo,
       icono,
       horario: horarioTexto,
-      fecha_inicio: clase.fecha_inicio,
-      fecha_fin: clase.fecha_fin,
+      fecha_inicio: fechaInicioISO,
+      fecha_fin: fechaFinISO,
       profesor: clase.profesor || null,
       sala: clase.sala || null,
       capacidadMaxima: clase.capacidad_maxima,
@@ -128,6 +144,9 @@ const clasesAgendadas = computed<ClaseCardProps[]>(() => {
       estado,
       dias_semana: clase.dias_semana,
       fecha: clase.fecha,
+      horario_inicio: clase.horario_inicio,
+      horario_fin: clase.horario_fin,
+      fechaSeleccionada: fechaSeleccionada.value,
     }
   })
 
@@ -299,6 +318,11 @@ const errorReserva = ref<string | null>(null)
 function handleReservar(idClase: number) {
   const clase = clasesAgendadas.value.find((c) => c.id === idClase)
   if (clase) {
+    const ventana = obtenerEstadoVentanaReserva(clase.fecha_inicio)
+    if (!ventana.puedeReservar) {
+      toast.warning(ventana.mensajeBloqueo || 'Reserva no disponible')
+      return
+    }
     claseAReservar.value = clase
     errorReserva.value = null
     modalReservaVisible.value = true
@@ -308,16 +332,19 @@ function handleReservar(idClase: number) {
 async function confirmarReserva() {
   if (!claseAReservar.value) return
 
+  const ventana = obtenerEstadoVentanaReserva(claseAReservar.value.fecha_inicio)
+  if (!ventana.puedeReservar) {
+    toast.error(ventana.mensajeBloqueo || 'Reserva no disponible')
+    modalReservaVisible.value = false
+    return
+  }
+
   reservando.value = true
   try {
     await clasesService.reservarClase({
       id_clase: claseAReservar.value.id,
-      fecha_inicio:
-        claseAReservar.value.fecha_inicio ||
-        `${fechaSeleccionada.value}T10:00:00.000Z`,
-      fecha_fin:
-        claseAReservar.value.fecha_fin ||
-        `${fechaSeleccionada.value}T11:00:00.000Z`,
+      fecha_inicio: claseAReservar.value.fecha_inicio,
+      fecha_fin: claseAReservar.value.fecha_fin,
     })
 
     toast.success(`Reserva confirmada para ${claseAReservar.value.nombre}`)
@@ -345,6 +372,11 @@ const errorEspera = ref<string | null>(null)
 function handleListaEspera(idClase: number) {
   const clase = clasesAgendadas.value.find((c) => c.id === idClase)
   if (clase) {
+    const ventana = obtenerEstadoVentanaReserva(clase.fecha_inicio)
+    if (!ventana.puedeReservar) {
+      toast.warning(ventana.mensajeBloqueo || 'Inscripción no disponible')
+      return
+    }
     claseAEsperar.value = clase
     errorEspera.value = null
     modalEsperaVisible.value = true
@@ -354,16 +386,19 @@ function handleListaEspera(idClase: number) {
 async function confirmarListaEspera() {
   if (!claseAEsperar.value) return
 
+  const ventana = obtenerEstadoVentanaReserva(claseAEsperar.value.fecha_inicio)
+  if (!ventana.puedeReservar) {
+    toast.error(ventana.mensajeBloqueo || 'Inscripción no disponible')
+    modalEsperaVisible.value = false
+    return
+  }
+
   esperando.value = true
   try {
     const res = await clasesService.inscribirListaEspera({
       id_clase: claseAEsperar.value.id,
-      fecha_inicio:
-        claseAEsperar.value.fecha_inicio ||
-        `${fechaSeleccionada.value}T10:00:00.000Z`,
-      fecha_fin:
-        claseAEsperar.value.fecha_fin ||
-        `${fechaSeleccionada.value}T11:00:00.000Z`,
+      fecha_inicio: claseAEsperar.value.fecha_inicio,
+      fecha_fin: claseAEsperar.value.fecha_fin,
     })
 
     const orden = res.orden_en_cola ? ` (Posición #${res.orden_en_cola})` : ''

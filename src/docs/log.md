@@ -631,13 +631,16 @@
   - Creación de helpers `formatearDiasSemana` y `coincideFechaClase` en `date-formatter.ts`, con normalización segura ante cadenas ISO para evitar desfases de zona horaria local.
   - Incorporación en `ClaseCard.vue` de badges contextuales que exhiben los días recurrentes de la clase o su fecha especial de dictado.
   - Filtrado reactivo en `ClasesView.vue` garantizando que la grilla diaria únicamente muestre las clases que aplican para el día de la semana seleccionado.
+  - Implementación de control reactivo de la ventana de reserva de 48 hs (`obtenerEstadoVentanaReserva`): bloqueo y deshabilitación de la opción de reservar si la clase dista más de 48 horas ("Abre 48 hs antes") o si ya transcurrió ("Clase finalizada"), evitando errores 400 y optimizando la experiencia de usuario.
 - **Decisiones:**
   - Centralizar el formateo y parseo de fechas en `common/utils/date-formatter.ts` para evitar duplicidad de lógica y prevenir desfases de zona horaria local.
   - Tipar la respuesta de horario operativo de la sede en `clases.service.ts` para mantener el aislamiento del módulo M3 y desacoplar de `M0-sedes`.
   - Diseñar un empty state específico y amigable para "Sede Cerrada", evitando confusión en el socio cuando no hay clases por feriado o cierre dominical.
   - Alinear los índices numéricos de `dias_semana` (0..6) con el estándar de JavaScript `Date.getDay()` y el DTO del backend, formateando su visualización con orden de semana laboral (Lunes a Domingo).
+  - Bloquear en la UI el botón de reserva tanto para clases fuera de la ventana de 48 hs como para clases pasadas, proporcionando feedback contextual claro y defensivo al socio.
 - **Dificultades:** Ninguna. Se resolvió la falta de dependencias (`html5-qrcode`) heredadas del último pull de `dev` mediante `npm install`.
 - **Commits:**
   - `feat(clases): crear date-formatter e integrar servicio de horario operativo de sede`
   - `feat(clases): implementar selector de calendario interactivo y horario operativo en agenda`
   - `feat(clases): incorporar periodicidad por dias de la semana y fecha puntual en agenda`
+  - `feat(clases): bloquear reservas fuera de la ventana de 48 hs y clases pasadas`

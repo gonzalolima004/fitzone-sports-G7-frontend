@@ -6,11 +6,13 @@ import {
   PhBarbell,
   PhBicycle,
   PhFlowerLotus,
+  PhClock,
 } from '@phosphor-icons/vue'
 
 import {
   formatearDiasSemana,
   formatearFechaDDMMAAAA,
+  obtenerEstadoVentanaReserva,
 } from '@/common/utils/date-formatter'
 
 export interface ClaseCardProps {
@@ -33,6 +35,9 @@ export interface ClaseCardProps {
   estado: 'DISPONIBLE' | 'COMPLETO' | 'MISMA_RESERVA' | 'EN_ESPERA'
   dias_semana?: number[]
   fecha?: string | null
+  horario_inicio?: string
+  horario_fin?: string
+  fechaSeleccionada?: string
 }
 
 const props = defineProps<{
@@ -70,6 +75,16 @@ const etiquetaPeriodicidad = computed(() => {
     return formatearDiasSemana(props.clase.dias_semana)
   }
   return null
+})
+
+const estadoVentana = computed(() => {
+  return obtenerEstadoVentanaReserva(
+    props.clase.fecha_inicio ||
+      props.clase.fecha ||
+      props.clase.fechaSeleccionada ||
+      new Date(),
+    props.clase.horario_inicio
+  )
 })
 </script>
 
@@ -174,14 +189,16 @@ const etiquetaPeriodicidad = computed(() => {
     </div>
 
     <!-- Botones de Acción -->
+    <!-- 1. Si el usuario ya tiene reserva para esta clase -->
     <button
-      v-if="clase.estado === 'MISMA_RESERVA'"
+      v-if="clase.estado === 'MISMA_RESERVA' && estadoVentana.puedeReservar"
       class="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition-all active:scale-95 bg-white text-slate-700 hover:bg-slate-50 border-2 border-slate-200 shadow-sm"
       @click="emit('cancelar', clase.id)"
     >
       Cancelar mi Reserva
     </button>
 
+    <!-- 2. Si el usuario ya está en lista de espera -->
     <button
       v-else-if="clase.estado === 'EN_ESPERA'"
       class="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-slate-100 text-slate-600 border-2 border-slate-200 cursor-not-allowed flex items-center justify-center gap-2"
@@ -192,6 +209,33 @@ const etiquetaPeriodicidad = computed(() => {
       {{ clase.ordenEnCola ? `(#${clase.ordenEnCola})` : '' }}
     </button>
 
+    <!-- 3. Si la clase ya finalizó o pasó su horario -->
+    <button
+      v-else-if="
+        !estadoVentana.puedeReservar && estadoVentana.motivoBloqueo === 'PASADO'
+      "
+      class="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed flex items-center justify-center gap-2"
+      disabled
+    >
+      <PhClock :size="18" weight="bold" />
+      Clase finalizada
+    </button>
+
+    <!-- 4. Si la clase es a más de 48 hs (bloqueada: la reserva aún no abrió) -->
+    <button
+      v-else-if="
+        !estadoVentana.puedeReservar &&
+        estadoVentana.motivoBloqueo === 'FUTURO_LEJANO'
+      "
+      class="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
+      disabled
+      title="Las reservas abren con 48 hs de anticipación"
+    >
+      <PhClock :size="18" weight="bold" class="text-slate-400" />
+      Abre 48 hs antes
+    </button>
+
+    <!-- 5. Si está disponible para reservar dentro de la ventana de 48 hs -->
     <button
       v-else-if="!estaCompleto"
       class="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition-all active:scale-95 text-white shadow-md"
@@ -205,6 +249,7 @@ const etiquetaPeriodicidad = computed(() => {
       Reservar Lugar
     </button>
 
+    <!-- 6. Si está completo pero dentro de la ventana de 48 hs para lista de espera -->
     <button
       v-else
       class="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition-all active:scale-95 bg-rose-50 text-rose-600 hover:bg-rose-100 border-2 border-rose-200 flex items-center justify-center gap-2"
