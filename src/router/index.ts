@@ -2,6 +2,7 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import MainLayout from '../common/layouts/MainLayout.vue'
 import { useAuthStore } from '../store/auth'
 import PerfilView from '@/modules/M1-usuarios/views/PerfilView.vue'
+import { authService } from '@/modules/M1-usuarios/services/auth.service.ts'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -120,22 +121,42 @@ export const router = createRouter({
 router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
 
-  // 1. ESPERAR a que Supabase lea la URL (vital para Google OAuth)
+  // 1. Aseguramos que Supabase haya leído la URL (vital para Google OAuth)
   if (!authStore.isInitialized) {
     await authStore.initialize()
   }
 
-  // Revisa si la ruta destino (o alguno de sus padres) requiere autenticación
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
 
+  // 2. VERIFICACIÓN PROACTIVA (La magia ocurre aquí)
+  // Si está logueado, va a una ruta privada, y NO es la ruta de completar perfil:
+  if (
+    requiresAuth &&
+    authStore.isAuthenticated &&
+    to.path !== '/completar-perfil'
+  ) {
+    try {
+      // Hacemos ping al backend
+      await authService.verifyLocalProfile()
+      // Si pasa sin errores, tiene perfil local. Dejamos que el código continúe.
+    } catch (error) {
+      // Si el backend arrojó 403, el interceptor (http.ts) ya se encargó
+      // de redirigir a /completar-perfil. Solo debemos cortar esta navegación original.
+      if ((error as any).response?.status === 403) {
+        return
+      }
+      // Si es otro error grave, limpiamos sesión por seguridad.
+      await authStore.logout()
+      return next({ name: 'login' })
+    }
+  }
+
+  // 3. Reglas estándar de navegación
   if (requiresAuth && !authStore.isAuthenticated) {
-    // Si quiere entrar a zona privada sin estar logueado -> Al login
     next({ name: 'login' })
   } else if (to.name === 'login' && authStore.isAuthenticated) {
-    // Si ya está logueado y quiere ir al login -> Al home del dashboard
     next({ name: 'home' })
   } else {
-    // Todo en orden -> Que pase
     next()
   }
 })
