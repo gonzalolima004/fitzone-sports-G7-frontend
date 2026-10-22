@@ -637,6 +637,7 @@
   - Desarrollo del componente modal `ModalClaseForm.vue` para alta y edición de clases con validaciones completas, capacidad, horarios y selector de periodicidad (días recurrentes o fecha puntual con accesos rápidos).
   - Incorporación de botón "Nueva Clase" en el encabezado de `ClasesView.vue` y acciones de edición y eliminación en `ClaseCard.vue` condicionadas al rol administrativo.
   - Implementación de diálogo modal de confirmación de baja lógica (`DELETE /clases/:id`) con feedback mediante notificaciones Toast.
+  - Creación de suite integral de pruebas unitarias (`src/__tests__/date-formatter.spec.ts`, Épica 12 Tarea 2) cubriendo normalización de fechas ISO, prevención de desfase de zona horaria local, formateo en español, periodicidad (`coincideFechaClase`), ordenamiento cronológico y la regla de ventana de reserva de 48 hs.
 - **Decisiones:**
   - Centralizar el formateo y parseo de fechas en `common/utils/date-formatter.ts` para evitar duplicidad de lógica y prevenir desfases de zona horaria local.
   - Tipar la respuesta de horario operativo de la sede en `clases.service.ts` para mantener el aislamiento del módulo M3 y desacoplar de `M0-sedes`.
@@ -645,6 +646,7 @@
   - Bloquear en la UI el botón de reserva tanto para clases fuera de la ventana de 48 hs como para clases pasadas, proporcionando feedback contextual claro y defensivo al socio.
   - Encapsular el formulario de creación/edición en `ModalClaseForm.vue` para mantener la vista principal `ClasesView.vue` concisa y enfocada en la renderización del cronograma.
   - Restringir la visibilidad de las herramientas mutadoras mediante evaluación reactiva de roles (`admin`/`gerente`) desde `useAuthStore`.
+  - Emplear `vi.useFakeTimers()` y `vi.setSystemTime()` en Vitest para testear de forma determinista y reproducible la ventana de reservas de 48 hs y el bloqueo de clases pasadas sin depender de la hora del entorno de CI.
 - **Dificultades:** Ninguna. Se resolvió la falta de dependencias (`html5-qrcode`) heredadas del último pull de `dev` mediante `npm install`.
 - **Commits:**
   - `feat(clases): crear date-formatter e integrar servicio de horario operativo de sede`
@@ -652,3 +654,4 @@
   - `feat(clases): incorporar periodicidad por dias de la semana y fecha puntual en agenda`
   - `feat(clases): bloquear reservas fuera de la ventana de 48 hs y clases pasadas`
   - `feat(clases): implementar gestion CRUD de clases grupales para admin y gerente`
+  - `test(clases): anadir pruebas unitarias para date-formatter, periodicidad y ventana de reserva`
