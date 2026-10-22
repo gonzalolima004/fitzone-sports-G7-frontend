@@ -140,9 +140,10 @@ router.beforeEach(async (to, _from, next) => {
       await authService.verifyLocalProfile()
       // Si pasa sin errores, tiene perfil local. Dejamos que el código continúe.
     } catch (error) {
+      const err = error as { response?: { status?: number } }
       // Si el backend arrojó 403, el interceptor (http.ts) ya se encargó
       // de redirigir a /completar-perfil. Solo debemos cortar esta navegación original.
-      if ((error as any).response?.status === 403) {
+      if (err.response?.status === 403) {
         return
       }
       // Si es otro error grave, limpiamos sesión por seguridad.

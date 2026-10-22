@@ -5,12 +5,14 @@ import { z } from 'zod'
 import { usuariosService } from '../services/usuarios.service'
 import { supabase } from '@/common/api/supabase'
 import { useSedeStore } from '@/store/sede'
+import { useAuthStore } from '@/store/auth' // Importamos el store para poder cerrar sesión
 import BaseInput from '@/common/components/BaseInput.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import { toast } from '@/common/utils/toast'
 
 const router = useRouter()
 const sedeStore = useSedeStore()
+const authStore = useAuthStore() // Inicializamos el store
 const isLoading = ref(true)
 const isSubmitting = ref(false)
 
@@ -26,7 +28,6 @@ const form = reactive({
 onMounted(async () => {
   await sedeStore.cargarSedes()
 
-  // Extraer datos de Google desde la sesión de Supabase
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -73,7 +74,7 @@ const perfilSchema = z
 const handleCompletarRegistro = async () => {
   const validation = perfilSchema.safeParse(form)
   if (!validation.success) {
-    validation.error.issues.forEach((err) => toast.warning(err.message))
+    validation.error.issues.forEach((issue) => toast.warning(issue.message))
     return
   }
 
@@ -105,6 +106,13 @@ const handleCompletarRegistro = async () => {
   } finally {
     isSubmitting.value = false
   }
+}
+
+// Nueva función para cancelar y purgar la sesión
+const handleCancelar = async () => {
+  await authStore.logout()
+  toast.info('Registro cancelado.')
+  router.push('/login')
 }
 </script>
 
@@ -210,15 +218,27 @@ const handleCompletarRegistro = async () => {
             </select>
           </div>
 
-          <BaseButton
-            type="submit"
-            variant="secondary"
-            size="lg"
-            class="w-full"
-            :loading="isSubmitting"
-          >
-            Finalizar Registro
-          </BaseButton>
+          <div class="flex flex-col sm:flex-row gap-4 pt-2">
+            <BaseButton
+              type="button"
+              variant="outline"
+              size="lg"
+              class="w-full"
+              :disabled="isSubmitting"
+              @click="handleCancelar"
+            >
+              Cancelar
+            </BaseButton>
+            <BaseButton
+              type="submit"
+              variant="secondary"
+              size="lg"
+              class="w-full"
+              :loading="isSubmitting"
+            >
+              Finalizar Registro
+            </BaseButton>
+          </div>
         </form>
       </div>
     </div>
