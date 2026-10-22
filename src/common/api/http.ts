@@ -12,7 +12,6 @@ export const http = axios.create({
 
 http.interceptors.request.use(
   async (config) => {
-    // Obtener sesión actual directamente de Supabase para evitar tokens vencidos en Pinia
     const { data } = await supabase.auth.getSession()
     const token = data.session?.access_token
 
@@ -33,6 +32,19 @@ http.interceptors.response.use(
 
     console.error(`[HTTP ${status ?? 'Network Error'}]:`, message)
 
+    // 1. Detección de falta de Perfil Interno (Google OAuth AuthGuard Trigger)
+    if (
+      status === 403 &&
+      typeof message === 'string' &&
+      message.includes('sin cuenta asociada')
+    ) {
+      if (router.currentRoute.value.path !== '/completar-perfil') {
+        router.push('/completar-perfil')
+      }
+      return Promise.reject(error)
+    }
+
+    // 2. Detección de sesión caducada
     if (status === 401) {
       await supabase.auth.signOut()
       if (router.currentRoute.value.path !== '/login') {
