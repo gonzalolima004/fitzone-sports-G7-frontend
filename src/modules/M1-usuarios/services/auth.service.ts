@@ -1,4 +1,5 @@
 import { supabase } from '@/common/api/supabase'
+import http from '@/common/api/http'
 
 export interface LoginPayload {
   email: string
@@ -28,8 +29,11 @@ export const authService = {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        // Redirige al inicio para que Pinia y el Interceptor hagan su trabajo
         redirectTo: `${window.location.origin}/`,
+        // Este parámetro fuerza a Google a mostrar el panel de cuentas siempre
+        queryParams: {
+          prompt: 'select_account',
+        },
       },
     })
     if (error) throw error
@@ -46,5 +50,10 @@ export const authService = {
     })
     if (error) throw error
     return data
+  },
+
+  async verifyLocalProfile() {
+    const response = await http.get('/auth/me')
+    return response.data
   },
 }
