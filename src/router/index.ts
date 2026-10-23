@@ -139,6 +139,12 @@ const routes: RouteRecordRaw[] = [
             redirect: '/gerencia/reportes',
           },
           {
+            path: 'sedes',
+            name: 'gerencia-sedes',
+            component: () =>
+              import('../modules/gerencia/views/GestionSedesView.vue'),
+          },
+          {
             path: 'reportes',
             component: () =>
               import('../modules/M6-reportes/views/PanelGerenciaView.vue'),
