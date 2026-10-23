@@ -31,7 +31,6 @@ const emit = defineEmits<{
       id_cancha_tipo: number
       costo_base: number
       disponible?: boolean
-      activo?: boolean
     }
   ): void
 }>()
@@ -124,7 +123,6 @@ function handleGuardar() {
     id_cancha_tipo: Number(form.value.id_cancha_tipo),
     costo_base: Number(form.value.costo_base),
     disponible: form.value.disponible,
-    activo: true,
   })
 }
 </script>

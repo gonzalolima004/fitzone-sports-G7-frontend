@@ -8,6 +8,7 @@ import ConfirmarReserva from '@/modules/M4-canchas/components/ConfirmarReserva.v
 import BaseButton from '@/common/components/BaseButton.vue'
 import BaseInput from '@/common/components/BaseInput.vue'
 import { toast } from '@/common/utils/toast'
+import { obtenerFechaHoyLocal } from '@/common/utils/date'
 import type {
   Cancha,
   CanchaTipo,
@@ -30,8 +31,8 @@ const esSocio = computed(() => {
   )
 })
 
-// Obtener fecha de hoy en formato YYYY-MM-DD
-const fechaHoy = new Date().toISOString().split('T')[0]
+// Obtener fecha de hoy en formato YYYY-MM-DD en zona horaria local
+const fechaHoy = obtenerFechaHoyLocal()
 
 // Estados reactivos de filtros
 const fechaSeleccionada = ref<string>(fechaHoy)
@@ -357,6 +358,7 @@ onUnmounted(() => {
       :turno-seleccionado="turnoSeleccionado"
       :cargando="cargando"
       :fecha="fechaSeleccionada"
+      :fecha-hoy="fechaHoy"
       :horario-operativo="horarioOperativo"
       @seleccionar-turno="handleSeleccionarTurno"
     />

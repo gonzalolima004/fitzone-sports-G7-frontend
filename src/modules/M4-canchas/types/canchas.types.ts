@@ -1,6 +1,16 @@
 export interface CanchaTipo {
   id_cancha_tipo: number
   descripcion?: string
+  activo?: boolean
+}
+
+export interface CrearCanchaTipoDto {
+  descripcion: string
+}
+
+export interface ActualizarCanchaTipoDto {
+  descripcion?: string
+  activo?: boolean
 }
 
 export interface Cancha {

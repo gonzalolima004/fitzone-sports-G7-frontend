@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { obtenerFechaHoyLocal } from '@/common/utils/date'
 import type {
   Cancha,
   TurnoSlot,
@@ -25,11 +26,7 @@ const emit = defineEmits<{
 
 // Comprueba si un slot ya transcurrió en el tiempo para el día actual
 function esSlotPasado(slot: TurnoSlot): boolean {
-  const hoyRef =
-    props.fechaHoy ||
-    new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-      .toISOString()
-      .split('T')[0]
+  const hoyRef = props.fechaHoy || obtenerFechaHoyLocal()
   if (props.fecha < hoyRef) return true
   if (props.fecha === hoyRef) {
     const ahora = new Date()

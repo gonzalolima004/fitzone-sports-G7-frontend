@@ -11,6 +11,7 @@ import type {
   ActualizarCanchaDto,
   CrearMantenimientoDto,
   MantenimientoResponseDto,
+  ActualizarCanchaTipoDto,
 } from '@/modules/M4-canchas/types/canchas.types'
 
 ///NOTA: Capaz es mejor que el estado lo traiga como string directamente
@@ -492,11 +493,14 @@ export const canchasService = {
   },
 
   /**
-   * Obtiene la lista de tipos de disciplinas deportivas
+   * Obtiene la lista de tipos de disciplinas deportivas, con opción de filtrar por estado activo
    */
-  async getTiposCancha(): Promise<CanchaTipo[]> {
+  async getTiposCancha(inactivos?: boolean): Promise<CanchaTipo[]> {
     try {
-      const response = await http.get('/canchas/tipos')
+      const response = await http.get(
+        '/canchas/tipos',
+        inactivos ? { params: { inactivos: true } } : undefined
+      )
       if (response.data && response.data.length > 0) {
         return response.data
       }
@@ -507,7 +511,42 @@ export const canchasService = {
   },
 
   /**
-   * Obtiene la lista completa de canchas con filtros opcionales (sede, tipo, activo)
+   * Crea un nuevo tipo de cancha
+   */
+  async crearTipoCancha(descripcion: string): Promise<CanchaTipo> {
+    const response = await http.post('/canchas/tipos', {
+      descripcion: descripcion.trim(),
+    })
+    return response.data
+  },
+
+  /**
+   * Actualiza la descripción y/o el estado activo de un tipo de cancha
+   */
+  async actualizarTipoCancha(
+    id: number,
+    datos: ActualizarCanchaTipoDto
+  ): Promise<CanchaTipo> {
+    const response = await http.patch(`/canchas/tipos/${id}`, datos)
+    return response.data
+  },
+
+  /**
+   * Reactiva un tipo de cancha dado de baja lógica
+   */
+  async reactivarTipoCancha(id: number): Promise<CanchaTipo> {
+    return this.actualizarTipoCancha(id, { activo: true })
+  },
+
+  /**
+   * Da de baja lógica un tipo de cancha
+   */
+  async eliminarTipoCancha(id: number): Promise<void> {
+    await http.delete(`/canchas/tipos/${id}`)
+  },
+
+  /**
+   * Obtiene la lista completa de canchas con filtros opcionales (sede, tipo, disponible)
    */
   async getCanchas(filtros?: {
     id_sede?: number
