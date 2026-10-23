@@ -467,10 +467,8 @@ async function confirmarCancelacion() {
   }
 }
 
-// GESTIÓN CRUD DE CLASES (ADMIN / GERENTE)
-const esAdminOGerente = computed(
-  () => authStore.rol === 'admin' || authStore.rol === 'gerente'
-)
+// GESTIÓN CRUD DE CLASES ( GERENTE)
+const esAdminOGerente = computed(() => authStore.rol === 'gerente')
 
 const modalFormVisible = ref(false)
 const claseAEditar = ref<ClaseCardProps | null>(null)

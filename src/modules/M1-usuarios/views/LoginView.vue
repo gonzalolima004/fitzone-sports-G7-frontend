@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import {
+  useRouter,
+  /*useRoute */
+} from 'vue-router'
 import { z } from 'zod'
 import { useAuthStore } from '@/store/auth'
-import { rutaPorRol } from '@/common/guards/ruta-por-rol'
+//import { rutaPorRol } from '@/common/guards/ruta-por-rol'
 import BaseInput from '@/common/components/BaseInput.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import { authService } from '../services/auth.service'
@@ -15,7 +18,7 @@ const isLoading = ref(false)
 
 const authStore = useAuthStore()
 const router = useRouter()
-const route = useRoute()
+//const route = useRoute()
 
 const loginSchema = z.object({
   email: z

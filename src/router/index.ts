@@ -3,7 +3,7 @@ import MainLayout from '../common/layouts/MainLayout.vue'
 import { useAuthStore, type RolUsuario } from '../store/auth'
 import { rutaPorRol } from '@/common/guards/ruta-por-rol'
 import { rutasLanding } from '@/modules/landing/routes'
-import RegistroView from '@/modules/M1-usuarios/views/RegistroView.vue'
+//import RegistroView from '@/modules/M1-usuarios/views/RegistroView.vue'
 import PerfilView from '@/modules/M1-usuarios/views/PerfilView.vue'
 import { authService } from '@/modules/M1-usuarios/services/auth.service.ts'
 
@@ -120,6 +120,13 @@ const routes: RouteRecordRaw[] = [
           roles: ['gerente'], // Protege el prefijo /gerencia y todas sus rutas hijas
         },
         children: [
+          {
+            path: 'canchas',
+            name: 'gerencia-canchas',
+            component: () =>
+              import('../modules/M4-canchas/views/GerenciaCanchasView.vue'),
+            meta: { requiresAuth: true, roles: ['gerente'] },
+          },
           {
             path: '',
             redirect: '/gerencia/reportes',
