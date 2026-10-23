@@ -22,3 +22,19 @@ export interface Ciudad {
   nombre: string
   activo: boolean
 }
+
+/** Plan tal como lo devuelve GET /planes (PlanResponseDto). */
+export interface PlanMembresia {
+  id: number
+  id_plan: number
+  nombre: string
+  duracion_dias: number
+  precio: number
+}
+
+/** Datos que aceptan POST /planes y PATCH /planes/:id (CrearPlanDto). */
+export interface PlanPayload {
+  nombre: string
+  duracion_dias: number
+  precio: number
+}
