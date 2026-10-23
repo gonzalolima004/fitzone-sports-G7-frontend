@@ -655,3 +655,63 @@
   - `feat(clases): bloquear reservas fuera de la ventana de 48 hs y clases pasadas`
   - `feat(clases): implementar gestion CRUD de clases grupales para admin y gerente`
   - `test(clases): anadir pruebas unitarias para date-formatter, periodicidad y ventana de reserva`
+
+---
+
+#### 17/10/2026 - 22/10/2026
+
+#### Matías Sillen | Rol: Desarrollador Frontend
+
+* **Actividades:**
+* Integración del inicio de sesión con Google OAuth a través de Supabase en las vistas de Login y Registro.
+* Implementación de un interceptor HTTP global para capturar errores `403` y redirigir a los usuarios logueados con Google sin cuenta local.
+* Creación de la vista `CompletarPerfilView.vue` para recolectar datos de negocio obligatorios (DNI, Teléfono, Sede) de usuarios provenientes de Google OAuth.
+* Actualización del guard global en el Vue Router para realizar una verificación proactiva (`/auth/me`) del perfil local antes de permitir el acceso al Dashboard.
+* Asignación dinámica del rol "externo" (`id_rol: 4`) en los flujos de registro local y de Google.
+* Extensión de los permisos de visualización en la barra de navegación lateral (`Sidebar.vue`) para incluir al rol `gerente`.
+* Aplicación de políticas estrictas de seguridad en contraseñas usando expresiones regulares con Zod en los formularios de registro y recuperación.
+* Refactorización del componente reutilizable `BaseInput.vue` para incluir un botón dinámico (toggle) de visibilidad de contraseña utilizando Phosphor Icons.
+
+
+* **Decisiones:**
+* Implementar una verificación de perfil "proactiva" en el Router en lugar de "reactiva" para evitar el efecto de "limbo de autenticación" donde un usuario de Google quedaba atrapado en el Dashboard sin datos locales.
+* Configurar el parámetro `prompt: 'select_account'` en la solicitud OAuth para forzar al proveedor a mostrar siempre el selector de cuentas de Google, incluso si ya existe una sesión activa en el navegador.
+* Agregar un botón explícito de cancelación en la vista de completar perfil para forzar el cierre síncrono de la sesión en Supabase y evitar bucles de redirección infinitos.
+
+
+* **Dificultades:**
+* Sincronización de estado (condición de carrera) entre la recarga rápida de la URL con el token de Google y la lectura de `isAuthenticated` en Pinia por parte de Vue Router.
+* Manejo del bucle infinito de rutas cuando el usuario se arrepentía de completar el perfil de Google y quería regresar al login normal.
+
+
+* **Commits:**
+* `chore(auth): configurar cliente global de Supabase`
+* `feat(auth): migrar auth.service a Supabase SDK`
+* `feat(auth): integrar Pinia con onAuthStateChange de Supabase`
+* `fix(api): interceptor HTTP utiliza sesión activa de Supabase`
+* `feat(auth): flujo de registro unificado con foto opcional en Supabase`
+* `feat(auth): login integrado con Supabase y enlace a cambio de password`
+* `feat(auth): vista de cambio de contraseña`
+* `fix(router): agregar ruta de cambio de contraseña y aplicar lazy loading a registro`
+* `fix(auth): restaurar enlace a registro en UI de login`
+* `fix(auth): forzar asignación síncrona de sesión en Pinia para evitar condición de carrera en el router`
+* `fix(auth): forzar cierre de sesión síncrono en Pinia para arreglar bloqueo del router`
+* `fix(sidebar): hacer el cierre de sesión asíncrono para prevenir errores de navegación`
+* `fix(auth): traducir errores de Supabase al español en login`
+* `feat(auth): aplicar validación Zod estricta (regex) y traducir errores de Supabase en registro`
+* `fix(auth): traducir errores de Supabase al español en recuperación de contraseña`
+* `fix(router): agregar ruta de cambio de contraseña y aplicar lazy loading a registro`
+* `feat(auth): agregar soporte para signInWithOAuth mediante Google`
+* `feat(api): interceptar error 403 de cuenta no asociada y redirigir a completar perfil`
+* `feat(auth): vista para completar datos de perfil (DNI, Sede) tras login con Google`
+* `chore(router): agregar ruta de completar-perfil para Google OAuth`
+* `feat(auth): agregar botón y lógica de integración visual para login con Google`
+* `feat(auth): añadir verifyLocalProfile para comprobación proactiva de perfil`
+* `fix(router): implementar verificación proactiva de perfil antes de acceder al dashboard`
+* `fix(auth): agregar botón cancelar para abortar registro y purgar sesión de Supabase`
+* `fix(auth): asignar id_rol 4 a perfiles de clientes externos en lugar de dejarlos sin rol`
+* `feat(roles): extender permisos de administrador al rol gerente en vistas y rutas`
+* `feat(auth): aplicar política estricta de contraseñas seguras con Zod`
+* `feat(ui): agregar toggle de visibilidad de contraseña global en BaseInput`
+
+---
