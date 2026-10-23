@@ -36,7 +36,7 @@ const routes: RouteRecordRaw[] = [
           import('../modules/M1-usuarios/views/MembresiaView.vue'),
         meta: {
           requiresAuth: true,
-          roles: ['socio', 'recepcionista', 'gerente'],
+          roles: ['socio', 'externo', 'recepcionista', 'gerente'],
         },
       },
       {

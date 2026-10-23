@@ -8,6 +8,9 @@ import {
   PhQrCode,
   PhCreditCard,
   PhChartBar,
+  PhUsers,
+  PhMedal,
+  PhUser,
   PhSignOut,
   PhX,
 } from '@phosphor-icons/vue'
@@ -65,22 +68,45 @@ const todasLasSecciones: NavSection[] = [
         icono: 'qr',
         roles: ['socio', 'recepcionista', 'gerente'],
       },
+      {
+        nombre: 'Control de Aforo',
+        ruta: '/aforo',
+        icono: 'users',
+        roles: ['recepcionista', 'gerente'],
+      },
     ],
   },
   {
     titulo: 'ADMINISTRACIÓN',
     items: [
       {
-        nombre: 'Pagos y Membresía',
+        nombre: 'Membresías',
         ruta: '/membresia',
+        icono: 'medal',
+        roles: ['socio', 'externo', 'recepcionista', 'gerente'],
+      },
+      {
+        nombre: 'Pagos y Facturación',
+        ruta: '/pagos',
         icono: 'credit-card',
-        roles: ['socio', 'recepcionista', 'gerente'],
+        roles: ['socio', 'externo', 'recepcionista', 'gerente'],
       },
       {
         nombre: 'Panel de gerencia',
         ruta: '/gerencia/reportes',
         icono: 'chart',
         roles: ['gerente'],
+      },
+    ],
+  },
+  {
+    titulo: 'CUENTA',
+    items: [
+      {
+        nombre: 'Mi Perfil',
+        ruta: '/perfil',
+        icono: 'user',
+        roles: ['socio', 'externo', 'recepcionista', 'gerente'],
       },
     ],
   },
@@ -210,6 +236,28 @@ function cerrarSesion() {
                       : 'regular'
                   "
                 />
+                <PhUsers
+                  v-else-if="item.icono === 'users'"
+                  class="w-5 h-5 flex-shrink-0"
+                  :weight="
+                    route.path === item.ruta ||
+                    (item.ruta !== '/' &&
+                      route.path.startsWith(item.ruta + '/'))
+                      ? 'bold'
+                      : 'regular'
+                  "
+                />
+                <PhMedal
+                  v-else-if="item.icono === 'medal'"
+                  class="w-5 h-5 flex-shrink-0"
+                  :weight="
+                    route.path === item.ruta ||
+                    (item.ruta !== '/' &&
+                      route.path.startsWith(item.ruta + '/'))
+                      ? 'bold'
+                      : 'regular'
+                  "
+                />
                 <PhCreditCard
                   v-else-if="item.icono === 'credit-card'"
                   class="w-5 h-5 flex-shrink-0"
@@ -223,6 +271,17 @@ function cerrarSesion() {
                 />
                 <PhChartBar
                   v-else-if="item.icono === 'chart'"
+                  class="w-5 h-5 flex-shrink-0"
+                  :weight="
+                    route.path === item.ruta ||
+                    (item.ruta !== '/' &&
+                      route.path.startsWith(item.ruta + '/'))
+                      ? 'bold'
+                      : 'regular'
+                  "
+                />
+                <PhUser
+                  v-else-if="item.icono === 'user'"
                   class="w-5 h-5 flex-shrink-0"
                   :weight="
                     route.path === item.ruta ||

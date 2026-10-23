@@ -136,9 +136,11 @@ const inicialUsuario = computed(() => {
           </div>
 
           <!-- Perfil dinámico de Usuario -->
-          <div
+          <RouterLink
             v-if="authStore.isAuthenticated || nombreAMostrar"
-            class="flex items-center gap-2"
+            to="/perfil"
+            class="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
+            title="Ver mi perfil"
           >
             <span
               class="text-xs font-semibold text-slate-700 hidden sm:inline"
@@ -150,7 +152,7 @@ const inicialUsuario = computed(() => {
             >
               {{ inicialUsuario }}
             </div>
-          </div>
+          </RouterLink>
 
           <!-- Acceso directo a login si no hay sesión -->
           <RouterLink
