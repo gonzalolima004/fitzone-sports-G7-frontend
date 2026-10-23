@@ -5,7 +5,13 @@ export interface ClaseResponse {
   id_sede: number
   nombre: string
   descripcion: string | null
+  profesor?: string | null
+  sala?: string | null
+  horario_inicio?: string | null
+  horario_fin?: string | null
   capacidad_maxima: number
+  dias_semana?: number[]
+  fecha?: string | null
   activo: boolean
 }
 
@@ -26,6 +32,35 @@ export interface ClaseAgendaResponse {
   en_espera: number
   estado: 'DISPONIBLE' | 'COMPLETO'
   activo: boolean
+  dias_semana?: number[]
+  fecha?: string | null
+}
+
+export interface CreateClaseRequest {
+  id_sede: number
+  nombre: string
+  descripcion?: string | null
+  profesor?: string | null
+  sala?: string | null
+  horario_inicio: string
+  horario_fin: string
+  capacidad_maxima: number
+  dias_semana?: number[]
+  fecha?: string | null
+}
+
+export interface UpdateClaseRequest {
+  id_sede?: number
+  nombre?: string
+  descripcion?: string | null
+  profesor?: string | null
+  sala?: string | null
+  horario_inicio?: string
+  horario_fin?: string
+  capacidad_maxima?: number
+  dias_semana?: number[]
+  fecha?: string | null
+  activo?: boolean
 }
 
 export interface CreateReservaRequest {
@@ -90,6 +125,14 @@ export interface MiInscripcionListaEsperaResponse {
   nombre_clase?: string
 }
 
+export interface HorarioOperativoSedeResponse {
+  abierto: boolean
+  hora_apertura: string
+  hora_cierre: string
+  motivo_cierre?: string
+  es_horario_especial?: boolean
+}
+
 export const clasesService = {
   /**
    * Obtiene la agenda de clases para una sede específica (y fecha opcional).
@@ -104,6 +147,64 @@ export const clasesService = {
     const response = await http.get<ClaseAgendaResponse[]>('/clases', {
       params: { id_sede, fecha },
     })
+    return response.data
+  },
+
+  /**
+   * Obtiene el horario operativo de una sede para una fecha específica (apertura, cierre y excepciones).
+   * @param id_sede ID de la sede
+   * @param fecha Fecha en formato YYYY-MM-DD
+   */
+  async obtenerHorarioOperativoSede(
+    id_sede: number,
+    fecha: string
+  ): Promise<HorarioOperativoSedeResponse> {
+    const response = await http.get<HorarioOperativoSedeResponse>(
+      `/sedes/${id_sede}/horario-operativo`,
+      {
+        params: { fecha },
+      }
+    )
+    return response.data
+  },
+
+  /**
+   * Crea una nueva clase grupal (admin o gerente).
+   * @param data Datos de la clase a crear
+   */
+  async crearClase(data: CreateClaseRequest): Promise<ClaseResponse> {
+    const response = await http.post<ClaseResponse>('/clases', data)
+    return response.data
+  },
+
+  /**
+   * Actualiza los datos de una clase grupal existente.
+   * @param id_clase ID de la clase
+   * @param data Datos a modificar
+   */
+  async actualizarClase(
+    id_clase: number,
+    data: UpdateClaseRequest
+  ): Promise<ClaseResponse> {
+    const response = await http.patch<ClaseResponse>(
+      `/clases/${id_clase}`,
+      data
+    )
+    return response.data
+  },
+
+  /**
+   * Da de baja o elimina una clase grupal.
+   * @param id_clase ID de la clase
+   */
+  async eliminarClase(
+    id_clase: number
+  ): Promise<{ mensaje: string; id_clase: number; activo: boolean }> {
+    const response = await http.delete<{
+      mensaje: string
+      id_clase: number
+      activo: boolean
+    }>(`/clases/${id_clase}`)
     return response.data
   },
 

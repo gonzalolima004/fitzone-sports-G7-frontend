@@ -141,7 +141,12 @@ function irAPagos() {
 
 function irARecurso() {
   if (tipoConcepto.value === 'cancha') {
-    router.push('/canchas')
+    const idRef = pagoDetalle.value?.concepto?.id_referencia
+    if (idRef) {
+      router.push({ name: 'canchas-detalle-reserva', params: { id: idRef } })
+    } else {
+      router.push('/canchas')
+    }
   } else if (tipoConcepto.value === 'membresia') {
     router.push('/perfil')
   } else {

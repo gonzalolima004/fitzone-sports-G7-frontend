@@ -5,6 +5,7 @@ import { rutaPorRol } from '@/common/guards/ruta-por-rol'
 import { rutasLanding } from '@/modules/landing/routes'
 import RegistroView from '@/modules/M1-usuarios/views/RegistroView.vue'
 import PerfilView from '@/modules/M1-usuarios/views/PerfilView.vue'
+import { authService } from '@/modules/M1-usuarios/services/auth.service.ts'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -18,7 +19,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/',
     component: MainLayout,
-    meta: { requiresAuth: true }, // Protege a MainLayout y TODAS sus rutas hijas
+    meta: { requiresAuth: true },
     children: [
       {
         path: 'perfil',
@@ -87,6 +88,12 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: 'canchas/reservas/:id',
+        name: 'canchas-detalle-reserva',
+        component: () =>
+          import('../modules/M4-canchas/views/DetalleReservaView.vue'),
+      },
+      {
         path: 'pagos',
         name: 'pagos',
         component: () => import('../modules/M5-pagos/views/PagosView.vue'),
@@ -153,16 +160,29 @@ const routes: RouteRecordRaw[] = [
     path: '/login',
     name: 'login',
     component: () => import('../modules/M1-usuarios/views/LoginView.vue'),
-    meta: { requiresAuth: false }, // Ruta explícitamente pública
+    meta: { requiresAuth: false },
   },
   {
     path: '/registro',
     name: 'registro',
-    component: RegistroView,
-    meta: { requiresAuth: false }, // Ruta explícitamente pública y fuera del layout
+    component: () => import('@/modules/M1-usuarios/views/RegistroView.vue'), // Lazy Loading aplicado
+    meta: { requiresAuth: false },
   },
   {
-    // Ruta comodín para manejar direcciones inexistentes (404)
+    path: '/cambiar-password',
+    name: 'cambiar-password',
+    component: () =>
+      import('@/modules/M1-usuarios/views/CambiarPasswordView.vue'),
+    meta: { requiresAuth: false },
+  },
+  {
+    path: '/completar-perfil',
+    name: 'completar-perfil',
+    component: () =>
+      import('@/modules/M1-usuarios/views/CompletarPerfilView.vue'),
+    meta: { requiresAuth: true }, // Debe estar logueado en Supabase para verla
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
     component: () => import('../common/views/NotFoundView.vue'),
@@ -174,17 +194,49 @@ export const router = createRouter({
   routes,
 })
 
-// Guard de navegación global con RBAC jerárquico
-router.beforeEach((to, _from, next) => {
+// Guard de navegación global
+// Guard de navegación global
+router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
 
-  // 1. Revisa si la ruta destino (o alguno de sus ancestros) requiere autenticación
-  const requiresAuth = to.matched.some((record) => record.meta?.requiresAuth)
+  // 1. Aseguramos que Supabase haya leído la URL (vital para Google OAuth)
+  if (!authStore.isInitialized) {
+    await authStore.initialize()
+  }
 
+  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
+
+  // 2. VERIFICACIÓN PROACTIVA (La magia ocurre aquí)
+  // Si está logueado, va a una ruta privada, y NO es la ruta de completar perfil:
+  if (
+    requiresAuth &&
+    authStore.isAuthenticated &&
+    to.path !== '/completar-perfil'
+  ) {
+    try {
+      // Hacemos ping al backend
+      await authService.verifyLocalProfile()
+      // Si pasa sin errores, tiene perfil local. Dejamos que el código continúe.
+    } catch (error) {
+      const err = error as { response?: { status?: number } }
+      // Si el backend arrojó 403, el interceptor (http.ts) ya se encargó
+      // de redirigir a /completar-perfil. Solo debemos cortar esta navegación original.
+      if (err.response?.status === 403) {
+        return
+      }
+      // Si es otro error grave, limpiamos sesión por seguridad.
+      await authStore.logout()
+      return next({ name: 'login' })
+    }
+  }
+
+  // 3. Reglas estándar de navegación
   if (requiresAuth && !authStore.isAuthenticated) {
-    // Si quiere entrar a zona privada sin estar logueado -> Al login
     next({ name: 'login' })
-    return
+  } else if (to.name === 'login' && authStore.isAuthenticated) {
+    next({ name: 'home' })
+  } else {
+    next()
   }
 
   // 2. Si ya está logueado y quiere ir al login o registro público -> A su ruta correspondiente por rol
