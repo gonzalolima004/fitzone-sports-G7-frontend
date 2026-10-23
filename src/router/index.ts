@@ -82,6 +82,13 @@ const routes: RouteRecordRaw[] = [
           },
         ],
       },
+      {
+        path: 'gerencia/canchas',
+        name: 'gerencia-canchas',
+        component: () =>
+          import('../modules/M4-canchas/views/GerenciaCanchasView.vue'),
+        meta: { requiresAuth: true, roles: ['gerente'] },
+      },
     ],
   },
   {

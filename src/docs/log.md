@@ -616,6 +616,19 @@
 
 ---
 
+#### 22/10/2026
+#### Marcos Caraballo | Rol: Desarrollador Frontend
+- **Actividades**:
+  - Implementación y ajuste del CRUD administrativo de canchas (alta, edición, baja lógica y listado).
+  - Actualización de `canchasService` y tipos (`Cancha`, `CrearCanchaDto`, `ActualizarCanchaDto`), soporte para creación de una cancha que todavía no esté disponible para reservas y filtro de disponibilidad
+  - Integración de control de disponibilidad inmediata y selector en los formularios de creación y edición de canchas.
+- **Decisiones**: Ninguna
+- **Dificultades**: Ninguna
+- **Commits:**
+- `refactor(M4): cambios en cancha tipos y nombres de atributos`
+- `feat(M4): crud canchas del gerente funcionando`
+- `feat(M4): baja logica y disponibilidad de canchas`
+- `docs(log): actualizacion de bitacora`
 #### 21/10/2026
 #### Joaquín Ribarola | Rol: Desarrollador Frontend
 

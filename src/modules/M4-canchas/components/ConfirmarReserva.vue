@@ -145,7 +145,7 @@ async function handleConfirmar() {
       created_at: reserva.created_at || new Date().toISOString(),
       cancha: props.turno.cancha,
       nombre_cancha: props.turno.cancha.nombre,
-      tipo_cancha: props.turno.cancha.tipo?.nombre || 'Pádel',
+      tipo_cancha: props.turno.cancha.tipo?.descripcion || 'Pádel',
       nombre_sede: props.nombreSede,
       costo_base: cotizacion.value?.costo_base || props.turno.cancha.costo_base,
       descuento_porcentaje: cotizacion.value?.descuento_porcentaje || 15,
@@ -212,7 +212,7 @@ async function handleConfirmar() {
         <div class="flex justify-between py-1 border-b border-slate-200/60">
           <span class="text-slate-500 font-medium">Deporte:</span>
           <span class="font-semibold text-slate-800">{{
-            turno.cancha.tipo?.nombre || 'Deporte'
+            turno.cancha.tipo?.descripcion || 'Deporte'
           }}</span>
         </div>
         <div class="flex justify-between py-1 border-b border-slate-200/60">

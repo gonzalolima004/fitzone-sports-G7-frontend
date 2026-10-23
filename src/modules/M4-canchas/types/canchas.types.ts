@@ -1,8 +1,6 @@
 export interface CanchaTipo {
   id_cancha_tipo: number
-  nombre: string
   descripcion?: string
-  icono?: string
 }
 
 export interface Cancha {
@@ -11,8 +9,40 @@ export interface Cancha {
   id_cancha_tipo: number
   nombre: string
   costo_base: number
-  activa: boolean
+  activo: boolean
+  disponible?: boolean
   tipo?: CanchaTipo
+}
+
+export interface CrearCanchaDto {
+  id_sede: number
+  id_cancha_tipo: number
+  nombre: string
+  costo_base: number
+  disponible?: boolean
+}
+
+export interface ActualizarCanchaDto {
+  id_sede?: number
+  id_cancha_tipo?: number
+  nombre?: string
+  costo_base?: number
+  activo?: boolean
+  disponible?: boolean
+}
+
+export interface CrearMantenimientoDto {
+  fecha_inicio: string
+  fecha_fin: string
+  motivo?: string
+}
+
+export interface MantenimientoResponseDto {
+  id_cancha_mantenimiento: number
+  id_cancha: number
+  fecha_inicio: string
+  fecha_fin: string
+  motivo?: string
 }
 
 export type SlotEstado = 'DISPONIBLE' | 'RESERVADO' | 'MANTENIMIENTO'
@@ -67,15 +97,6 @@ export interface ReservaCanchaResponse {
   created_at: string
 }
 
-export interface SedeHorario {
-  id_sede_horario: number
-  id_sede: number
-  dia_semana: number // 0: Domingo, 1: Lunes, ..., 6: Sábado
-  hora_apertura: string // "07:00"
-  hora_cierre: string // "23:00"
-  abierto: boolean
-}
-
 export interface DetalleReservaCancha {
   id_cancha_reserva: number
   id_cancha: number
@@ -98,6 +119,15 @@ export interface DetalleReservaCancha {
   monto_recargo_pico?: number
   cancha_en_mantenimiento?: boolean
   motivo_mantenimiento?: string
+}
+
+export interface SedeHorario {
+  id_sede_horario: number
+  id_sede: number
+  dia_semana: number // 0: Domingo, 1: Lunes, ..., 6: Sábado
+  hora_apertura: string // "07:00"
+  hora_cierre: string // "23:00"
+  abierto: boolean
 }
 
 export interface Calendario {
