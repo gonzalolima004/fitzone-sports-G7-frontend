@@ -559,18 +559,11 @@ export const canchasService = {
       const params = new URLSearchParams()
       const sede = filtros?.sedeId ?? filtros?.id_sede
       if (sede) params.append('sedeId', String(sede))
-      if (filtros?.id_cancha_tipo)
-        params.append('id_cancha_tipo', String(filtros.id_cancha_tipo))
-      if (filtros?.activo !== undefined)
-        params.append('activo', String(filtros.activo))
-      if (filtros?.disponible !== undefined)
-        params.append('disponible', String(filtros.disponible))
 
       const queryString = params.toString() ? `?${params.toString()}` : ''
       const response = await http.get(`/canchas${queryString}`)
       if (Array.isArray(response.data)) {
-        // Excluir las canchas desactivadas por las dudas (activo: false)
-        return response.data.filter((c: Cancha) => c.activo !== false)
+        return response.data
       }
     } catch (err) {
       console.warn('Error al consultar /canchas en el backend:', err)

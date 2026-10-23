@@ -28,7 +28,7 @@ const emit = defineEmits<{
 }>()
 
 const tipoEtiqueta = computed(() => {
-  return props.cancha.tipo?.descripcion || props.nombreTipo || 'Cancha'
+  return props.cancha.cancha_tipo?.descripcion || props.nombreTipo || 'Cancha'
 })
 
 function formatoMoneda(valor: number): string {

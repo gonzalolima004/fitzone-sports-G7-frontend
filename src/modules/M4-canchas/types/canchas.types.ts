@@ -1,3 +1,5 @@
+import type { Sede } from "@/store/sede"
+
 export interface CanchaTipo {
   id_cancha_tipo: number
   descripcion?: string
@@ -21,7 +23,8 @@ export interface Cancha {
   costo_base: number
   activo: boolean
   disponible?: boolean
-  tipo?: CanchaTipo
+  cancha_tipo?: CanchaTipo
+  sede?: Sede
 }
 
 export interface CrearCanchaDto {

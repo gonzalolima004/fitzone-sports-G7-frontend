@@ -7,7 +7,6 @@ import { useAuthStore } from '@/store/auth'
 import reservasService from '@/modules/M4-canchas/services/reservas.service'
 import { obtenerFechaHoyLocal } from '@/common/utils/date'
 import type {
-  CanchaTipo,
   TurnoSeleccionado,
   CotizacionTurnoResponse,
   ReservaCanchaResponse,
@@ -17,7 +16,6 @@ interface Props {
   modelValue: boolean
   turno: TurnoSeleccionado | null
   nombreSede: string
-  tipos?: CanchaTipo[]
 }
 
 const props = defineProps<Props>()
@@ -42,20 +40,6 @@ const cargandoCotizacion = ref(false)
 const confirmando = ref(false)
 const errorConflicto = ref<string | null>(null)
 const cotizacion = ref<CotizacionTurnoResponse | null>(null)
-
-// Resuelve la descripción del deporte seleccionado evitando caer en 'Deporte'
-const deporteDescripcion = computed(() => {
-  if (props.turno?.cancha.tipo?.descripcion) {
-    return props.turno.cancha.tipo.descripcion
-  }
-  if (props.tipos && props.turno?.cancha.id_cancha_tipo) {
-    const t = props.tipos.find(
-      (tipo) => tipo.id_cancha_tipo === props.turno?.cancha.id_cancha_tipo
-    )
-    if (t?.descripcion) return t.descripcion
-  }
-  return 'Deporte'
-})
 
 // Formateador de moneda en pesos argentinos
 function formatoMoneda(valor: number): string {
@@ -162,7 +146,7 @@ async function handleConfirmar() {
       created_at: reserva.created_at || new Date().toISOString(),
       cancha: props.turno.cancha,
       nombre_cancha: props.turno.cancha.nombre,
-      tipo_cancha: deporteDescripcion.value,
+      tipo_cancha: props.turno.cancha.cancha_tipo?.descripcion || 'Pádel',
       nombre_sede: props.nombreSede,
       costo_base: cotizacion.value?.costo_base || props.turno.cancha.costo_base,
       descuento_porcentaje: cotizacion.value?.descuento_porcentaje || 15,
@@ -229,7 +213,7 @@ async function handleConfirmar() {
         <div class="flex justify-between py-1 border-b border-slate-200/60">
           <span class="text-slate-500 font-medium">Deporte:</span>
           <span class="font-semibold text-slate-800">{{
-            deporteDescripcion
+            turno.cancha.cancha_tipo?.descripcion || 'Deporte'
           }}</span>
         </div>
         <div class="flex justify-between py-1 border-b border-slate-200/60">
