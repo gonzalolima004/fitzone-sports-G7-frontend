@@ -128,6 +128,7 @@ async function inicializarDatos() {
 /**
  * Configura la suscripción a Supabase Realtime para la sede y canchas visibles
  */
+/*
 function suscribirRealtime() {
   unsubscribeFns.forEach((fn) => fn())
   unsubscribeFns.length = 0
@@ -155,7 +156,7 @@ function suscribirRealtime() {
     unsubscribeFns.push(unsub)
   })
 }
-
+*/
 function handleSeleccionarTurno(payload: { cancha: Cancha; slot: TurnoSlot }) {
   turnoSeleccionado.value = {
     cancha: payload.cancha,

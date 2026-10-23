@@ -1,4 +1,4 @@
-import type { Sede } from "@/store/sede"
+import type { Sede } from '@/store/sede'
 
 export interface CanchaTipo {
   id_cancha_tipo: number
