@@ -1,10 +1,21 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import MainLayout from '../common/layouts/MainLayout.vue'
-import { useAuthStore } from '../store/auth'
+import { useAuthStore, type RolUsuario } from '../store/auth'
+import { rutaPorRol } from '@/common/guards/ruta-por-rol'
+import { rutasLanding } from '@/modules/landing/routes'
+import RegistroView from '@/modules/M1-usuarios/views/RegistroView.vue'
 import PerfilView from '@/modules/M1-usuarios/views/PerfilView.vue'
 import { authService } from '@/modules/M1-usuarios/services/auth.service.ts'
 
+declare module 'vue-router' {
+  interface RouteMeta {
+    requiresAuth?: boolean
+    roles?: RolUsuario[]
+  }
+}
+
 const routes: RouteRecordRaw[] = [
+  ...rutasLanding,
   {
     path: '/',
     component: MainLayout,
@@ -14,36 +25,67 @@ const routes: RouteRecordRaw[] = [
         path: 'perfil',
         name: 'perfil',
         component: PerfilView,
-        meta: { requiresAuth: true },
+        meta: {
+          requiresAuth: true,
+          roles: ['socio', 'externo', 'recepcionista', 'gerente'],
+        },
       },
       {
         path: 'membresia',
         name: 'membresia',
         component: () =>
           import('../modules/M1-usuarios/views/MembresiaView.vue'),
-        meta: { requiresAuth: true },
+        meta: {
+          requiresAuth: true,
+          roles: ['socio', 'externo', 'recepcionista', 'gerente'],
+        },
       },
       {
-        path: '',
+        path: 'inicio',
         name: 'home',
         component: () => import('../common/views/HomeView.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['socio', 'recepcionista', 'gerente'],
+        },
       },
       {
         path: 'accesos',
         name: 'accesos',
         component: () =>
           import('../modules/M2-accesos/views/CredencialView.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['socio', 'recepcionista', 'gerente'],
+        },
+      },
+      {
+        path: 'aforo',
+        name: 'aforo',
+        component: () => import('../modules/M2-accesos/views/AforoView.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['recepcionista', 'gerente'],
+        },
       },
       {
         path: 'clases',
         name: 'clases',
         component: () =>
           import('../modules/M3-clases-grupales/views/ClasesView.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['socio', 'recepcionista', 'gerente'],
+        },
       },
       {
         path: 'canchas',
         name: 'canchas',
         component: () => import('../modules/M4-canchas/views/CanchasView.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['socio', 'externo', 'recepcionista', 'gerente'],
+        },
       },
       {
         path: 'canchas/reservas/:id',
@@ -55,6 +97,10 @@ const routes: RouteRecordRaw[] = [
         path: 'pagos',
         name: 'pagos',
         component: () => import('../modules/M5-pagos/views/PagosView.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['socio', 'externo', 'recepcionista', 'gerente'],
+        },
       },
       {
         path: 'pagos/resultado',
@@ -62,32 +108,51 @@ const routes: RouteRecordRaw[] = [
         alias: ['/pagos/exito', '/pagos/error', '/pagos/pendiente'],
         component: () =>
           import('../modules/M5-pagos/views/ResultadoPagoView.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['socio', 'externo', 'recepcionista', 'gerente'],
+        },
       },
       {
-        path: 'reportes',
-        component: () =>
-          import('../modules/M6-reportes/views/PanelGerenciaView.vue'),
+        path: 'gerencia',
+        meta: {
+          requiresAuth: true,
+          roles: ['gerente'], // Protege el prefijo /gerencia y todas sus rutas hijas
+        },
         children: [
           {
             path: '',
-            name: 'reportes',
-            component: () =>
-              import('../modules/M6-reportes/views/ReportesView.vue'),
+            redirect: '/gerencia/reportes',
           },
           {
-            path: 'ocupacion',
-            name: 'reportes-ocupacion',
+            path: 'reportes',
             component: () =>
-              import('../modules/M6-reportes/views/OcupacionView.vue'),
+              import('../modules/M6-reportes/views/PanelGerenciaView.vue'),
+            children: [
+              {
+                path: '',
+                name: 'reportes',
+                component: () =>
+                  import('../modules/M6-reportes/views/ReportesView.vue'),
+              },
+              {
+                path: 'ocupacion',
+                name: 'reportes-ocupacion',
+                component: () =>
+                  import('../modules/M6-reportes/views/OcupacionView.vue'),
+              },
+            ],
           },
         ],
       },
+      // Redirecciones de retrocompatibilidad para /reportes
       {
-        path: 'gerencia/canchas',
-        name: 'gerencia-canchas',
-        component: () =>
-          import('../modules/M4-canchas/views/GerenciaCanchasView.vue'),
-        meta: { requiresAuth: true, roles: ['gerente'] },
+        path: 'reportes',
+        redirect: '/gerencia/reportes',
+      },
+      {
+        path: 'reportes/ocupacion',
+        redirect: '/gerencia/reportes/ocupacion',
       },
     ],
   },
@@ -173,6 +238,41 @@ router.beforeEach(async (to, _from, next) => {
   } else {
     next()
   }
+
+  // 2. Si ya está logueado y quiere ir al login o registro público -> A su ruta correspondiente por rol
+  if (
+    (to.name === 'login' || to.name === 'registro') &&
+    authStore.isAuthenticated
+  ) {
+    next(rutaPorRol(authStore.rol))
+    return
+  }
+
+  // 3. Control de acceso por roles (RBAC)
+  if (authStore.isAuthenticated) {
+    const rolActual = authStore.rol
+    // Comprueba si alguna ruta padre o hija en la jerarquía define restricción de roles
+    const tieneRestriccionRoles = to.matched.some(
+      (record) => record.meta?.roles
+    )
+
+    if (tieneRestriccionRoles) {
+      // Debe cumplir las restricciones de todos los niveles que definan roles
+      const tienePermiso = to.matched.every((record) => {
+        const roles = record.meta?.roles as RolUsuario[] | undefined
+        return !roles || (rolActual && roles.includes(rolActual))
+      })
+
+      if (!tienePermiso) {
+        // Redirige automáticamente a su ruta inicial autorizada según su rol
+        next(rutaPorRol(rolActual))
+        return
+      }
+    }
+  }
+
+  // Todo en orden -> Que pase
+  next()
 })
 
 export default router

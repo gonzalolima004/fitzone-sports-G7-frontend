@@ -122,6 +122,37 @@
   - `fix(pagos): armonizar diseño en desktop y mobile`
   - `feat(pagos): agregar skeleton loaders base y utilizarlo en toda la sección`
 
+----
+
+#### 20/10/2026 - 22/10/2026
+#### Gonzalo Lima | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Implementación de redirección inteligente post-login según el rol del usuario mediante guard auxiliar y actualización de tipos en auth store.
+  - Ajuste de visibilidad y permisos en las secciones del menú lateral (Sidebar) alineado con los roles de usuario.
+  - Reestructuración de rutas para publicar la Landing Page en la ruta raíz (`/`) como vista pública y reubicación del dashboard privado en `/inicio`.
+  - Creación del módulo `landing` con rutas dedicadas y vista orquestadora modularizada (`LandingView.vue`).
+  - Maquetado y desarrollo de componentes modulares para la Landing Page:
+    - `LandingHeader`: Barra de navegación fija con scroll suave a secciones, selector rápido de sedes y accesos a login/registro.
+    - `LandingHero`: Portada institucional con propuesta de valor, badges destacados, llamadas a la acción e imágenes responsive.
+    - `LandingFrictionless`: Sección explicativa de acreditación instantánea mediante QR, reserva de canchas y red de sedes.
+    - `LandingSedes`: Catálogo interactivo de sedes con buscador por ciudad/nombre, filtro por departamentos de Entre Ríos y mapa interactivo con Leaflet.
+    - `LandingServicios`: Grilla completa de disciplinas deportivas con filtrado dinámico por categoría y desglose de características.
+    - `LandingPlanes`: Comparador de planes de suscripción con selector de periodicidad mensual/anual con descuento y vinculación al registro.
+    - `LandingCanchas`: Módulo informativo de canchas deportivas con acceso a alquiler para socios y usuarios externos.
+    - `LandingFaq`: Acordeón interactivo con preguntas frecuentes sobre servicios, membresías y acreditaciones.
+    - `LandingCta` y `LandingFooter`: Banner final de llamado a la acción y pie de página con accesos rápidos, información de sedes y contacto.
+- **Decisiones:**
+  - Modularizar la Landing Page en componentes independientes bajo `src/modules/landing/components/` para mantener una alta mantenibilidad, facilitar pruebas y evitar archivos extensos.
+  - Separar la vidriera pública en la ruta raíz (`/`) y trasladar el panel principal a `/inicio` para ofrecer una navegación natural a visitantes y socios.
+  - Centralizar la lógica de redirección basada en roles en una utilidad compartida (`rutaPorRol`) para reutilizarla tanto en el formulario de login como en el guard global del router.
+  - Integrar Leaflet para la visualización geográfica de sedes en Entre Ríos sin depender de servicios pagos de mapas.
+- **Dificultades:**
+  - Adaptar la navegación y guards para permitir el acceso público a la landing y a la reserva de canchas para usuarios externos sin provocar redirecciones involuntarias al login.
+- **Commits:**
+  - `feat(rbac): redirección después de iniciar sesión dependiendo del rol`
+  - `feat(landing): ruta para la lading y mover dashboard a /inicio`
+  - `feat(landing): landing completa modularizada`
 
 ----
 

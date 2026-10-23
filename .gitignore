@@ -24,3 +24,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Impeccable & Agent tools
+.agent/
+.agents/
+.gemini/
+.impeccable/
+
