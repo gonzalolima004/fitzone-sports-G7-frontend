@@ -759,3 +759,25 @@
 * `feat(ui): agregar toggle de visibilidad de contraseña global en BaseInput`
 
 ---
+
+#### 23/10/2026
+#### Marcos Caraballo | Rol: Desarrollador Frontend
+- **Actividades**:
+  - Implementación y puesta en funcionamiento del CRUD administrativo para tipos de canchas (`cancha-tipo`).
+  - Corrección de desfases y manejo de zona horaria local en los componentes y servicios del módulo de canchas.
+  - Optimización de llamadas a la API reduciendo peticiones HTTP duplicadas al cambiar sedes y filtros.
+  - Desactivación y limpieza temporal de la sincronización con Supabase Realtime para priorizar la estabilidad de las consultas.
+- **Decisiones**:
+  - Pausar temporalmente las suscripciones de Supabase Realtime en el módulo hasta estabilizar el flujo de consultas directas a la API y prevenir sobrecarga de sockets o inconsistencias.
+  - Centralizar y condicionar las consultas reactivas para evitar disparos simultáneos y redundantes al modificar filtros.
+- **Dificultades**:
+  - Tuve problemas con el navegador, no funcionaban correctamente las herramientas de desarrollador, tuve que descargar otro para poder probar el código.
+  - Ajustes en el parseo y la forma de obtener de horarios locales frente a fechas en formato UTC.
+- **Commits:**
+- `feat(M4): CRUD de cancha tipos funcionando y arreglos de hora local`
+- `refactor(M4): optimizacion de consultas a la API`
+- `fix(M4): eliminacion temporal de supabase realtime`
+- `chore(M4): formato con prettier fix por lint`
+- `docs(log): actualizacion de bitacora`
+
+---

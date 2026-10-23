@@ -3,6 +3,7 @@ import {
   PhMagnifyingGlass,
   PhPlus,
   PhSlidersHorizontal,
+  PhTag,
 } from '@phosphor-icons/vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import type { CanchaTipo } from '../types/canchas.types'
@@ -29,6 +30,7 @@ const emit = defineEmits<{
   (e: 'update:estado', value: 'todas' | 'disponibles' | 'no_disponibles'): void
   (e: 'update:busqueda', value: string): void
   (e: 'crearCancha'): void
+  (e: 'gestionarTipos'): void
 }>()
 </script>
 
@@ -36,7 +38,7 @@ const emit = defineEmits<{
   <div
     class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4"
   >
-    <!-- Fila superior: Búsqueda y Botón de Acción Principal -->
+    <!-- Fila superior: Búsqueda y Botones de Acción -->
     <div
       class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3"
     >
@@ -57,13 +59,29 @@ const emit = defineEmits<{
         />
       </div>
 
-      <!-- Botón Nueva Cancha -->
-      <BaseButton variant="primary" size="md" @click="emit('crearCancha')">
-        <template #icon>
-          <PhPlus :size="16" weight="bold" />
-        </template>
-        Nueva Cancha
-      </BaseButton>
+      <!-- Acciones de Cabecera -->
+      <div class="flex items-center gap-2 shrink-0">
+        <!-- Botón Gestionar Tipos -->
+        <BaseButton
+          variant="outline"
+          size="md"
+          title="Administrar tipos de canchas y deportes"
+          @click="emit('gestionarTipos')"
+        >
+          <template #icon>
+            <PhTag :size="16" />
+          </template>
+          Tipos de Cancha
+        </BaseButton>
+
+        <!-- Botón Nueva Cancha -->
+        <BaseButton variant="primary" size="md" @click="emit('crearCancha')">
+          <template #icon>
+            <PhPlus :size="16" weight="bold" />
+          </template>
+          Nueva Cancha
+        </BaseButton>
+      </div>
     </div>
 
     <!-- Fila inferior: Filtros desplegables -->

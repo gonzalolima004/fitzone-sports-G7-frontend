@@ -47,9 +47,7 @@ function handleConfirmar() {
       </div>
 
       <p class="text-xs text-slate-500 leading-relaxed">
-        Esta acción dará de baja lógica la cancha en el sistema. Quedará oculta
-        de la gestión y de las reservas, preservando la integridad de los
-        registros históricos.
+        Esta acción dará de baja la cancha en el sistema.
       </p>
     </div>
 

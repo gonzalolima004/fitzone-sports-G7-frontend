@@ -2,6 +2,7 @@
 import { ref, watch, computed } from 'vue'
 import BaseModal from '@/common/components/BaseModal.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
+import { obtenerFechaHoyLocal } from '@/common/utils/date'
 import type { Cancha, CrearMantenimientoDto } from '../types/canchas.types'
 
 interface Props {
@@ -37,7 +38,7 @@ watch(
       errorValidacion.value = null
       const manana = new Date()
       manana.setDate(manana.getDate() + 1)
-      const fechaMananaStr = manana.toISOString().split('T')[0]
+      const fechaMananaStr = obtenerFechaHoyLocal(manana)
 
       form.value = {
         fecha_inicio: `${fechaMananaStr}T08:00`,

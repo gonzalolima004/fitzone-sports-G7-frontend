@@ -8,6 +8,7 @@ import ConfirmarReserva from '@/modules/M4-canchas/components/ConfirmarReserva.v
 import BaseButton from '@/common/components/BaseButton.vue'
 import BaseInput from '@/common/components/BaseInput.vue'
 import { toast } from '@/common/utils/toast'
+import { obtenerFechaHoyLocal } from '@/common/utils/date'
 import type {
   Cancha,
   CanchaTipo,
@@ -30,8 +31,8 @@ const esSocio = computed(() => {
   )
 })
 
-// Obtener fecha de hoy en formato YYYY-MM-DD
-const fechaHoy = new Date().toISOString().split('T')[0]
+// Obtener fecha de hoy en formato YYYY-MM-DD en zona horaria local
+const fechaHoy = obtenerFechaHoyLocal()
 
 // Estados reactivos de filtros
 const fechaSeleccionada = ref<string>(fechaHoy)
@@ -116,7 +117,7 @@ async function inicializarDatos() {
         sedeStore.sedeSeleccionada.id_sede
       )
       await cargarDisponibilidad()
-      suscribirRealtime()
+      //suscribirRealtime()
     }
   } catch (error) {
     console.error('[CanchasView] Error al inicializar datos:', error)
@@ -127,6 +128,7 @@ async function inicializarDatos() {
 /**
  * Configura la suscripción a Supabase Realtime para la sede y canchas visibles
  */
+/*
 function suscribirRealtime() {
   unsubscribeFns.forEach((fn) => fn())
   unsubscribeFns.length = 0
@@ -154,7 +156,7 @@ function suscribirRealtime() {
     unsubscribeFns.push(unsub)
   })
 }
-
+*/
 function handleSeleccionarTurno(payload: { cancha: Cancha; slot: TurnoSlot }) {
   turnoSeleccionado.value = {
     cancha: payload.cancha,
@@ -198,20 +200,20 @@ watch(
         sedeStore.sedeSeleccionada.id_sede
       )
       await cargarDisponibilidad()
-      suscribirRealtime()
+      //suscribirRealtime()
       toast.info(`Cargando canchas de ${sedeStore.sedeSeleccionada.nombre}`)
     }
   }
 )
 
 // Reactividad a cambios de fecha o deporte, deporte o estado de socio
-watch([fechaSeleccionada, deporteSeleccionadoId, esSocio], async () => {
+watch([fechaSeleccionada, esSocio], async () => {
   await cargarDisponibilidad()
-  suscribirRealtime()
+  //suscribirRealtime()
 })
 
 onMounted(() => {
-  sedeStore.cargarSedes()
+  //sedeStore.cargarSedes()
   inicializarDatos()
 })
 
@@ -357,6 +359,7 @@ onUnmounted(() => {
       :turno-seleccionado="turnoSeleccionado"
       :cargando="cargando"
       :fecha="fechaSeleccionada"
+      :fecha-hoy="fechaHoy"
       :horario-operativo="horarioOperativo"
       @seleccionar-turno="handleSeleccionarTurno"
     />

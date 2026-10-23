@@ -15,6 +15,7 @@ import CanchaCard from '../components/CanchaCard.vue'
 import CanchaModal from '../components/CanchaModal.vue'
 import MantenimientoModal from '../components/MantenimientoModal.vue'
 import ConfirmarBajaModal from '../components/ConfirmarBajaModal.vue'
+import GestionTiposModal from '../components/GestionTiposModal.vue'
 import type {
   Cancha,
   CanchaTipo,
@@ -43,6 +44,9 @@ const estadoFiltro = ref<'todas' | 'disponibles' | 'no_disponibles'>('todas')
 const modalCanchaAbierto = ref(false)
 const esEdicion = ref(false)
 const canchaSeleccionada = ref<Cancha | null>(null)
+
+// Modal Gestión de Tipos de Cancha
+const modalTiposAbierto = ref(false)
 
 // Modal Mantenimiento
 const modalMantenimientoAbierto = ref(false)
@@ -174,7 +178,6 @@ async function handleGuardarCancha(datos: {
   id_cancha_tipo: number
   costo_base: number
   disponible?: boolean
-  activo?: boolean
 }) {
   guardandoCancha.value = true
   try {
@@ -185,7 +188,6 @@ async function handleGuardarCancha(datos: {
         id_cancha_tipo: datos.id_cancha_tipo,
         costo_base: datos.costo_base,
         disponible: datos.disponible,
-        activo: datos.activo ?? true,
       }
       await canchasService.actualizarCancha(
         canchaSeleccionada.value.id_cancha,
@@ -211,6 +213,16 @@ async function handleGuardarCancha(datos: {
   } finally {
     guardandoCancha.value = false
   }
+}
+
+// Abrir modal de gestión de tipos de cancha
+function abrirGestionTipos() {
+  modalTiposAbierto.value = true
+}
+
+// Recargar catálogo de tipos cuando se crea, edita o elimina uno
+async function handleTiposActualizados() {
+  await cargarTipos()
 }
 
 // Abrir modal de mantenimiento
@@ -383,6 +395,7 @@ onMounted(async () => {
       :sedes="sedeStore.sedes"
       :tipos-cancha="tiposCancha"
       @crear-cancha="abrirCrearCancha"
+      @gestionar-tipos="abrirGestionTipos"
     />
 
     <!-- Contenedor Principal: Grilla o Estados -->
@@ -460,6 +473,13 @@ onMounted(async () => {
       :cancha="canchaParaEliminar"
       :procesando="procesandoEliminar"
       @confirmar="handleConfirmarEliminar"
+    />
+
+    <GestionTiposModal
+      v-model="modalTiposAbierto"
+      :tipos="tiposCancha"
+      :canchas="canchas"
+      @actualizado="handleTiposActualizados"
     />
   </div>
 </template>

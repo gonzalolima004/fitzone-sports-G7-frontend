@@ -5,6 +5,7 @@ import BaseButton from '@/common/components/BaseButton.vue'
 import { toast } from '@/common/utils/toast'
 import { useAuthStore } from '@/store/auth'
 import reservasService from '@/modules/M4-canchas/services/reservas.service'
+import { obtenerFechaHoyLocal } from '@/common/utils/date'
 import type {
   TurnoSeleccionado,
   CotizacionTurnoResponse,
@@ -89,8 +90,8 @@ function cerrar() {
 async function handleConfirmar() {
   if (!props.turno) return
 
-  // Validación para no permitir confirmar en el pasado
-  const hoyStr = new Date().toISOString().split('T')[0]
+  // Validación para no permitir confirmar en el pasado (respetando zona horaria local)
+  const hoyStr = obtenerFechaHoyLocal()
   if (props.turno.fecha < hoyStr) {
     toast.error('No se pueden confirmar reservas para fechas pasadas.')
     return
@@ -145,7 +146,7 @@ async function handleConfirmar() {
       created_at: reserva.created_at || new Date().toISOString(),
       cancha: props.turno.cancha,
       nombre_cancha: props.turno.cancha.nombre,
-      tipo_cancha: props.turno.cancha.tipo?.descripcion || 'Pádel',
+      tipo_cancha: props.turno.cancha.cancha_tipo?.descripcion || 'Pádel',
       nombre_sede: props.nombreSede,
       costo_base: cotizacion.value?.costo_base || props.turno.cancha.costo_base,
       descuento_porcentaje: cotizacion.value?.descuento_porcentaje || 15,
@@ -212,7 +213,7 @@ async function handleConfirmar() {
         <div class="flex justify-between py-1 border-b border-slate-200/60">
           <span class="text-slate-500 font-medium">Deporte:</span>
           <span class="font-semibold text-slate-800">{{
-            turno.cancha.tipo?.descripcion || 'Deporte'
+            turno.cancha.cancha_tipo?.descripcion || 'Deporte'
           }}</span>
         </div>
         <div class="flex justify-between py-1 border-b border-slate-200/60">
