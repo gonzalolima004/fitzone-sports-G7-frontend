@@ -57,7 +57,10 @@ const registroSchema = z
       ),
     contrasenia: z
       .string()
-      .min(6, 'La contraseña debe tener al menos 6 caracteres.'),
+      .min(8, 'La contraseña debe tener al menos 8 caracteres.')
+      .regex(/[A-Z]/, 'Debe contener al menos una letra mayúscula.')
+      .regex(/[a-z]/, 'Debe contener al menos una letra minúscula.')
+      .regex(/[0-9]/, 'Debe contener al menos un número.'),
     confirmarContrasenia: z.string(),
     id_sede: z.string().min(1, 'Debes seleccionar una sede válida.'),
   })

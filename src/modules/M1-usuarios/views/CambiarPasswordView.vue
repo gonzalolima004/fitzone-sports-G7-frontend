@@ -35,7 +35,10 @@ const passwordSchema = z
   .object({
     password: z
       .string()
-      .min(6, 'La contraseña debe tener al menos 6 caracteres.'),
+      .min(8, 'La contraseña debe tener al menos 8 caracteres.')
+      .regex(/[A-Z]/, 'Debe contener al menos una letra mayúscula.')
+      .regex(/[a-z]/, 'Debe contener al menos una letra minúscula.')
+      .regex(/[0-9]/, 'Debe contener al menos un número.'),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
