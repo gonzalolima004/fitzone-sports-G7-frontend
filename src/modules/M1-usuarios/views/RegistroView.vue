@@ -119,7 +119,7 @@ const handleRegistro = async () => {
       apellido,
       telefono: form.telefono,
       id_sede: form.id_sede,
-      roles: form.tipoPerfil === 'socio' ? [1] : [],
+      roles: form.tipoPerfil === 'socio' ? [1] : [4],
     })
 
     if (nuevoUsuario.id_usuario && fotoFile.value) {

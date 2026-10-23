@@ -7,7 +7,7 @@ import {
 } from '@/modules/M1-usuarios/services/auth.service'
 import type { Session } from '@supabase/supabase-js'
 
-export type RolUsuario = 'socio' | 'recepcion' | 'gerente' | 'admin'
+export type RolUsuario = 'socio' | 'recepcionista' | 'gerente' | 'externo'
 
 export interface Usuario {
   id?: number

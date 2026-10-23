@@ -91,7 +91,7 @@ const handleCompletarRegistro = async () => {
       apellido,
       telefono: form.telefono,
       id_sede: form.id_sede,
-      roles: form.tipoPerfil === 'socio' ? [1] : [],
+      roles: form.tipoPerfil === 'socio' ? [1] : [4],
     })
 
     toast.success('¡Perfil completado con éxito!')
