@@ -117,7 +117,7 @@ async function inicializarDatos() {
         sedeStore.sedeSeleccionada.id_sede
       )
       await cargarDisponibilidad()
-      suscribirRealtime()
+      //suscribirRealtime()
     }
   } catch (error) {
     console.error('[CanchasView] Error al inicializar datos:', error)
@@ -199,20 +199,20 @@ watch(
         sedeStore.sedeSeleccionada.id_sede
       )
       await cargarDisponibilidad()
-      suscribirRealtime()
+      //suscribirRealtime()
       toast.info(`Cargando canchas de ${sedeStore.sedeSeleccionada.nombre}`)
     }
   }
 )
 
 // Reactividad a cambios de fecha o deporte, deporte o estado de socio
-watch([fechaSeleccionada, deporteSeleccionadoId, esSocio], async () => {
+watch([fechaSeleccionada, esSocio], async () => {
   await cargarDisponibilidad()
-  suscribirRealtime()
+  //suscribirRealtime()
 })
 
 onMounted(() => {
-  sedeStore.cargarSedes()
+  //sedeStore.cargarSedes()
   inicializarDatos()
 })
 

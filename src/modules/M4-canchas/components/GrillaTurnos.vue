@@ -174,7 +174,7 @@ function formatoMoneda(valor: number): string {
         />
       </svg>
       <span class="text-xs font-medium text-slate-500"
-        >Consultando disponibilidad en tiempo real...</span
+        >Consultando disponibilidad...</span
       >
     </div>
 
