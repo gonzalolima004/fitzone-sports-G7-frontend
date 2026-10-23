@@ -3,12 +3,12 @@ import apiClient from '@/common/api/http'
 export interface RegistroPayload {
   dni: string
   email: string
-  contrasenia: string
+  contrasenia?: string
   nombre: string
   apellido: string
   telefono: string
   id_sede: string
-  foto_url: string
+  foto_url?: string
   roles?: number[]
 }
 

@@ -1,6 +1,17 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
-import { PhBicycle, PhPlug, PhTray, PhWarning } from '@phosphor-icons/vue'
+import {
+  PhBicycle,
+  PhPlug,
+  PhTray,
+  PhWarning,
+  PhCaretLeft,
+  PhCaretRight,
+  PhClock,
+  PhDoor,
+  PhPlus,
+  PhTrash,
+} from '@phosphor-icons/vue'
 import { useSedeStore } from '@/store/sede'
 import axios from 'axios'
 import {
@@ -8,8 +19,20 @@ import {
   type ClaseAgendaResponse,
   type MiReservaClaseResponse,
   type MiInscripcionListaEsperaResponse,
+  type HorarioOperativoSedeResponse,
 } from '../services/clases.service'
+import {
+  formatearFechaCompleta,
+  obtenerFechaLocalISO,
+  generarDiasAgenda,
+  compararHorarios,
+  normalizarFecha,
+  coincideFechaClase,
+  obtenerEstadoVentanaReserva,
+  type DiaAgendaItem,
+} from '@/common/utils/date-formatter'
 import ClaseCard, { type ClaseCardProps } from '../components/ClaseCard.vue'
+import ModalClaseForm from '../components/ModalClaseForm.vue'
 import BaseModal from '@/common/components/BaseModal.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import { toast } from '@/common/utils/toast'
@@ -19,10 +42,19 @@ import { supabase } from '@/common/utils/supabase'
 const sedeStore = useSedeStore()
 const authStore = useAuthStore()
 
-const fechaSeleccionada = ref<string>('')
-const fechasDisponibles = ref<
-  { fecha: Date; label: string; shortLabel: string }[]
->([])
+// Fecha seleccionada actual (YYYY-MM-DD en hora local)
+const fechaSeleccionada = ref<string>(obtenerFechaLocalISO())
+
+// Fecha base de inicio para la tira de días visibles (7 días)
+const fechaBaseSemana = ref<Date>(new Date())
+
+// Días de la semana interactiva para el calendario
+const diasVisibles = computed<DiaAgendaItem[]>(() => {
+  return generarDiasAgenda(fechaBaseSemana.value, 7)
+})
+
+// Horario operativo de la sede para la fecha actual
+const horarioSede = ref<HorarioOperativoSedeResponse | null>(null)
 
 const clases = ref<ClaseAgendaResponse[]>([])
 const misReservas = ref<MiReservaClaseResponse[]>([])
@@ -31,9 +63,22 @@ const misInscripciones = ref<MiInscripcionListaEsperaResponse[]>([])
 const cargando = ref(false)
 const error = ref<string | null>(null)
 
-// Mapeo dinámico usando datos reales de agenda y estado del usuario por fecha
+// Mapeo dinámico y ordenamiento cronológico por horario de inicio
 const clasesAgendadas = computed<ClaseCardProps[]>(() => {
-  return clases.value.map((clase) => {
+  // Si la sede está confirmada como cerrada en esta fecha, la agenda no tiene clases disponibles
+  if (horarioSede.value && !horarioSede.value.abierto) {
+    return []
+  }
+
+  // Filtrar según coincidencia con la fecha actual seleccionada (días de semana recurrentes o fecha puntual)
+  const clasesFiltradas = clases.value.filter((clase) =>
+    coincideFechaClase(
+      { fecha: clase.fecha, dias_semana: clase.dias_semana },
+      fechaSeleccionada.value
+    )
+  )
+
+  const mapeadas = clasesFiltradas.map((clase) => {
     const esSpinning = clase.nombre.toLowerCase().includes('spinning')
     const esYoga = clase.nombre.toLowerCase().includes('yoga')
 
@@ -67,14 +112,29 @@ const clasesAgendadas = computed<ClaseCardProps[]>(() => {
         ? `${clase.horario_inicio} - ${clase.horario_fin} hs`
         : 'Horario a confirmar'
 
+    // Construir fecha_inicio y fecha_fin precisas combinando la fecha seleccionada y los horarios
+    const horaInicio = clase.horario_inicio || '00:00'
+    const horaFin = clase.horario_fin || '00:00'
+
+    const [hI = '0', mI = '0'] = horaInicio.split(':')
+    const dInicio = normalizarFecha(fechaSeleccionada.value)
+    dInicio.setHours(Number(hI), Number(mI), 0, 0)
+
+    const [hF = '0', mF = '0'] = horaFin.split(':')
+    const dFin = normalizarFecha(fechaSeleccionada.value)
+    dFin.setHours(Number(hF), Number(mF), 0, 0)
+
+    const fechaInicioISO = dInicio.toISOString()
+    const fechaFinISO = dFin.toISOString()
+
     return {
       id: clase.id_clase,
       nombre: clase.nombre,
       tipo,
       icono,
       horario: horarioTexto,
-      fecha_inicio: clase.fecha_inicio,
-      fecha_fin: clase.fecha_fin,
+      fecha_inicio: fechaInicioISO,
+      fecha_fin: fechaFinISO,
       profesor: clase.profesor || null,
       sala: clase.sala || null,
       capacidadMaxima: clase.capacidad_maxima,
@@ -85,8 +145,16 @@ const clasesAgendadas = computed<ClaseCardProps[]>(() => {
       idReserva: miReserva?.id_clase_reserva,
       idListaEspera: miInscripcion?.id_clase_lista_espera,
       estado,
+      dias_semana: clase.dias_semana,
+      fecha: clase.fecha,
+      horario_inicio: clase.horario_inicio,
+      horario_fin: clase.horario_fin,
+      fechaSeleccionada: fechaSeleccionada.value,
     }
   })
+
+  // Ordenar cronológicamente por horario de inicio
+  return mapeadas.sort((a, b) => compararHorarios(a.horario, b.horario))
 })
 
 // Escuchar cambios en tiempo real desde Supabase para aviso de vacantes
@@ -123,7 +191,9 @@ function setupRealtimeNotifications() {
 }
 
 onMounted(() => {
-  generarFechas()
+  if (!fechaSeleccionada.value) {
+    fechaSeleccionada.value = obtenerFechaLocalISO()
+  }
   if (sedeStore.idSedeSeleccionada) {
     cargarClases()
   }
@@ -146,6 +216,7 @@ watch(
       clases.value = []
       misReservas.value = []
       misInscripciones.value = []
+      horarioSede.value = null
     }
   }
 )
@@ -166,6 +237,7 @@ async function cargarClases() {
       Promise<ClaseAgendaResponse[]>,
       Promise<MiReservaClaseResponse[]>,
       Promise<MiInscripcionListaEsperaResponse[]>,
+      Promise<HorarioOperativoSedeResponse | null>,
     ] = [
       clasesService.obtenerClasesPorSede(
         sedeStore.idSedeSeleccionada,
@@ -181,14 +253,21 @@ async function cargarClases() {
             .obtenerMisInscripciones(fechaSeleccionada.value)
             .catch(() => [])
         : Promise.resolve([]),
+      clasesService
+        .obtenerHorarioOperativoSede(
+          sedeStore.idSedeSeleccionada,
+          fechaSeleccionada.value
+        )
+        .catch(() => null),
     ]
 
-    const [agendaData, reservasData, inscripcionesData] =
+    const [agendaData, reservasData, inscripcionesData, horarioData] =
       await Promise.all(promises)
 
     clases.value = agendaData
     misReservas.value = reservasData
     misInscripciones.value = inscripcionesData
+    horarioSede.value = horarioData
   } catch (err: unknown) {
     if (axios.isAxiosError(err)) {
       error.value = err.response?.data?.message || 'Error al cargar las clases.'
@@ -200,41 +279,37 @@ async function cargarClases() {
   }
 }
 
-function generarFechas() {
-  const fechas = []
-  const diasSemana = [
-    'Domingo',
-    'Lunes',
-    'Martes',
-    'Miércoles',
-    'Jueves',
-    'Viernes',
-    'Sábado',
-  ]
-  const hoy = new Date()
-
-  for (let i = 0; i < 5; i++) {
-    const fecha = new Date(hoy.getTime())
-    fecha.setDate(hoy.getDate() + i)
-
-    const label =
-      i === 0
-        ? `Hoy (${diasSemana[fecha.getDay()]} ${fecha.getDate()})`
-        : `${diasSemana[fecha.getDay()]} ${fecha.getDate()}`
-
-    fechas.push({
-      fecha,
-      label,
-      shortLabel: fecha.toISOString().split('T')[0], // Formato YYYY-MM-DD
-    })
-  }
-
-  fechasDisponibles.value = fechas
-  fechaSeleccionada.value = fechas[0].shortLabel
-}
-
+// Navegación de Calendario
 function seleccionarFecha(fechaStr: string) {
   fechaSeleccionada.value = fechaStr
+}
+
+function irAHoy() {
+  const hoy = new Date()
+  fechaBaseSemana.value = hoy
+  fechaSeleccionada.value = obtenerFechaLocalISO(hoy)
+}
+
+function cambiarDia(offset: number) {
+  const d = normalizarFecha(fechaSeleccionada.value)
+  d.setDate(d.getDate() + offset)
+  const nuevaFecha = obtenerFechaLocalISO(d)
+  fechaSeleccionada.value = nuevaFecha
+
+  // Asegurar que la tira semanal contenga la fecha seleccionada
+  const inicioTira = normalizarFecha(fechaBaseSemana.value)
+  const finTira = new Date(inicioTira.getTime())
+  finTira.setDate(finTira.getDate() + 6)
+  if (d < inicioTira || d > finTira) {
+    fechaBaseSemana.value = d
+  }
+}
+
+function cambiarSemana(offsetSemanas: number) {
+  const nuevaBase = new Date(fechaBaseSemana.value.getTime())
+  nuevaBase.setDate(nuevaBase.getDate() + offsetSemanas * 7)
+  fechaBaseSemana.value = nuevaBase
+  fechaSeleccionada.value = obtenerFechaLocalISO(nuevaBase)
 }
 
 // ESTADO MODAL RESERVA
@@ -246,6 +321,11 @@ const errorReserva = ref<string | null>(null)
 function handleReservar(idClase: number) {
   const clase = clasesAgendadas.value.find((c) => c.id === idClase)
   if (clase) {
+    const ventana = obtenerEstadoVentanaReserva(clase.fecha_inicio)
+    if (!ventana.puedeReservar) {
+      toast.warning(ventana.mensajeBloqueo || 'Reserva no disponible')
+      return
+    }
     claseAReservar.value = clase
     errorReserva.value = null
     modalReservaVisible.value = true
@@ -255,16 +335,19 @@ function handleReservar(idClase: number) {
 async function confirmarReserva() {
   if (!claseAReservar.value) return
 
+  const ventana = obtenerEstadoVentanaReserva(claseAReservar.value.fecha_inicio)
+  if (!ventana.puedeReservar) {
+    toast.error(ventana.mensajeBloqueo || 'Reserva no disponible')
+    modalReservaVisible.value = false
+    return
+  }
+
   reservando.value = true
   try {
     await clasesService.reservarClase({
       id_clase: claseAReservar.value.id,
-      fecha_inicio:
-        claseAReservar.value.fecha_inicio ||
-        `${fechaSeleccionada.value}T10:00:00.000Z`,
-      fecha_fin:
-        claseAReservar.value.fecha_fin ||
-        `${fechaSeleccionada.value}T11:00:00.000Z`,
+      fecha_inicio: claseAReservar.value.fecha_inicio,
+      fecha_fin: claseAReservar.value.fecha_fin,
     })
 
     toast.success(`Reserva confirmada para ${claseAReservar.value.nombre}`)
@@ -292,6 +375,11 @@ const errorEspera = ref<string | null>(null)
 function handleListaEspera(idClase: number) {
   const clase = clasesAgendadas.value.find((c) => c.id === idClase)
   if (clase) {
+    const ventana = obtenerEstadoVentanaReserva(clase.fecha_inicio)
+    if (!ventana.puedeReservar) {
+      toast.warning(ventana.mensajeBloqueo || 'Inscripción no disponible')
+      return
+    }
     claseAEsperar.value = clase
     errorEspera.value = null
     modalEsperaVisible.value = true
@@ -301,16 +389,19 @@ function handleListaEspera(idClase: number) {
 async function confirmarListaEspera() {
   if (!claseAEsperar.value) return
 
+  const ventana = obtenerEstadoVentanaReserva(claseAEsperar.value.fecha_inicio)
+  if (!ventana.puedeReservar) {
+    toast.error(ventana.mensajeBloqueo || 'Inscripción no disponible')
+    modalEsperaVisible.value = false
+    return
+  }
+
   esperando.value = true
   try {
     const res = await clasesService.inscribirListaEspera({
       id_clase: claseAEsperar.value.id,
-      fecha_inicio:
-        claseAEsperar.value.fecha_inicio ||
-        `${fechaSeleccionada.value}T10:00:00.000Z`,
-      fecha_fin:
-        claseAEsperar.value.fecha_fin ||
-        `${fechaSeleccionada.value}T11:00:00.000Z`,
+      fecha_inicio: claseAEsperar.value.fecha_inicio,
+      fecha_fin: claseAEsperar.value.fecha_fin,
     })
 
     const orden = res.orden_en_cola ? ` (Posición #${res.orden_en_cola})` : ''
@@ -375,6 +466,60 @@ async function confirmarCancelacion() {
     await cargarClases()
   }
 }
+
+// GESTIÓN CRUD DE CLASES (ADMIN / GERENTE)
+const esAdminOGerente = computed(
+  () => authStore.rol === 'admin' || authStore.rol === 'gerente'
+)
+
+const modalFormVisible = ref(false)
+const claseAEditar = ref<ClaseCardProps | null>(null)
+const modalEliminarVisible = ref(false)
+const claseAEliminar = ref<ClaseCardProps | null>(null)
+const eliminando = ref(false)
+
+function abrirModalCrearClase() {
+  claseAEditar.value = null
+  modalFormVisible.value = true
+}
+
+function handleEditarClase(idClase: number) {
+  const clase = clasesAgendadas.value.find((c) => c.id === idClase)
+  if (clase) {
+    claseAEditar.value = clase
+    modalFormVisible.value = true
+  }
+}
+
+function handleAbrirEliminarClase(idClase: number) {
+  const clase = clasesAgendadas.value.find((c) => c.id === idClase)
+  if (clase) {
+    claseAEliminar.value = clase
+    modalEliminarVisible.value = true
+  }
+}
+
+async function confirmarEliminacion() {
+  if (!claseAEliminar.value) return
+  eliminando.value = true
+  try {
+    await clasesService.eliminarClase(claseAEliminar.value.id)
+    toast.success(`Clase "${claseAEliminar.value.nombre}" eliminada con éxito`)
+    modalEliminarVisible.value = false
+    claseAEliminar.value = null
+    await cargarClases()
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      toast.error(
+        err.response?.data?.message || 'Error al dar de baja la clase.'
+      )
+    } else {
+      toast.error('Ocurrió un error inesperado al eliminar la clase.')
+    }
+  } finally {
+    eliminando.value = false
+  }
+}
 </script>
 
 <template>
@@ -392,67 +537,163 @@ async function confirmarCancelacion() {
 
       <div class="flex flex-wrap items-center gap-3 text-xs md:text-sm">
         <div
-          class="bg-white text-slate-600 px-4 py-2.5 rounded-full font-semibold border border-slate-200 shadow-sm flex items-center gap-2"
+          class="bg-white text-slate-600 px-4 py-2 rounded-full font-semibold border border-slate-200 shadow-sm flex items-center gap-2"
         >
           <span class="text-slate-400">Sede:</span>
-          <span class="text-slate-800">{{
+          <span class="text-slate-800 font-bold">{{
             sedeStore.sedeSeleccionada?.nombre || 'Sin seleccionar'
           }}</span>
         </div>
+
+        <!-- Badge de Horario Operativo de la Sede -->
         <div
-          class="bg-white text-slate-600 px-4 py-2.5 rounded-full font-semibold border border-slate-200 shadow-sm uppercase tracking-wide"
+          v-if="horarioSede?.abierto"
+          class="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-full font-semibold border border-emerald-200 shadow-sm flex items-center gap-2"
+        >
+          <PhClock :size="16" weight="bold" class="text-emerald-600" />
+          <span
+            >Horario Sede: {{ horarioSede.hora_apertura }} -
+            {{ horarioSede.hora_cierre }} hs</span
+          >
+          <span
+            v-if="horarioSede.es_horario_especial"
+            class="bg-amber-100 text-amber-800 text-[10px] px-1.5 py-0.5 rounded font-extrabold uppercase tracking-wider"
+          >
+            Especial
+          </span>
+        </div>
+        <div
+          v-else-if="horarioSede && !horarioSede.abierto"
+          class="bg-rose-50 text-rose-700 px-4 py-2 rounded-full font-semibold border border-rose-200 shadow-sm flex items-center gap-2"
+        >
+          <PhDoor :size="16" weight="bold" class="text-rose-600" />
+          <span>Sede Cerrada</span>
+        </div>
+
+        <div
+          class="bg-white text-slate-600 px-4 py-2 rounded-full font-semibold border border-slate-200 shadow-sm uppercase tracking-wide hidden sm:block"
         >
           Reserva con 48 hs de anticipación
         </div>
-      </div>
-    </div>
 
-    <!-- Alert / Info -->
-    <div
-      class="bg-sky-50 border border-sky-100 rounded-2xl p-5 mb-8 flex items-start gap-4 shadow-sm"
-    >
-      <div
-        class="bg-sky-200/50 p-2 rounded-lg flex-shrink-0 mt-0.5 text-sky-600"
-      >
-        <svg
-          class="w-5 h-5"
-          fill="currentColor"
-          viewBox="0 0 20 20"
-          xmlns="http://www.w3.org/2000/svg"
+        <!-- Botón Nueva Clase (Admin / Gerente) -->
+        <button
+          v-if="esAdminOGerente"
+          class="flex items-center gap-2 bg-[#202759] hover:bg-[#161b3d] text-white px-4 py-2 rounded-full font-bold shadow-sm transition-all active:scale-95 cursor-pointer text-xs md:text-sm"
+          @click="abrirModalCrearClase"
         >
-          <path
-            fill-rule="evenodd"
-            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-            clip-rule="evenodd"
-          ></path>
-        </svg>
-      </div>
-      <div class="text-sky-800 text-sm leading-relaxed">
-        <strong class="font-bold">Regla de Reserva y Cancelación</strong>
-        Las reservas abren 48 hs antes de cada clase. Podés cancelar tu reserva
-        sin penalidad hasta
-        <strong class="font-bold text-sky-900">2 horas antes</strong> del inicio
-        para liberar el cupo al siguiente socio en lista de espera.
+          <PhPlus :size="16" weight="bold" class="text-rose-400" />
+          <span>Nueva Clase</span>
+        </button>
       </div>
     </div>
 
-    <!-- Filtro Fechas -->
+    <!-- Calendario y Navegación de Agenda -->
     <div
-      class="flex flex-nowrap md:flex-wrap overflow-x-auto gap-3 mb-8 pb-2 md:pb-0 scrollbar-hide"
+      class="bg-white border border-slate-200 rounded-3xl p-5 mb-8 shadow-sm"
     >
-      <button
-        v-for="fecha in fechasDisponibles"
-        :key="fecha.shortLabel"
-        :class="[
-          'whitespace-nowrap px-6 py-3 rounded-2xl font-bold transition-all duration-300 shadow-sm hover:shadow-md active:scale-95 border',
-          fechaSeleccionada === fecha.shortLabel
-            ? 'bg-rose-500 text-white border-rose-500 shadow-rose-200/50'
-            : 'bg-white text-slate-600 border-slate-200 hover:border-rose-200 hover:text-rose-500',
-        ]"
-        @click="seleccionarFecha(fecha.shortLabel)"
+      <!-- Barra superior de navegación de fecha -->
+      <div
+        class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5 pb-4 border-b border-slate-100"
       >
-        {{ fecha.label }}
-      </button>
+        <div>
+          <span
+            class="text-xs font-semibold uppercase tracking-wider text-slate-400"
+            >Fecha seleccionada</span
+          >
+          <h2 class="text-lg md:text-xl font-extrabold text-slate-800">
+            {{ formatearFechaCompleta(fechaSeleccionada) }}
+          </h2>
+        </div>
+
+        <div class="flex items-center gap-2 self-end sm:self-auto">
+          <!-- Botón Volver a Hoy -->
+          <button
+            class="px-3.5 py-1.5 text-xs font-bold rounded-xl border border-slate-200 text-slate-600 hover:text-rose-500 hover:border-rose-200 transition-all active:scale-95 bg-slate-50"
+            @click="irAHoy"
+          >
+            Hoy
+          </button>
+
+          <!-- Flecha Día Anterior -->
+          <button
+            class="p-2 rounded-xl border border-slate-200 text-slate-600 hover:text-rose-500 hover:border-rose-200 transition-all active:scale-95 bg-white"
+            title="Día anterior"
+            @click="cambiarDia(-1)"
+          >
+            <PhCaretLeft :size="18" weight="bold" />
+          </button>
+
+          <!-- Flecha Día Siguiente -->
+          <button
+            class="p-2 rounded-xl border border-slate-200 text-slate-600 hover:text-rose-500 hover:border-rose-200 transition-all active:scale-95 bg-white"
+            title="Día siguiente"
+            @click="cambiarDia(1)"
+          >
+            <PhCaretRight :size="18" weight="bold" />
+          </button>
+        </div>
+      </div>
+
+      <!-- Tira interactiva de 7 días con navegación semanal -->
+      <div class="flex items-center gap-2">
+        <button
+          class="p-2.5 rounded-2xl border border-slate-200 text-slate-500 hover:text-rose-500 hover:border-rose-200 transition-all active:scale-95 bg-slate-50 hidden sm:flex items-center justify-center shrink-0"
+          title="Semana anterior"
+          @click="cambiarSemana(-1)"
+        >
+          <PhCaretLeft :size="16" weight="bold" />
+        </button>
+
+        <div
+          class="grid grid-cols-7 gap-2 md:gap-3 overflow-x-auto pb-1 scrollbar-hide flex-grow"
+        >
+          <button
+            v-for="dia in diasVisibles"
+            :key="dia.fechaISO"
+            :class="[
+              'flex flex-col items-center justify-center py-3 px-2 rounded-2xl transition-all duration-200 border relative select-none',
+              fechaSeleccionada === dia.fechaISO
+                ? 'bg-rose-500 text-white border-rose-500 shadow-md shadow-rose-200 scale-102 font-bold'
+                : 'bg-slate-50/70 text-slate-600 border-slate-100 hover:bg-rose-50/50 hover:border-rose-200 hover:text-rose-500',
+            ]"
+            @click="seleccionarFecha(dia.fechaISO)"
+          >
+            <span
+              :class="[
+                'text-[11px] uppercase tracking-wider mb-1',
+                fechaSeleccionada === dia.fechaISO
+                  ? 'text-rose-100 font-semibold'
+                  : 'text-slate-400 font-medium',
+              ]"
+            >
+              {{ dia.nombreDiaCorto }}
+            </span>
+            <span class="text-lg md:text-xl font-extrabold leading-none">
+              {{ dia.diaNumero }}
+            </span>
+            <span
+              v-if="dia.esHoy"
+              :class="[
+                'text-[9px] font-bold mt-1 px-1.5 py-0.2 rounded-full uppercase tracking-tight',
+                fechaSeleccionada === dia.fechaISO
+                  ? 'bg-white/20 text-white'
+                  : 'bg-rose-100 text-rose-600',
+              ]"
+            >
+              Hoy
+            </span>
+          </button>
+        </div>
+
+        <button
+          class="p-2.5 rounded-2xl border border-slate-200 text-slate-500 hover:text-rose-500 hover:border-rose-200 transition-all active:scale-95 bg-slate-50 hidden sm:flex items-center justify-center shrink-0"
+          title="Semana siguiente"
+          @click="cambiarSemana(1)"
+        >
+          <PhCaretRight :size="16" weight="bold" />
+        </button>
+      </div>
     </div>
 
     <!-- Grilla de Clases -->
@@ -502,6 +743,36 @@ async function confirmarCancelacion() {
       </button>
     </div>
 
+    <!-- Estado Sede Cerrada en esta fecha -->
+    <div
+      v-else-if="horarioSede && !horarioSede.abierto"
+      class="bg-amber-50/70 border-2 border-amber-200/80 rounded-3xl p-10 text-center animate-fade-in shadow-sm max-w-xl mx-auto"
+    >
+      <div
+        class="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm"
+      >
+        <PhDoor :size="36" weight="duotone" />
+      </div>
+      <h3 class="text-xl font-bold text-amber-900 mb-2">Sede Cerrada</h3>
+      <p class="text-amber-800 font-medium mb-3">
+        {{
+          horarioSede.motivo_cierre ||
+          'La sede no se encuentra abierta en la fecha seleccionada.'
+        }}
+      </p>
+      <p class="text-slate-500 text-xs mb-6 max-w-md mx-auto">
+        No hay clases grupales programadas porque las instalaciones permanecerán
+        cerradas. Podés seleccionar otro día en el calendario para consultar el
+        cronograma.
+      </p>
+      <button
+        class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-md active:scale-95 text-sm"
+        @click="irAHoy"
+      >
+        Volver a hoy
+      </button>
+    </div>
+
     <div
       v-else-if="clasesAgendadas.length === 0"
       class="text-center p-16 bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl animate-fade-in flex flex-col items-center justify-center"
@@ -522,9 +793,12 @@ async function confirmarCancelacion() {
         v-for="clase in clasesAgendadas"
         :key="clase.id"
         :clase="clase"
+        :es-admin-o-gerente="esAdminOGerente"
         @reservar="handleReservar"
         @lista-espera="handleListaEspera"
         @cancelar="handleCancelar"
+        @editar="handleEditarClase"
+        @eliminar="handleAbrirEliminarClase"
       />
     </div>
 
@@ -673,6 +947,54 @@ async function confirmarCancelacion() {
           @click="confirmarListaEspera"
         >
           Anotarme
+        </BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- Modal Crear / Editar Clase Grupal (Admin / Gerente) -->
+    <ModalClaseForm
+      v-model="modalFormVisible"
+      :id-sede="sedeStore.idSedeSeleccionada || 1"
+      :clase-a-editar="claseAEditar"
+      :fecha-por-defecto="fechaSeleccionada"
+      @guardado="cargarClases"
+    />
+
+    <!-- Modal Confirmar Eliminación de Clase -->
+    <BaseModal
+      v-model="modalEliminarVisible"
+      title="Eliminar Clase Grupal"
+      subtitle="Confirmación de baja en el cronograma"
+      max-width="sm"
+    >
+      <div class="text-center py-2">
+        <div
+          class="w-14 h-14 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4"
+        >
+          <PhTrash :size="32" weight="bold" />
+        </div>
+        <p class="text-slate-700 font-semibold mb-2 text-base">
+          ¿Estás seguro de eliminar "{{ claseAEliminar?.nombre }}"?
+        </p>
+        <p class="text-xs text-slate-500">
+          Esta acción dará de baja la clase del cronograma activo de la sede.
+        </p>
+      </div>
+
+      <template #actions>
+        <BaseButton
+          variant="outline"
+          :disabled="eliminando"
+          @click="modalEliminarVisible = false"
+        >
+          Cancelar
+        </BaseButton>
+        <BaseButton
+          variant="danger"
+          :loading="eliminando"
+          @click="confirmarEliminacion"
+        >
+          Eliminar Clase
         </BaseButton>
       </template>
     </BaseModal>
