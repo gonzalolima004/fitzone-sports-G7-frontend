@@ -201,8 +201,7 @@ export const router = createRouter({
   routes,
 })
 
-// Guard de navegación global
-// Guard de navegación global
+// Guard de navegación global con RBAC
 router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
 
@@ -213,72 +212,65 @@ router.beforeEach(async (to, _from, next) => {
 
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
 
-  // 2. VERIFICACIÓN PROACTIVA (La magia ocurre aquí)
-  // Si está logueado, va a una ruta privada, y NO es la ruta de completar perfil:
+  // 2. Sin sesión en ruta privada -> login
+  if (requiresAuth && !authStore.isAuthenticated) {
+    return next({ name: 'login' })
+  }
+
+  // 3. VERIFICACIÓN PROACTIVA: obtiene perfil interno y ROL real desde el backend
   if (
-    requiresAuth &&
     authStore.isAuthenticated &&
-    to.path !== '/completar-perfil'
+    to.path !== '/completar-perfil' &&
+    (requiresAuth || to.name === 'login' || to.name === 'registro')
   ) {
-    try {
-      // Hacemos ping al backend
-      await authService.verifyLocalProfile()
-      // Si pasa sin errores, tiene perfil local. Dejamos que el código continúe.
-    } catch (error) {
-      const err = error as { response?: { status?: number } }
-      // Si el backend arrojó 403, el interceptor (http.ts) ya se encargó
-      // de redirigir a /completar-perfil. Solo debemos cortar esta navegación original.
-      if (err.response?.status === 403) {
-        return
+    // Solo consultamos si todavía no cargamos el perfil de esta sesión
+    if (!authStore.usuario?.rol) {
+      try {
+        const respuesta = await authService.verifyLocalProfile()
+        const u = respuesta?.user
+        if (u) {
+          const rolBackend = String(u.rol ?? u.roles?.[0] ?? 'socio')
+            .toLowerCase() as RolUsuario
+          authStore.setPerfilInterno({
+            id: u.id_usuario,
+            email: u.email,
+            rol: rolBackend,
+          })
+        }
+      } catch (error) {
+        const err = error as { response?: { status?: number } }
+        // Si el backend arrojó 403, el interceptor (http.ts) ya redirigió a /completar-perfil.
+        if (err.response?.status === 403) {
+          return
+        }
+        // Otro error grave: limpiamos sesión por seguridad.
+        await authStore.logout()
+        return next({ name: 'login' })
       }
-      // Si es otro error grave, limpiamos sesión por seguridad.
-      await authStore.logout()
-      return next({ name: 'login' })
     }
   }
 
-  // 3. Reglas estándar de navegación
-  if (requiresAuth && !authStore.isAuthenticated) {
-    next({ name: 'login' })
-  } else if (to.name === 'login' && authStore.isAuthenticated) {
-    next({ name: 'home' })
-  } else {
-    next()
-  }
-
-  // 2. Si ya está logueado y quiere ir al login o registro público -> A su ruta correspondiente por rol
+  // 4. Ya logueado y quiere ir a login/registro -> a su ruta por rol
   if (
     (to.name === 'login' || to.name === 'registro') &&
     authStore.isAuthenticated
   ) {
-    next(rutaPorRol(authStore.rol))
-    return
+    return next(rutaPorRol(authStore.rol))
   }
 
-  // 3. Control de acceso por roles (RBAC)
+  // 5. Control de acceso por roles (RBAC)
   if (authStore.isAuthenticated) {
     const rolActual = authStore.rol
-    // Comprueba si alguna ruta padre o hija en la jerarquía define restricción de roles
-    const tieneRestriccionRoles = to.matched.some(
-      (record) => record.meta?.roles
-    )
+    const tienePermiso = to.matched.every((record) => {
+      const roles = record.meta?.roles as RolUsuario[] | undefined
+      return !roles || (rolActual && roles.includes(rolActual))
+    })
 
-    if (tieneRestriccionRoles) {
-      // Debe cumplir las restricciones de todos los niveles que definan roles
-      const tienePermiso = to.matched.every((record) => {
-        const roles = record.meta?.roles as RolUsuario[] | undefined
-        return !roles || (rolActual && roles.includes(rolActual))
-      })
-
-      if (!tienePermiso) {
-        // Redirige automáticamente a su ruta inicial autorizada según su rol
-        next(rutaPorRol(rolActual))
-        return
-      }
+    if (!tienePermiso) {
+      return next(rutaPorRol(rolActual))
     }
   }
 
-  // Todo en orden -> Que pase
   next()
 })
 
