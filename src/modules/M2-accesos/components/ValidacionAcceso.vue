@@ -53,7 +53,8 @@ const handleIngreso = async (tokenAValidar?: string): Promise<void> => {
   const tokenFinal = tokenAValidar || tokenIngresado.value
 
   if (!tokenFinal.trim() || isLoading.value) {
-    errorMensaje.value = 'Debe ingresar o escanear un token QR válido.'
+    errorMensaje.value =
+      'Debe ingresar o escanear un token QR válido antes de procesar.'
     return
   }
 
@@ -68,14 +69,33 @@ const handleIngreso = async (tokenAValidar?: string): Promise<void> => {
     })
     resultadoValidacion.value = respuesta
   } catch (error: unknown) {
-    if (axios.isAxiosError<ApiErrorDto>(error) && error.response?.data) {
-      const apiError = error.response.data
-      errorMensaje.value =
-        apiError.detail || apiError.title || 'Acceso rechazado por el servidor.'
+    if (axios.isAxiosError<ApiErrorDto>(error) && error.response) {
+      const status = error.response.status
+      const apiError = error.response.data as ApiErrorDto & { codigo?: string }
+      // Mensajes descriptivos basados en el código de error o el status HTTP
+      if (apiError?.codigo === 'QR_EXPIRADO' || status === 401) {
+        errorMensaje.value =
+          'El código QR ha expirado. Solicite al socio que actualice su pase digital.'
+      } else if (apiError?.codigo === 'MEMBRESIA_INACTIVA' || status === 403) {
+        errorMensaje.value =
+          'Acceso denegado: El socio posee una membresía inactiva, vencida o en mora.'
+      } else if (apiError?.codigo === 'SEDE_LLENA' || status === 409) {
+        errorMensaje.value =
+          'Sede llena: Se ha alcanzado la capacidad máxima de ocupación permitida.'
+      } else if (apiError?.codigo === 'DOBLE_INGRESO' || status === 422) {
+        errorMensaje.value =
+          'El socio ya se encuentra registrado adentro de otra sede actualmente.'
+      } else {
+        errorMensaje.value =
+          apiError?.detail ||
+          apiError?.title ||
+          'El servidor rechazó el intento de ingreso.'
+      }
     } else if (error instanceof Error) {
-      errorMensaje.value = error.message
+      errorMensaje.value = `Error de conexión: ${error.message}`
     } else {
-      errorMensaje.value = 'Ocurrió un error inesperado al validar el ingreso.'
+      errorMensaje.value =
+        'Ocurrió un error inesperado al validar el ingreso en el sistema.'
     }
   } finally {
     isLoading.value = false

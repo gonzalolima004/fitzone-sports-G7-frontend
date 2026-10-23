@@ -22,7 +22,7 @@ export interface CanchaReservaRealtimePayload {
   es_horario_pico?: boolean
   [key: string]: unknown // Para ignorar columnas extras que traiga Supabase
 }
-
+/*
 // Mock de fallback para pruebas y desarrollo universitario desconectado
 const MOCK_TIPOS_CANCHA: CanchaTipo[] = [
   {
@@ -36,7 +36,8 @@ const MOCK_TIPOS_CANCHA: CanchaTipo[] = [
     descripcion: 'Canchas techadas de césped sintético pro',
   },
 ]
-
+*/
+/*
 const MOCK_CANCHAS: Cancha[] = [
   {
     id_cancha: 1,
@@ -293,6 +294,7 @@ const MOCK_CANCHAS: Cancha[] = [
     tipo: MOCK_TIPOS_CANCHA[1],
   },
 ]
+*/
 
 /**
  * Determina el horario operativo de la sede según el calendario (feriados) y el día de la semana (SedeHorario)
@@ -396,42 +398,62 @@ function calcularHorarioOperativo(
 }
 
 /**
- * Genera slots dinámicamente según el horario de apertura y cierre de la sede (SedeHorario y Calendario)
- * aplicando la regla de negocio de horario pico (19:00 a 21:00 hs)
+ * Calcula la cotización dinámica estimada de un turno en memoria:
+ * - Tarifa base según la cancha
+ * - Recargo horario pico (+20% entre las 19:00 y 21:00 hs)
+ * - Descuento de socio activo (-15% si aplica)
  */
-function generarSlotsFallback(cancha: Cancha, fecha: string): TurnoSlot[] {
-  const horario = calcularHorarioOperativo(cancha.id_sede, fecha)
+export function calcularPrecioSlot(
+  costoBase: number,
+  horaInicioStr: string,
+  esSocio: boolean = true
+): { esPico: boolean; precio: number } {
+  const horaNum = parseInt(horaInicioStr.split(':')[0], 10)
+  const esPico = horaNum >= 19 && horaNum < 21
+  const base =
+    costoBase && !isNaN(costoBase) && costoBase > 0 ? costoBase : 8000
+  const montoRecargoPico = esPico ? Math.round(base * 0.2) : 0
+  const montoDescuento = esSocio ? Math.round(base * 0.15) : 0
+  const precioFinal = base - montoDescuento + montoRecargoPico
+  return { esPico, precio: precioFinal }
+}
+
+/**
+ * Genera slots dinámicamente según el horario de apertura y cierre de la sede
+ * aplicando la regla de negocio de horario pico (19:00 a 21:00 hs) y descuento de socio
+ */
+function generarSlotsParaCancha(
+  idCancha: number,
+  idSede: number,
+  costo: number,
+  fecha: string,
+  esSocio: boolean = true
+): TurnoSlot[] {
+  const horario = calcularHorarioOperativo(idSede, fecha)
   if (!horario.abierto) {
     return []
   }
 
   const slots: TurnoSlot[] = []
-  const costo = cancha.costo_base
   const horaInicioInt = parseInt(horario.hora_apertura.split(':')[0], 10)
   const horaCierreInt = parseInt(horario.hora_cierre.split(':')[0], 10)
 
-  // Semilla pseudo-determinística según fecha y cancha para simular reservas preexistentes
+  // Semilla pseudo-determinística según fecha y cancha para simular reservas preexistentes solo si el backend falla
   const seed =
     (fecha.split('-').reduce((acc, part) => acc + parseInt(part, 10), 0) +
-      cancha.id_cancha) %
+      idCancha) %
     7
 
   for (let hora = horaInicioInt; hora <= horaCierreInt; hora++) {
     const horaInicioStr = `${hora.toString().padStart(2, '0')}:00`
     const horaFinStr = `${(hora + 1).toString().padStart(2, '0')}:00`
 
-    // Regla de Negocio: Horario Pico entre las 19:00 y las 21:00 hs
-    const esPico = hora >= 19 && hora < 21
-    const precio = esPico ? Math.round(costo * 1.2) : costo
+    // Regla de Negocio: Horario Pico entre las 19:00 y las 21:00 hs y descuento socio
+    const { esPico, precio } = calcularPrecioSlot(costo, horaInicioStr, esSocio)
 
     let estado: TurnoSlot['estado'] = 'DISPONIBLE'
-
-    // Generar algunas ocupaciones realistas para visualización
     if ((hora + seed) % 5 === 0) {
       estado = 'RESERVADO'
-    } else if (cancha.id_cancha === 3 && hora === 14) {
-      // Simular un mantenimiento
-      estado = 'MANTENIMIENTO'
     }
 
     slots.push({
@@ -471,15 +493,15 @@ export const canchasService = {
    * Obtiene la lista de tipos de disciplinas deportivas
    */
   async getTiposCancha(): Promise<CanchaTipo[]> {
-    /* NOTA: Necesito el endpoint andando en backend
     try {
       const response = await http.get('/canchas/tipos')
-      return response.data
-    } catch {
-      return MOCK_TIPOS_CANCHA
+      if (response.data && response.data.length > 0) {
+        return response.data
+      }
+    } catch (err) {
+      console.warn('Error consultando /canchas/tipos en el backend:', err)
     }
-    */
-    return MOCK_TIPOS_CANCHA
+    return []
   },
 
   /**
@@ -488,20 +510,37 @@ export const canchasService = {
   async getCanchasPorSede(idSede: number): Promise<Cancha[]> {
     try {
       const response = await http.get(`/canchas?sedeId=${idSede}`)
-      return response.data
-    } catch {
-      return MOCK_CANCHAS.filter((c) => c.id_sede === idSede && c.activa)
+      if (Array.isArray(response.data)) {
+        return response.data
+      }
+    } catch (err) {
+      console.warn(
+        `Error al consultar canchas de sede #${idSede} en el backend:`,
+        err
+      )
     }
+    return []
   },
 
   /**
    * Consulta la grilla horaria de disponibilidad para una cancha y fecha
-   * según el endpoint GET /canchas/:id/disponibilidad?fecha=YYYY-MM-DD
+   * desde el endpoint REST del backend (/canchas/:id/disponibilidad).
+   * Si el endpoint aún no está implementado en backend, calcula los slots
+   * en memoria con el costo base y horario operativo sin consultar tablas directamente.
    */
   async getDisponibilidad(
     idCancha: number,
-    fecha: string
+    fecha: string,
+    costoBase?: number,
+    esSocio: boolean = true,
+    nombreCancha?: string,
+    idSede?: number
   ): Promise<DisponibilidadCanchaResponse> {
+    const costo =
+      costoBase && !isNaN(costoBase) && costoBase > 0 ? costoBase : 8000
+    const nombre = nombreCancha || `Cancha #${idCancha}`
+    const sedeId = idSede || 1
+
     try {
       const response = await http.get(`/canchas/${idCancha}/disponibilidad`, {
         params: { fecha },
@@ -526,33 +565,114 @@ export const canchasService = {
       const slots: TurnoSlot[] = rawSlots.map((s) => {
         const horaInicio = s.hora_inicio || s.horaInicio || '08:00'
         const horaFin = s.hora_fin || s.horaFin || '09:00'
-        const horaNum = parseInt(horaInicio.split(':')[0], 10)
-        const esPico = horaNum >= 19 && horaNum < 21
+        const { esPico, precio } = calcularPrecioSlot(
+          costo,
+          horaInicio,
+          esSocio
+        )
+
         return {
           hora_inicio: horaInicio,
           hora_fin: horaFin,
           estado: s.estado,
           es_horario_pico: s.es_horario_pico ?? esPico,
-          precio_estimado: s.precio_estimado ?? 15000,
+          precio_estimado:
+            s.precio_estimado !== undefined &&
+            s.precio_estimado > 0 &&
+            s.precio_estimado !== 15000
+              ? s.precio_estimado
+              : precio,
         }
       })
 
       return {
         id_cancha: idCancha,
-        nombre_cancha: '',
+        nombre_cancha: nombre,
         fecha,
         slots,
       }
     } catch {
-      const cancha =
-        MOCK_CANCHAS.find((c) => c.id_cancha === idCancha) || MOCK_CANCHAS[0]
+      // Si el endpoint de Nest falla o no responde, generamos los slots basados en el horario operativo y costo real
       return {
         id_cancha: idCancha,
-        nombre_cancha: cancha.nombre,
+        nombre_cancha: nombre,
         fecha,
-        slots: generarSlotsFallback(cancha, fecha),
+        slots: generarSlotsParaCancha(idCancha, sedeId, costo, fecha, esSocio),
       }
     }
+  },
+
+  /**
+   * Consulta la disponibilidad en lote para todas las canchas de una sede (Opción A).
+   * Intenta consumir el endpoint optimizado GET /canchas/disponibilidad?sedeId=...&fecha=...
+   * Si el backend aún no cuenta con este endpoint (404), conmuta automáticamente
+   * y sin errores a la Opción B (consultar cada cancha con /canchas/:id/disponibilidad).
+   */
+  async getDisponibilidadPorSede(
+    idSede: number,
+    fecha: string,
+    canchas: Cancha[],
+    esSocio: boolean = true
+  ): Promise<Record<number, TurnoSlot[]>> {
+    try {
+      const response = await http.get('/canchas/disponibilidad', {
+        params: { sedeId: idSede, fecha },
+      })
+      if (Array.isArray(response.data) && response.data.length > 0) {
+        const mapa: Record<number, TurnoSlot[]> = {}
+        for (const item of response.data) {
+          const id = item.id_cancha
+          const costo = Number(item.costo_base) || 8000
+          const rawSlots = Array.isArray(item.slots) ? item.slots : []
+          mapa[id] = rawSlots.map(
+            (s: {
+              hora_inicio?: string
+              horaInicio?: string
+              hora_fin?: string
+              horaFin?: string
+              estado: TurnoSlot['estado']
+              es_horario_pico?: boolean
+              precio_estimado?: number
+            }) => {
+              const horaInicio = s.hora_inicio || s.horaInicio || '08:00'
+              const horaFin = s.hora_fin || s.horaFin || '09:00'
+              const { esPico, precio } = calcularPrecioSlot(
+                costo,
+                horaInicio,
+                esSocio
+              )
+              return {
+                hora_inicio: horaInicio,
+                hora_fin: horaFin,
+                estado: s.estado,
+                es_horario_pico: s.es_horario_pico ?? esPico,
+                precio_estimado: s.precio_estimado ?? precio,
+              }
+            }
+          )
+        }
+        return mapa
+      }
+    } catch {
+      // Si la Opción A no está implementada en backend (404), conmutamos a la Opción B
+    }
+
+    // Fallback elegante a Opción B (unitaria por cancha)
+    const mapa: Record<number, TurnoSlot[]> = {}
+    await Promise.all(
+      canchas.map(async (cancha) => {
+        const res = await canchasService.getDisponibilidad(
+          cancha.id_cancha,
+          fecha,
+          Number(cancha.costo_base),
+          esSocio,
+          cancha.nombre,
+          cancha.id_sede
+        )
+        mapa[cancha.id_cancha] = res.slots
+      })
+    )
+    return mapa
   },
 
   /**

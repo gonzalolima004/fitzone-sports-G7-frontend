@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useSedeStore } from '@/store/sede'
+import { useAuthStore } from '@/store/auth'
 import canchasService from '@/modules/M4-canchas/services/canchas.service'
 import GrillaTurnos from '@/modules/M4-canchas/components/GrillaTurnos.vue'
 import ConfirmarReserva from '@/modules/M4-canchas/components/ConfirmarReserva.vue'
@@ -15,8 +16,19 @@ import type {
   ReservaCanchaResponse,
   HorarioOperativoDia,
 } from '@/modules/M4-canchas/types/canchas.types'
+import { useRouter } from 'vue-router'
 
 const sedeStore = useSedeStore()
+const authStore = useAuthStore()
+const router = useRouter()
+
+// Determina si el usuario actual es socio activo para aplicar descuento en el estimado
+const esSocio = computed(() => {
+  return (
+    (authStore.isAuthenticated || !!authStore.token) &&
+    (authStore.rol === 'socio' || authStore.usuario?.rol === 'socio')
+  )
+})
 
 // Obtener fecha de hoy en formato YYYY-MM-DD
 const fechaHoy = new Date().toISOString().split('T')[0]
@@ -70,20 +82,12 @@ async function cargarDisponibilidad() {
   turnoSeleccionado.value = null
 
   try {
-    const mapa: Record<number, TurnoSlot[]> = {}
-
-    // Consultamos la disponibilidad en paralelo para las canchas del deporte
-    await Promise.all(
-      canchasFiltradas.value.map(async (cancha) => {
-        const res = await canchasService.getDisponibilidad(
-          cancha.id_cancha,
-          fechaSeleccionada.value
-        )
-        mapa[cancha.id_cancha] = res.slots
-      })
+    disponibilidadMap.value = await canchasService.getDisponibilidadPorSede(
+      sedeStore.sedeSeleccionada!.id_sede,
+      fechaSeleccionada.value,
+      canchasFiltradas.value,
+      esSocio.value
     )
-
-    disponibilidadMap.value = mapa
   } catch (error) {
     console.error('[CanchasView] Error al cargar disponibilidad:', error)
     toast.error('No se pudo cargar la disponibilidad de canchas.')
@@ -130,15 +134,15 @@ function suscribirRealtime() {
   canchasFiltradas.value.forEach((cancha) => {
     const unsub = canchasService.suscribirCambiosDisponibilidad(
       cancha.id_cancha,
-      (payload) => {
-        console.log(
-          '[Supabase Realtime] Cambio en cancha:',
-          cancha.id_cancha,
-          payload
-        )
+      () => {
         toast.info(`Actualización en vivo en ${cancha.nombre}`)
         canchasService
-          .getDisponibilidad(cancha.id_cancha, fechaSeleccionada.value)
+          .getDisponibilidad(
+            cancha.id_cancha,
+            fechaSeleccionada.value,
+            Number(cancha.costo_base),
+            esSocio.value
+          )
           .then((res) => {
             disponibilidadMap.value = {
               ...disponibilidadMap.value,
@@ -165,9 +169,11 @@ function abrirConfirmacion() {
 }
 
 function handleReservaConfirmada(reserva: ReservaCanchaResponse) {
-  console.log('[CanchasView] Reserva confirmada:', reserva)
   turnoSeleccionado.value = null
-  cargarDisponibilidad()
+  router.push({
+    name: 'canchas-detalle-reserva',
+    params: { id: reserva.id_cancha_reserva },
+  })
 }
 
 function handleConflictoDisponibilidad(mensaje: string) {
@@ -198,8 +204,8 @@ watch(
   }
 )
 
-// Reactividad a cambios de fecha o deporte
-watch([fechaSeleccionada, deporteSeleccionadoId], async () => {
+// Reactividad a cambios de fecha o deporte, deporte o estado de socio
+watch([fechaSeleccionada, deporteSeleccionadoId, esSocio], async () => {
   await cargarDisponibilidad()
   suscribirRealtime()
 })
@@ -388,7 +394,13 @@ onUnmounted(() => {
               v-if="turnoSeleccionado.slot.es_horario_pico"
               class="text-[10px] bg-[#F96167] text-white px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-wider"
             >
-              Horario Pico (Recargo 20%)
+              Horario Pico (+20%)
+            </span>
+            <span
+              v-if="esSocio"
+              class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-wider"
+            >
+              Socio (-15%)
             </span>
           </div>
 

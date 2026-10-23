@@ -46,6 +46,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../modules/M4-canchas/views/CanchasView.vue'),
       },
       {
+        path: 'canchas/reservas/:id',
+        name: 'canchas-detalle-reserva',
+        component: () =>
+          import('../modules/M4-canchas/views/DetalleReservaView.vue'),
+      },
+      {
         path: 'pagos',
         name: 'pagos',
         component: () => import('../modules/M5-pagos/views/PagosView.vue'),
