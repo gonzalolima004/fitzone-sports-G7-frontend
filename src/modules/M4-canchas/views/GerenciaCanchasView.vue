@@ -28,7 +28,7 @@ import type {
 
 const sedeStore = useSedeStore()
 
-// Pestaña activa 
+// Pestaña activa
 const pestanaActiva = ref<'canchas' | 'mantenimientos'>('canchas')
 
 // Estado principal
@@ -511,7 +511,7 @@ onMounted(async () => {
         :sede-seleccionada-id="idSedeFiltro"
       />
     </template>
-    
+
     <!-- Modales Reutilizables de M4-canchas -->
     <CanchaModal
       v-model="modalCanchaAbierto"

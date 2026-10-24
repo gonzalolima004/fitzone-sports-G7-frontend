@@ -3,12 +3,16 @@ import { ref, watch, computed } from 'vue'
 import BaseModal from '@/common/components/BaseModal.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import { obtenerFechaHoyLocal } from '@/common/utils/date'
-import type { Cancha, CrearMantenimientoDto, MantenimientoResponseDto } from '../types/canchas.types'
+import type {
+  Cancha,
+  CrearMantenimientoDto,
+  MantenimientoResponseDto,
+} from '../types/canchas.types'
 import type { Sede } from '@/store/sede'
 
 interface Props {
   modelValue: boolean
-  cancha: Cancha | null
+  cancha?: Cancha | null
   mantenimiento?: MantenimientoResponseDto | null
   canchasDisponibles?: Cancha[]
   sedes?: Sede[]
@@ -55,9 +59,7 @@ const canchasFiltradas = computed(() => {
   if (selectedSedeId.value === '') {
     return activas
   }
-  return activas.filter(
-    (c) => c.id_sede === Number(selectedSedeId.value)
-  )
+  return activas.filter((c) => c.id_sede === Number(selectedSedeId.value))
 })
 
 watch(selectedSedeId, (nuevaSede) => {
@@ -95,9 +97,7 @@ watch(
           fecha_inicio: normalizarParaDatetimeLocal(
             props.mantenimiento.fecha_inicio
           ),
-          fecha_fin: normalizarParaDatetimeLocal(
-            props.mantenimiento.fecha_fin
-          ),
+          fecha_fin: normalizarParaDatetimeLocal(props.mantenimiento.fecha_fin),
           motivo: props.mantenimiento.motivo || '',
         }
       } else {
@@ -151,7 +151,8 @@ function handleGuardar() {
     motivo: form.value.motivo.trim() || undefined,
   }
 
-  const idCanchaFinal = props.cancha?.id_cancha || Number(selectedCanchaId.value)
+  const idCanchaFinal =
+    props.cancha?.id_cancha || Number(selectedCanchaId.value)
   const idMantenimiento = props.mantenimiento?.id_cancha_mantenimiento
 
   emit('guardar', dto, idMantenimiento, idCanchaFinal)
@@ -167,7 +168,7 @@ function handleGuardar() {
         ? `Inhabilitar turnos en: ${cancha.nombre}`
         : esEdicion
           ? 'Modificar fechas o motivo del mantenimiento'
-        : 'Inhabilitar turnos de cancha por tareas de mantenimiento.'
+          : 'Inhabilitar turnos de cancha por tareas de mantenimiento.'
     "
     max-width="md"
     @update:model-value="emit('update:modelValue', $event)"
@@ -187,14 +188,12 @@ function handleGuardar() {
         Durante la ventana de tiempo especificada, la cancha se mostrará como
         <strong>En Mantenimiento</strong> y no permitirá reservas de turnos.
       </div>
-      
+
       <!-- Selector de cancha (solo si no viene prefijada) -->
       <template v-if="!cancha && canchasDisponibles.length > 0">
         <!-- Selector de sede -->
         <div v-if="sedes && sedes.length > 0" class="flex flex-col gap-1.5">
-          <label class="text-xs font-semibold text-slate-700">
-            Sede
-          </label>
+          <label class="text-xs font-semibold text-slate-700"> Sede </label>
           <select
             v-model="selectedSedeId"
             :disabled="esEdicion"
@@ -285,7 +284,7 @@ function handleGuardar() {
         :disabled="!formularioValido"
         @click="handleGuardar"
       >
-      {{ esEdicion ? 'Guardar Cambios' : 'Confirmar Mantenimiento' }}
+        {{ esEdicion ? 'Guardar Cambios' : 'Confirmar Mantenimiento' }}
       </BaseButton>
     </template>
   </BaseModal>
