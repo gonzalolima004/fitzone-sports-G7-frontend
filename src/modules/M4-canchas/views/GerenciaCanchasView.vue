@@ -5,6 +5,7 @@ import {
   PhCheckCircle,
   PhXCircle,
   PhArrowsClockwise,
+  PhWrench,
 } from '@phosphor-icons/vue'
 import { useSedeStore } from '@/store/sede'
 import { toast } from '@/common/utils/toast'
@@ -16,6 +17,7 @@ import CanchaModal from '../components/CanchaModal.vue'
 import MantenimientoModal from '../components/MantenimientoModal.vue'
 import ConfirmarBajaModal from '../components/ConfirmarBajaModal.vue'
 import GestionTiposModal from '../components/GestionTiposModal.vue'
+import GestionMantenimientos from '../components/GestionMantenimientos.vue'
 import type {
   Cancha,
   CanchaTipo,
@@ -25,6 +27,9 @@ import type {
 } from '../types/canchas.types'
 
 const sedeStore = useSedeStore()
+
+// Pestaña activa 
+const pestanaActiva = ref<'canchas' | 'mantenimientos'>('canchas')
 
 // Estado principal
 const canchas = ref<Cancha[]>([])
@@ -295,7 +300,6 @@ onMounted(async () => {
           >
             Módulo Gerencia
           </span>
-          <span class="text-xs text-slate-400 font-medium">RF-11 / RF-12</span>
         </div>
         <h1 class="text-2xl font-bold text-[#202759] tracking-tight mt-1">
           Gestión de Canchas Deportivas
@@ -386,69 +390,128 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Componente de Filtros y Acciones -->
-    <CanchaFiltros
-      v-model:sede-id="idSedeFiltro"
-      v-model:tipo-id="idTipoFiltro"
-      v-model:estado="estadoFiltro"
-      v-model:busqueda="busquedaTexto"
-      :sedes="sedeStore.sedes"
-      :tipos-cancha="tiposCancha"
-      @crear-cancha="abrirCrearCancha"
-      @gestionar-tipos="abrirGestionTipos"
-    />
-
-    <!-- Contenedor Principal: Grilla o Estados -->
-    <div
-      v-if="cargando"
-      class="p-16 flex flex-col items-center justify-center gap-3 text-slate-400 bg-white rounded-2xl border border-slate-200 shadow-xs"
-    >
-      <div
-        class="animate-spin w-8 h-8 border-3 border-[#202759] border-t-transparent rounded-full"
-      ></div>
-      <p class="text-xs sm:text-sm font-medium text-slate-500">
-        Cargando catálogo de canchas...
-      </p>
-    </div>
-
-    <!-- Estado Vacío -->
-    <div
-      v-else-if="canchasFiltradas.length === 0"
-      class="p-12 text-center flex flex-col items-center justify-center gap-3 bg-white rounded-2xl border border-slate-200 shadow-xs"
-    >
-      <div
-        class="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-1"
+    <!-- Pestañas de Navegación: Canchas vs Mantenimientos -->
+    <div class="flex items-center gap-2 border-b border-slate-200">
+      <button
+        type="button"
+        class="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-all cursor-pointer"
+        :class="
+          pestanaActiva === 'canchas'
+            ? 'border-[#202759] text-[#202759]'
+            : 'border-transparent text-slate-500 hover:text-slate-700'
+        "
+        @click="pestanaActiva = 'canchas'"
       >
-        <PhCourtBasketball :size="28" />
-      </div>
-      <h3 class="text-base font-bold text-[#202759]">
-        No se encontraron canchas
-      </h3>
-      <p class="text-xs sm:text-sm text-slate-500 max-w-md">
-        No hay canchas que coincidan con los filtros aplicados. Podés ajustar
-        los filtros o dar de alta una nueva cancha para esta sede.
-      </p>
-      <div class="mt-2">
-        <BaseButton variant="primary" size="sm" @click="abrirCrearCancha">
-          Dar de Alta Nueva Cancha
-        </BaseButton>
-      </div>
+        <PhCourtBasketball
+          :size="18"
+          :weight="pestanaActiva === 'canchas' ? 'bold' : 'regular'"
+        />
+        Canchas
+        <span
+          class="px-2 py-0.5 rounded-full text-xs font-bold"
+          :class="
+            pestanaActiva === 'canchas'
+              ? 'bg-[#202759] text-white'
+              : 'bg-slate-100 text-slate-600'
+          "
+        >
+          {{ totalCanchas }}
+        </span>
+      </button>
+
+      <button
+        type="button"
+        class="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-all cursor-pointer"
+        :class="
+          pestanaActiva === 'mantenimientos'
+            ? 'border-[#202759] text-[#202759]'
+            : 'border-transparent text-slate-500 hover:text-slate-700'
+        "
+        @click="pestanaActiva = 'mantenimientos'"
+      >
+        <PhWrench
+          :size="18"
+          :weight="pestanaActiva === 'mantenimientos' ? 'bold' : 'regular'"
+        />
+        Mantenimientos
+      </button>
     </div>
 
-    <!-- Grilla de Canchas (Componente CanchaCard) -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-      <CanchaCard
-        v-for="cancha in canchasFiltradas"
-        :key="cancha.id_cancha"
-        :cancha="cancha"
-        :nombre-sede="obtenerNombreSede(cancha.id_sede)"
-        :nombre-tipo="obtenerNombreTipo(cancha.id_cancha_tipo)"
-        @editar="abrirEditarCancha"
-        @mantenimiento="abrirModalMantenimiento"
-        @eliminar="abrirModalEliminar"
+    <!-- Pestaña 1: Inventario y Gestión de Canchas -->
+    <template v-if="pestanaActiva === 'canchas'">
+      <!-- Componente de Filtros y Acciones -->
+      <CanchaFiltros
+        v-model:sede-id="idSedeFiltro"
+        v-model:tipo-id="idTipoFiltro"
+        v-model:estado="estadoFiltro"
+        v-model:busqueda="busquedaTexto"
+        :sedes="sedeStore.sedes"
+        :tipos-cancha="tiposCancha"
+        @crear-cancha="abrirCrearCancha"
+        @gestionar-tipos="abrirGestionTipos"
       />
-    </div>
 
+      <!-- Contenedor Principal: Grilla o Estados -->
+      <div
+        v-if="cargando"
+        class="p-16 flex flex-col items-center justify-center gap-3 text-slate-400 bg-white rounded-2xl border border-slate-200 shadow-xs"
+      >
+        <div
+          class="animate-spin w-8 h-8 border-3 border-[#202759] border-t-transparent rounded-full"
+        ></div>
+        <p class="text-xs sm:text-sm font-medium text-slate-500">
+          Cargando catálogo de canchas...
+        </p>
+      </div>
+
+      <!-- Estado Vacío -->
+      <div
+        v-else-if="canchasFiltradas.length === 0"
+        class="p-12 text-center flex flex-col items-center justify-center gap-3 bg-white rounded-2xl border border-slate-200 shadow-xs"
+      >
+        <div
+          class="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-1"
+        >
+          <PhCourtBasketball :size="28" />
+        </div>
+        <h3 class="text-base font-bold text-[#202759]">
+          No se encontraron canchas
+        </h3>
+        <p class="text-xs sm:text-sm text-slate-500 max-w-md">
+          No hay canchas que coincidan con los filtros aplicados. Podés ajustar
+          los filtros o dar de alta una nueva cancha para esta sede.
+        </p>
+        <div class="mt-2">
+          <BaseButton variant="primary" size="sm" @click="abrirCrearCancha">
+            Dar de Alta Nueva Cancha
+          </BaseButton>
+        </div>
+      </div>
+
+      <!-- Grilla de Canchas (Componente CanchaCard) -->
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <CanchaCard
+          v-for="cancha in canchasFiltradas"
+          :key="cancha.id_cancha"
+          :cancha="cancha"
+          :nombre-sede="obtenerNombreSede(cancha.id_sede)"
+          :nombre-tipo="obtenerNombreTipo(cancha.id_cancha_tipo)"
+          @editar="abrirEditarCancha"
+          @mantenimiento="abrirModalMantenimiento"
+          @eliminar="abrirModalEliminar"
+        />
+      </div>
+    </template>
+
+    <!-- Pestaña 2: Visualización y Gestión de Mantenimientos -->
+    <template v-else-if="pestanaActiva === 'mantenimientos'">
+      <GestionMantenimientos
+        :sedes="sedeStore.sedes"
+        :canchas="canchas"
+        :sede-seleccionada-id="idSedeFiltro"
+      />
+    </template>
+    
     <!-- Modales Reutilizables de M4-canchas -->
     <CanchaModal
       v-model="modalCanchaAbierto"
@@ -464,6 +527,8 @@ onMounted(async () => {
     <MantenimientoModal
       v-model="modalMantenimientoAbierto"
       :cancha="canchaParaMantenimiento"
+      :canchas-disponibles="canchas"
+      :sedes="sedeStore.sedes"
       :guardando="guardandoMantenimiento"
       @guardar="handleGuardarMantenimiento"
     />
