@@ -50,12 +50,32 @@ export interface CrearMantenimientoDto {
   motivo?: string
 }
 
+export interface ActualizarMantenimientoDto {
+  fecha_inicio?: string
+  fecha_fin?: string
+  motivo?: string
+}
+
 export interface MantenimientoResponseDto {
   id_cancha_mantenimiento: number
   id_cancha: number
   fecha_inicio: string
   fecha_fin: string
   motivo?: string
+  cancha?: {
+    id_cancha: number
+    nombre: string
+    id_sede: number
+    sede?: Sede
+    cancha_tipo?: CanchaTipo
+  }
+}
+
+export interface FiltrosMantenimiento {
+  sedeId?: number
+  canchaId?: number
+  fechaInicio?: string
+  fechaFin?: string
 }
 
 export type SlotEstado = 'DISPONIBLE' | 'RESERVADO' | 'MANTENIMIENTO'

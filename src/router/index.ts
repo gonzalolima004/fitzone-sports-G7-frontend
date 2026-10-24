@@ -229,8 +229,9 @@ router.beforeEach(async (to, _from, next) => {
         const respuesta = await authService.verifyLocalProfile()
         const u = respuesta?.user
         if (u) {
-          const rolBackend = String(u.rol ?? u.roles?.[0] ?? 'socio')
-            .toLowerCase() as RolUsuario
+          const rolBackend = String(
+            u.rol ?? u.roles?.[0] ?? 'socio'
+          ).toLowerCase() as RolUsuario
           authStore.setPerfilInterno({
             id: u.id_usuario,
             email: u.email,
