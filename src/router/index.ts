@@ -121,6 +121,13 @@ const routes: RouteRecordRaw[] = [
         },
         children: [
           {
+            path: 'directorio-usuarios',
+            name: 'directorio-usuarios',
+            component: () =>
+              import('@/modules/M1-usuarios/views/DirectorioUsuariosView.vue'),
+            meta: { requiresAuth: true, roles: ['gerente'] },
+          },
+          {
             path: 'canchas',
             name: 'gerencia-canchas',
             component: () =>

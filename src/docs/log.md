@@ -779,9 +779,37 @@
 - `fix(M4): eliminacion temporal de supabase realtime`
 - `chore(M4): formato con prettier fix por lint`
 - `docs(log): actualizacion de bitacora`
-
 ---
 
+#### 25/10/2026
+#### Angelina Vialle | Rol: Team Leader / Desarrolladora Frontend
+- **Actividades**:
+  - **Módulo M1 (Usuarios y Directorio de Gerencia)**:
+    - Implementación de la vista administrativa `DirectorioUsuariosView.vue` para visualización, búsqueda por DNI/nombre/email y filtrado de usuarios por rol y estado.
+    - Desarrollo del composable `useDirectorioUsuarios.ts` para orquestar la paginación, filtros reactivos, modal de edición de datos de usuario, asignación de roles y estados.
+    - Definición y centralización del tipado TypeScript en `usuario.types.ts` (`Rol`, `UsuarioResponse`, `RegistroPayload`, `ActualizarUsuarioPayload` y `UsuarioRolRelacion`).
+    - Creación de helpers de visualización en `user-helpers.ts` para badges y mapeo de nombres de roles (`Gerente`, `Profesor`, `Recepcionista`, `Cliente`).
+    - Extensión de `usuarios.service.ts` con la función `obtenerUsuarios` y tipado para actualización.
+    - Definición de esquemas de validación Zod en `validators.ts` y configuración de feedback mediante toasts con duración optimizada para mensajes de error.
+    - Configuración de ruta protegida `/usuarios` en `router/index.ts`, agregado de acceso en `Sidebar.vue` y configuración de idioma a español en `index.html`.
+  - **Módulo M2 (Accesos y Aforo)**:
+    - Limpieza de código, eliminación de `console.log` y mensajes redundantes en `useAforo.ts` y `accesos.service.ts`.
+- **Decisiones**:
+  - Centralizar y estandarizar los contratos de datos de usuarios y roles entre backend y frontend para evitar discrepancias estructurales al editar perfiles o asignar roles.
+  - Implementar la lógica del directorio en un composable específico (`useDirectorioUsuarios`) y helpers de presentación desacoplados (`user-helpers.ts`) para mantener la vista limpia y modular.
+  - Reutilizar validadores Zod centralizados tanto para registro como para edición con toasts informativos de duración adecuada para garantizar que el usuario pueda leer las correcciones solicitadas.
+- **Dificultades**:
+  - Adaptar la estructura relacional de `usuario_rol` proveniente de Prisma en el backend con los controles de selección y actualización de roles en los formularios del frontend.
+- **Commits:**
+- `feat(zod): esquema de validacion comun`
+- `feat(comun): agregado de rutas, correcion de pagina a español`
+- `feat(M1): agregado funcion obtenerUsuarios, extraccion de interfaz RegistroPayload`
+- `feat(M1): interfaces par rol, usuarioResponse, registroPayload, actualizarUsuarioPayload y usuarioRolRelacion`
+- `feat(M2): quitado de mensajes y console.log innecesarios`
+- `feat(M1): archivo de como visualizan roles`
+- `feat(M1): vista de gerente directorio de usuarios`
+- `feat(M1): soporte para selección de roles en edición y configurar duración de toasts en validación Zod`
+- `docs(log): actualizacion de bitacora`
 #### 24/10/2026
 #### Marcos Caraballo | Rol: Desarrollador Frontend
 - **Actividades**:

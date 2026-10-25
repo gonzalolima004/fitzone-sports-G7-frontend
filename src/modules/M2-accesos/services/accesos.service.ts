@@ -80,7 +80,6 @@ export const accesosService = {
     onStatusChange?: (status: string) => void
   ): () => void {
     const channelName = `aforo:sede:${idSede}`
-    console.log('[Supabase entrando a suscribirse al canal]: ', channelName)
     const channel = supabase
       .channel(channelName)
       .on(
