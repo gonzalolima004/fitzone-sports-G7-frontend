@@ -781,3 +781,26 @@
 - `docs(log): actualizacion de bitacora`
 
 ---
+
+#### 24/10/2026
+#### Marcos Caraballo | Rol: Desarrollador Frontend
+- **Actividades**:
+  - Implementación completa de la vista y componentes para el CRUD de mantenimientos y bloqueos de canchas (`GestionMantenimientos.vue` y `MantenimientoModal.vue`).
+  - Integración en `GerenciaCanchasView.vue` de navegación por pestañas para alternar entre el catálogo de canchas y la gestión de mantenimientos.
+  - Mejora de UX en `MantenimientoModal.vue`: inclusión de selector previo de sede que filtra dinámicamente las canchas disponibles de dicha sede.
+  - Corrección en `canchas.service.ts` y `GestionMantenimientos.vue` para propagar y notificar adecuadamente con `toast.error` los errores HTTP del backend (ej. validación cuando fechaInicio es posterior a fechaFin).
+  - Incorporación de la ruta de acceso a Gestión de Canchas (`/gerencia/canchas`) en el menú de navegación lateral (`Sidebar.vue`) protegida para el rol gerente.
+- **Decisiones**:
+  - Centralizar en una única vista gerencial (`GerenciaCanchasView`) la administración de canchas y bloqueos de mantenimiento mediante un sistema de pestañas.
+  - Implementar selección de sede opcional dentro del modal de mantenimiento para agilizar la búsqueda de canchas en clubes multi-sede, mejorando la experiencia de usuario.
+- **Dificultades**:
+  - El método de consulta de mantenimientos silenciaba excepciones capturándolas y devolviendo un array vacío, impidiendo la activación del bloque `catch` y la visualización de los toasts de error.
+  - Sincronización del estado del formulario en el modal para limpiar la cancha seleccionada si el usuario cambia a una sede incompatible.
+- **Commits:**
+- `feat(M4): CRUD de mantenimiento dentro de canchas`
+- `chore: agregar gestion de canchas a sidebar`
+- `chore: formato con prettier`
+- `docs(log): actualizacion de bitacora`
+
+---
+
