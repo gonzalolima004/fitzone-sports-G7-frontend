@@ -75,6 +75,12 @@ const todasLasSecciones: NavSection[] = [
     titulo: 'ADMINISTRACIÓN',
     items: [
       {
+        nombre: 'Directorio de Usuarios',
+        ruta: '/gerencia/directorio-usuarios',
+        icono: 'users-directory',
+        roles: ['gerente', 'recepcionista'],
+      },
+      {
         nombre: 'Membresías',
         ruta: '/membresia',
         icono: 'medal',

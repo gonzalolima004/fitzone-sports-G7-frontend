@@ -121,6 +121,13 @@ const routes: RouteRecordRaw[] = [
         },
         children: [
           {
+            path: 'directorio-usuarios',
+            name: 'directorio-usuarios',
+            component: () =>
+              import('@/modules/M1-usuarios/views/DirectorioUsuariosView.vue'),
+            meta: { requiresAuth: true, roles: ['gerente'] },
+          },
+          {
             path: 'canchas',
             name: 'gerencia-canchas',
             component: () =>
@@ -229,8 +236,9 @@ router.beforeEach(async (to, _from, next) => {
         const respuesta = await authService.verifyLocalProfile()
         const u = respuesta?.user
         if (u) {
-          const rolBackend = String(u.rol ?? u.roles?.[0] ?? 'socio')
-            .toLowerCase() as RolUsuario
+          const rolBackend = String(
+            u.rol ?? u.roles?.[0] ?? 'socio'
+          ).toLowerCase() as RolUsuario
           authStore.setPerfilInterno({
             id: u.id_usuario,
             email: u.email,
