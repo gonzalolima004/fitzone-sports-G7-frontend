@@ -1,7 +1,6 @@
 import { ref, onUnmounted, type Ref } from 'vue'
 import { toast } from '@/common/utils/toast'
 import { accesosService } from '../services/accesos.service'
-import type { AforoResponseDto } from '../types/accesos.types'
 
 interface AforoData {
   actual: number
@@ -21,7 +20,7 @@ export function useAforo(idSedeInicial: number | Ref<number>) {
   const datosDesactualizados = ref<boolean>(false)
 
   let limpiarSuscripcion: (() => void) | null = null
-  // Función auxiliar para obtener el valor actual del ID de sede (ya sea ref o number plano)
+
   const obtenerIdSedeActual = () => {
     return typeof idSedeInicial === 'object' && 'value' in idSedeInicial
       ? idSedeInicial.value
@@ -30,8 +29,7 @@ export function useAforo(idSedeInicial: number | Ref<number>) {
 
   async function obtenerAforo(sedeIdOverride?: number): Promise<void> {
     const idSede = sedeIdOverride ?? obtenerIdSedeActual()
-    console.log('Sede:', sedeIdOverride)
-    console.log('ID sede:', idSede)
+
     try {
       cargando.value = true
       error.value = null
@@ -44,7 +42,6 @@ export function useAforo(idSedeInicial: number | Ref<number>) {
         ),
       }
       datosDesactualizados.value = false
-      console.log(aforo.value)
     } catch {
       error.value = 'No se pudo cargar el estado del aforo.'
       datosDesactualizados.value = true
@@ -86,12 +83,8 @@ export function useAforo(idSedeInicial: number | Ref<number>) {
 
     limpiarSuscripcion = accesosService.suscribirCambiosAforo(
       idSede,
-      (data: AforoResponseDto) => {
-        console.log(
-          '🔄 Cambio detectado en la base de datos. Consultando a la API...',
-          data
-        )
-        // LLAMAMOS A LA API:
+      () => {
+        // Se ejecuta cuando hay cambios en tiempo real, actualizando el aforo
         obtenerAforo(idSede)
       },
       (status) => {
