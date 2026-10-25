@@ -93,6 +93,12 @@ const todasLasSecciones: NavSection[] = [
         roles: ['socio', 'externo', 'recepcionista', 'gerente'],
       },
       {
+        nombre: 'Gestión de Canchas',
+        ruta: '/gerencia/canchas',
+        icono: 'sports',
+        roles: ['gerente'],
+      },
+      {
         nombre: 'Panel de gerencia',
         ruta: '/gerencia/reportes',
         icono: 'chart',
