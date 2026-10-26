@@ -5,20 +5,20 @@ import { z } from 'zod'
 import { usuariosService } from '../services/usuarios.service'
 import { supabase } from '@/common/api/supabase'
 import { useSedeStore } from '@/store/sede'
-import { useAuthStore } from '@/store/auth' // Importamos el store para poder cerrar sesión
+import { useAuthStore } from '@/store/auth'
 import BaseInput from '@/common/components/BaseInput.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import { toast } from '@/common/utils/toast'
 
 const router = useRouter()
 const sedeStore = useSedeStore()
-const authStore = useAuthStore() // Inicializamos el store
+const authStore = useAuthStore()
 const isLoading = ref(true)
 const isSubmitting = ref(false)
 
 const form = reactive({
-  tipoPerfil: 'socio',
-  nombreCompleto: '',
+  nombre: '',
+  apellido: '',
   dni: '',
   email: '',
   telefono: '',
@@ -38,60 +38,64 @@ onMounted(async () => {
   }
 
   form.email = user.email || ''
-  form.nombreCompleto =
+
+  // Separación automática del nombre proveniente de Google
+  const fullName =
     user.user_metadata?.full_name || user.user_metadata?.name || ''
+  const partesNombre = fullName.trim().split(' ')
+  if (partesNombre.length > 0) {
+    form.nombre = partesNombre[0]
+    form.apellido = partesNombre.slice(1).join(' ')
+  }
+
   isLoading.value = false
 })
 
-const perfilSchema = z
-  .object({
-    nombreCompleto: z
-      .string()
-      .min(3, 'El nombre debe tener al menos 3 caracteres.')
-      .regex(
-        /^[a-zA-ZÀ-ÿ\s]+$/,
-        'El nombre solo puede contener letras y espacios.'
-      ),
-    dni: z
-      .string()
-      .regex(
-        /^\d{7,8}$/,
-        'El DNI debe contener entre 7 y 8 números sin puntos.'
-      ),
-    telefono: z
-      .string()
-      .regex(
-        /^\+?\d{10,15}$/,
-        'El teléfono debe contener entre 10 y 15 números.'
-      ),
-    id_sede: z.string().min(1, 'Debes seleccionar una sede válida.'),
-  })
-  .refine((data) => data.nombreCompleto.trim().split(' ').length > 1, {
-    message: 'Por favor, asegúrate de tener nombre y apellido.',
-    path: ['nombreCompleto'],
-  })
+const perfilSchema = z.object({
+  nombre: z
+    .string()
+    .min(2, 'El nombre debe tener al menos 2 caracteres.')
+    .regex(
+      /^[a-zA-ZÀ-ÿ\s]+$/,
+      'El nombre solo puede contener letras y espacios.'
+    ),
+  apellido: z
+    .string()
+    .min(2, 'El apellido debe tener al menos 2 caracteres.')
+    .regex(
+      /^[a-zA-ZÀ-ÿ\s]+$/,
+      'El apellido solo puede contener letras y espacios.'
+    ),
+  dni: z
+    .string()
+    .regex(/^\d{7,8}$/, 'El DNI debe contener entre 7 y 8 números sin puntos.'),
+  telefono: z
+    .string()
+    .regex(
+      /^\+?\d{10,15}$/,
+      'El teléfono debe contener entre 10 y 15 números.'
+    ),
+  id_sede: z.string().min(1, 'Debes seleccionar una sede válida.'),
+})
 
 const handleCompletarRegistro = async () => {
   const validation = perfilSchema.safeParse(form)
   if (!validation.success) {
-    validation.error.issues.forEach((issue) => toast.warning(issue.message))
+    toast.warning(validation.error.issues[0].message)
     return
   }
 
   isSubmitting.value = true
-  const partesNombre = form.nombreCompleto.trim().split(' ')
-  const nombre = partesNombre[0]
-  const apellido = partesNombre.slice(1).join(' ')
 
   try {
     await usuariosService.registrarUsuario({
       dni: form.dni,
       email: form.email,
-      nombre,
-      apellido,
+      nombre: form.nombre.trim(),
+      apellido: form.apellido.trim(),
       telefono: form.telefono,
       id_sede: form.id_sede,
-      roles: form.tipoPerfil === 'socio' ? [1] : [4],
+      roles: [4], // Se fuerza rígidamente el rol 4 (cliente externo)
     })
 
     toast.success('¡Perfil completado con éxito!')
@@ -108,7 +112,6 @@ const handleCompletarRegistro = async () => {
   }
 }
 
-// Nueva función para cancelar y purgar la sesión
 const handleCancelar = async () => {
   await authStore.logout()
   toast.info('Registro cancelado.')
@@ -141,49 +144,30 @@ const handleCancelar = async () => {
         </div>
 
         <form class="space-y-6" @submit.prevent="handleCompletarRegistro">
-          <!-- Opciones Tipo Perfil -->
-          <div class="grid grid-cols-2 gap-4">
-            <button
-              type="button"
-              class="border rounded-xl p-4 text-center transition-all"
-              :class="
-                form.tipoPerfil === 'socio'
-                  ? 'border-[#F96167] ring-1 ring-[#F96167] bg-[#F96167]/10'
-                  : 'border-gray-200 hover:bg-gray-50'
-              "
-              @click="form.tipoPerfil = 'socio'"
-            >
-              <div class="font-bold text-sm text-[#202759]">Socio FitZone</div>
-            </button>
-            <button
-              type="button"
-              class="border rounded-xl p-4 text-center transition-all"
-              :class="
-                form.tipoPerfil === 'cliente'
-                  ? 'border-[#F96167] ring-1 ring-[#F96167] bg-[#F96167]/10'
-                  : 'border-gray-200 hover:bg-gray-50'
-              "
-              @click="form.tipoPerfil = 'cliente'"
-            >
-              <div class="font-bold text-sm text-[#202759]">
-                Cliente Externo
-              </div>
-            </button>
-          </div>
-
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <BaseInput
-              v-model="form.nombreCompleto"
-              label="Nombre y Apellido"
+              v-model="form.nombre"
+              label="Nombre"
+              placeholder="Ej: Juan"
               required
             />
             <BaseInput
-              v-model="form.email"
-              type="email"
-              label="Correo Electrónico (Google)"
-              disabled
+              v-model="form.apellido"
+              label="Apellido"
+              placeholder="Ej: Perez"
               required
             />
+
+            <div class="sm:col-span-2">
+              <BaseInput
+                v-model="form.email"
+                type="email"
+                label="Correo Electrónico (Google)"
+                disabled
+                required
+              />
+            </div>
+
             <BaseInput
               v-model="form.dni"
               label="DNI (Sin puntos)"
@@ -204,7 +188,7 @@ const handleCancelar = async () => {
             >
             <select
               v-model="form.id_sede"
-              class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm"
+              class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-[#202759] focus:ring-2 focus:ring-[#202759]/15 transition-all"
               required
             >
               <option value="" disabled>Selecciona una sede</option>
@@ -223,7 +207,7 @@ const handleCancelar = async () => {
               type="button"
               variant="outline"
               size="lg"
-              class="w-full"
+              class="w-full cursor-pointer"
               :disabled="isSubmitting"
               @click="handleCancelar"
             >
@@ -233,7 +217,7 @@ const handleCancelar = async () => {
               type="submit"
               variant="secondary"
               size="lg"
-              class="w-full"
+              class="w-full cursor-pointer"
               :loading="isSubmitting"
             >
               Finalizar Registro
