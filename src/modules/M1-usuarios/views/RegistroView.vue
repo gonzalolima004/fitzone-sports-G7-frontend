@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { z } from 'zod'
-import { PhSoccerBall } from '@phosphor-icons/vue'
+import { PhSoccerBall, PhArrowLeft } from '@phosphor-icons/vue'
 import { usuariosService } from '../services/usuarios.service'
 import { authService } from '../services/auth.service'
 import { useSedeStore } from '@/store/sede'
@@ -17,9 +17,9 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const fotoPreview = ref<string | null>(null)
 const fotoFile = ref<File | null>(null)
 
-// Se remueve "tipoPerfil" ya que el registro externo siempre es id_rol: 4
 const form = reactive({
-  nombreCompleto: '',
+  nombre: '',
+  apellido: '',
   dni: '',
   email: '',
   telefono: '',
@@ -35,12 +35,19 @@ onMounted(async () => {
 // VALIDACIÓN ESTRICTA
 const registroSchema = z
   .object({
-    nombreCompleto: z
+    nombre: z
       .string()
-      .min(3, 'El nombre debe tener al menos 3 caracteres.')
+      .min(2, 'El nombre debe tener al menos 2 caracteres.')
       .regex(
         /^[a-zA-ZÀ-ÿ\s]+$/,
         'El nombre solo puede contener letras y espacios.'
+      ),
+    apellido: z
+      .string()
+      .min(2, 'El apellido debe tener al menos 2 caracteres.')
+      .regex(
+        /^[a-zA-ZÀ-ÿ\s]+$/,
+        'El apellido solo puede contener letras y espacios.'
       ),
     dni: z
       .string()
@@ -68,10 +75,45 @@ const registroSchema = z
     message: 'Las contraseñas no coinciden.',
     path: ['confirmarContrasenia'],
   })
-  .refine((data) => data.nombreCompleto.trim().split(' ').length > 1, {
-    message: 'Por favor, ingresa tanto tu nombre como tu apellido.',
-    path: ['nombreCompleto'],
-  })
+
+// INDICADOR DE FUERZA DE CONTRASEÑA
+const pwdStrength = computed(() => {
+  const pwd = form.contrasenia
+  if (!pwd)
+    return {
+      score: 0,
+      color: 'bg-gray-200',
+      textColor: 'text-gray-400',
+      label: '',
+    }
+
+  let score = 0
+  if (pwd.length >= 8) score += 1
+  if (/[a-z]/.test(pwd)) score += 1
+  if (/[A-Z]/.test(pwd)) score += 1
+  if (/[0-9]/.test(pwd)) score += 1
+
+  if (score <= 2)
+    return {
+      score,
+      color: 'bg-red-500',
+      textColor: 'text-red-500',
+      label: 'Débil',
+    }
+  if (score === 3)
+    return {
+      score,
+      color: 'bg-yellow-500',
+      textColor: 'text-yellow-500',
+      label: 'Buena',
+    }
+  return {
+    score: 4,
+    color: 'bg-green-500',
+    textColor: 'text-green-500',
+    label: 'Fuerte',
+  }
+})
 
 const triggerFileInput = () => fileInput.value?.click()
 
@@ -80,6 +122,15 @@ const handleFotoUpload = (event: Event) => {
   if (target.files && target.files.length > 0) {
     fotoFile.value = target.files[0]
     fotoPreview.value = URL.createObjectURL(fotoFile.value)
+  }
+}
+
+// NUEVA FUNCIÓN: Eliminar foto seleccionada
+const removerFoto = () => {
+  fotoFile.value = null
+  fotoPreview.value = null
+  if (fileInput.value) {
+    fileInput.value.value = '' // Limpiamos el input para permitir volver a elegir el mismo archivo
   }
 }
 
@@ -96,14 +147,9 @@ const traducirErrorSupabase = (msg: string) => {
 const handleRegistro = async () => {
   const validation = registroSchema.safeParse(form)
   if (!validation.success) {
-    // CORRECCIÓN: Mostrar solo el primer error para evitar notificaciones duplicadas (spam)
     toast.warning(validation.error.issues[0].message)
     return
   }
-
-  const partesNombre = form.nombreCompleto.trim().split(' ')
-  const nombre = partesNombre[0]
-  const apellido = partesNombre.slice(1).join(' ')
 
   isLoading.value = true
 
@@ -118,8 +164,8 @@ const handleRegistro = async () => {
     const nuevoUsuario = await usuariosService.registrarUsuario({
       dni: form.dni,
       email: form.email,
-      nombre,
-      apellido,
+      nombre: form.nombre.trim(),
+      apellido: form.apellido.trim(),
       telefono: form.telefono,
       id_sede: form.id_sede,
       roles: [4],
@@ -167,25 +213,35 @@ const handleGoogleLogin = async () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex">
+  <div class="h-screen w-full flex overflow-hidden font-sans">
+    <!-- PANEL IZQUIERDO -->
     <div
-      class="hidden lg:flex lg:w-5/12 bg-[#202759] text-white p-12 flex-col justify-center relative"
+      class="hidden lg:flex lg:w-5/12 bg-[#202759] text-white p-12 flex-col justify-center items-center relative h-full"
     >
-      <div class="max-w-md mx-auto">
+      <div class="max-w-md mx-auto text-center">
         <h1 class="text-4xl font-bold mb-4">
           FitZone <span class="text-[#F96167]">Sports</span>
         </h1>
       </div>
     </div>
 
-    <div
-      class="w-full lg:w-7/12 flex items-center justify-center p-8 bg-white overflow-y-auto"
-    >
-      <div class="w-full max-w-xl">
+    <!-- PANEL DERECHO -->
+    <div class="w-full lg:w-7/12 bg-white h-full overflow-y-auto p-6 sm:p-8">
+      <div
+        class="w-full max-w-xl mx-auto min-h-full flex flex-col justify-center py-8"
+      >
+        <router-link
+          to="/login"
+          class="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-[#F96167] transition-colors mb-6 font-semibold w-fit"
+        >
+          <PhArrowLeft weight="bold" class="w-4 h-4" />
+          Volver al inicio de sesión
+        </router-link>
+
         <h2 class="text-3xl font-bold text-[#202759] mb-2">Crea tu Cuenta</h2>
 
         <form class="space-y-6 mt-6" @submit.prevent="handleRegistro">
-          <!-- SECCIÓN 1: Datos de la Cuenta (Separación Semántica) -->
+          <!-- SECCIÓN 1: Datos de la Cuenta -->
           <div
             class="bg-gray-50 border border-gray-100 p-5 rounded-xl space-y-4"
           >
@@ -194,25 +250,76 @@ const handleGoogleLogin = async () => {
             >
               Datos de la Cuenta
             </h3>
+
             <BaseInput
               v-model="form.email"
               type="email"
               label="Correo Electrónico"
               required
             />
+
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <BaseInput
-                v-model="form.contrasenia"
-                type="password"
-                label="Contraseña"
-                required
-              />
-              <BaseInput
-                v-model="form.confirmarContrasenia"
-                type="password"
-                label="Confirmar Contraseña"
-                required
-              />
+              <div class="flex flex-col">
+                <BaseInput
+                  v-model="form.contrasenia"
+                  type="password"
+                  label="Contraseña"
+                  required
+                />
+                <div class="mt-2 flex items-center gap-2 w-full">
+                  <div
+                    class="flex-grow flex gap-1 h-1.5 rounded-full overflow-hidden bg-gray-200"
+                  >
+                    <div
+                      class="h-full transition-colors duration-300 w-1/4"
+                      :class="[
+                        pwdStrength.score >= 1
+                          ? pwdStrength.color
+                          : 'bg-transparent',
+                      ]"
+                    ></div>
+                    <div
+                      class="h-full transition-colors duration-300 w-1/4"
+                      :class="[
+                        pwdStrength.score >= 2
+                          ? pwdStrength.color
+                          : 'bg-transparent',
+                      ]"
+                    ></div>
+                    <div
+                      class="h-full transition-colors duration-300 w-1/4"
+                      :class="[
+                        pwdStrength.score >= 3
+                          ? pwdStrength.color
+                          : 'bg-transparent',
+                      ]"
+                    ></div>
+                    <div
+                      class="h-full transition-colors duration-300 w-1/4"
+                      :class="[
+                        pwdStrength.score >= 4
+                          ? pwdStrength.color
+                          : 'bg-transparent',
+                      ]"
+                    ></div>
+                  </div>
+                  <span
+                    class="text-[10px] font-bold uppercase tracking-wider w-10 text-right"
+                    :class="pwdStrength.textColor"
+                  >
+                    {{ pwdStrength.label }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="flex flex-col">
+                <BaseInput
+                  v-model="form.confirmarContrasenia"
+                  type="password"
+                  label="Confirmar Contraseña"
+                  required
+                />
+              </div>
             </div>
           </div>
 
@@ -228,11 +335,18 @@ const handleGoogleLogin = async () => {
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <BaseInput
-                v-model="form.nombreCompleto"
-                label="Nombre y Apellido"
-                placeholder="Ej: Juan Perez"
+                v-model="form.nombre"
+                label="Nombre"
+                placeholder="Ej: Juan"
                 required
               />
+              <BaseInput
+                v-model="form.apellido"
+                label="Apellido"
+                placeholder="Ej: Perez"
+                required
+              />
+
               <BaseInput
                 v-model="form.dni"
                 label="DNI (Sin puntos)"
@@ -246,13 +360,13 @@ const handleGoogleLogin = async () => {
                 required
               />
 
-              <div class="flex flex-col gap-1.5 w-full text-left">
+              <div class="flex flex-col gap-1.5 w-full text-left sm:col-span-2">
                 <label class="text-xs font-bold text-[#202759] tracking-wide"
                   >Sede Principal</label
                 >
                 <select
                   v-model="form.id_sede"
-                  class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm"
+                  class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-[#202759] focus:ring-2 focus:ring-[#202759]/15 transition-all"
                   required
                 >
                   <option value="" disabled>Selecciona una sede</option>
@@ -267,11 +381,12 @@ const handleGoogleLogin = async () => {
               </div>
             </div>
 
+            <!-- COMPONENTE ACTUALIZADO: Manejo de Foto -->
             <div
               class="border border-gray-200 rounded-lg p-4 flex items-center gap-4 mt-4 bg-gray-50"
             >
               <div
-                class="h-14 w-14 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border border-gray-300"
+                class="h-14 w-14 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border border-gray-300 shrink-0"
               >
                 <img
                   v-if="fotoPreview"
@@ -280,19 +395,43 @@ const handleGoogleLogin = async () => {
                 />
                 <PhSoccerBall v-else class="h-6 w-6 text-gray-400" />
               </div>
-              <div>
-                <label class="block text-sm font-bold text-[#202759]"
+              <div class="flex-grow">
+                <label class="block text-sm font-bold text-[#202759] mb-1"
                   >Foto de Perfil (Opcional)</label
                 >
+
+                <!-- Botones si YA HAY foto -->
+                <div v-if="fotoPreview" class="flex items-center gap-2 mt-1">
+                  <BaseButton
+                    variant="outline"
+                    size="sm"
+                    type="button"
+                    class="cursor-pointer"
+                    @click="triggerFileInput"
+                  >
+                    Cambiar
+                  </BaseButton>
+                  <button
+                    type="button"
+                    class="text-xs font-bold text-[#F96167] hover:text-red-700 transition-colors px-3 py-1.5 rounded-lg border border-transparent hover:border-red-200 hover:bg-red-50 focus:outline-none"
+                    @click="removerFoto"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+
+                <!-- Botón si NO HAY foto -->
                 <BaseButton
+                  v-else
                   variant="outline"
                   size="sm"
                   type="button"
-                  class="cursor-pointer"
+                  class="cursor-pointer mt-1"
                   @click="triggerFileInput"
                 >
                   Seleccionar Imagen
                 </BaseButton>
+
                 <input
                   ref="fileInput"
                   type="file"
@@ -313,7 +452,6 @@ const handleGoogleLogin = async () => {
             <div class="flex-grow border-t border-gray-200"></div>
           </div>
 
-          <!-- Corrección de UI: Agregados cursor-pointer y disabled:cursor-not-allowed -->
           <button
             type="button"
             :disabled="isLoading"
