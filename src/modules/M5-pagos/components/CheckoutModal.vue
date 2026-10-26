@@ -7,17 +7,24 @@ import BaseButton from '@/common/components/BaseButton.vue'
 
 const props = defineProps<{
   modelValue: boolean
-  plan: { id: number; precio: number } | null
+  plan: { id: number; precio: number; duracion_dias?: number; nombre?: string } | null
   isLoading: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void
-  (e: 'confirmar', planId: number): void
+  (e: 'confirmar', planId: number, renovacionAutomatica?: boolean): void
 }>()
 
 const metodoSeleccionado = ref('tarjeta')
 const renovacionAuto = ref(true)
+
+const textoPeriodo = computed(() => {
+  const dias = props.plan?.duracion_dias
+  if (dias === 90) return 'trimestral'
+  if (dias === 365) return 'anual'
+  return 'mensual'
+})
 
 const formattedPrice = computed(() => {
   if (!props.plan) return '$0'
@@ -128,7 +135,7 @@ const formattedPrice = computed(() => {
             class="w-4 h-4 text-[#F96167] rounded border-slate-300 focus:ring-[#F96167]"
           />
           <span class="text-sm text-slate-600"
-            >Activar renovación automática mensual</span
+            >Activar renovación automática {{ textoPeriodo }}</span
           >
         </label>
       </div>
@@ -139,7 +146,7 @@ const formattedPrice = computed(() => {
       <BaseButton
         variant="secondary"
         :loading="isLoading"
-        @click="emit('confirmar', props.plan?.id ?? 0)"
+        @click="emit('confirmar', props.plan?.id ?? 0, renovacionAuto)"
       >
         Procesar Pago ({{ formattedPrice }}) &rarr;
       </BaseButton>

@@ -12,13 +12,15 @@ export type EstadoPago = 'Pendiente' | 'Aprobado' | 'Rechazado'
 
 /**
  * Payload requerido por POST /pagos/iniciar-pago (IniciarPagoDto)
- * Regla de negocio: exactamente uno entre id_cancha_reserva o id_membresia debe estar presente.
+ * Regla de negocio: exactamente uno entre id_cancha_reserva o id_membresia_plan / id_membresia debe estar presente.
  */
 export interface IniciarPagoRequest {
-  monto: number
+  monto?: number
   titulo: string
   id_cancha_reserva?: number
+  id_membresia_plan?: number
   id_membresia?: number
+  renovacion_automatica?: boolean
   email_pagador?: string
 }
 
@@ -40,6 +42,7 @@ export interface PagoConceptoDto {
   id_referencia: number | null
   titulo: string
   detalle: string
+  duracion_dias?: number
 }
 
 /**
@@ -51,6 +54,7 @@ export interface PagoPendiente {
   titulo: string
   detalle: string
   monto: number
+  duracion_dias?: number
 }
 
 /**

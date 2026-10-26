@@ -88,12 +88,16 @@ const abrirCheckout = (planRecibido: PlanMembresia) => {
   modalAbierto.value = true
 }
 
-const confirmarPago = async () => {
+const confirmarPago = async (
+  _planId?: number,
+  renovacionAutomatica = true
+) => {
   isProcessingPayment.value = true
   try {
     const payload = {
-      id_membresia: planSeleccionado.value?.id,
+      id_membresia_plan: planSeleccionado.value?.id,
       monto: planSeleccionado.value?.precio ?? 0,
+      renovacion_automatica: renovacionAutomatica,
       email_pagador: authStore.usuario?.email || 'test@fitzone.com',
       titulo: `Suscripción - ${planSeleccionado.value?.nombre ?? ''}`,
     }
