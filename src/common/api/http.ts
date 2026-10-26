@@ -16,7 +16,17 @@ http.interceptors.request.use(
     const token = data.session?.access_token
 
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+      // CORRECCIÓN DE SEGURIDAD CRÍTICA: Prevenir el envío de tokens a dominios no confiables
+      const requestUrl = config.url || ''
+      const isAbsoluteUrl = /^https?:\/\//i.test(requestUrl)
+      const apiUrl = import.meta.env.VITE_API_URL as string
+
+      // Si la URL es relativa (usa el baseURL), o si es absoluta y coincide exactamente con nuestra API, adjuntamos el token.
+      const isOwnApi = !isAbsoluteUrl || requestUrl.startsWith(apiUrl)
+
+      if (isOwnApi) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
     }
     return config
   },
@@ -32,7 +42,6 @@ http.interceptors.response.use(
 
     console.error(`[HTTP ${status ?? 'Network Error'}]:`, message)
 
-    // 1. Detección de falta de Perfil Interno (Google OAuth AuthGuard Trigger)
     if (
       status === 403 &&
       typeof message === 'string' &&
@@ -44,7 +53,6 @@ http.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    // 2. Detección de sesión caducada
     if (status === 401) {
       await supabase.auth.signOut()
       if (router.currentRoute.value.path !== '/login') {
