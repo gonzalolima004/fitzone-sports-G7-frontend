@@ -70,17 +70,25 @@ const handleGoogleLogin = async () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex font-sans">
+  <!-- h-screen y overflow-hidden para igualar el layout de Registro -->
+  <div class="h-screen w-full flex overflow-hidden font-sans">
+    <!-- PANEL IZQUIERDO: Estático, centrado, ocupa toda la altura -->
     <div
-      class="hidden lg:flex lg:w-5/12 bg-[#202759] text-white p-12 flex-col justify-center"
+      class="hidden lg:flex lg:w-5/12 bg-[#202759] text-white p-12 flex-col justify-center items-center relative h-full"
     >
-      <h1 class="text-4xl font-bold mb-4">
-        FitZone <span class="text-[#F96167]">Sports</span>
-      </h1>
+      <div class="max-w-md mx-auto text-center">
+        <h1 class="text-4xl font-bold mb-4">
+          FitZone <span class="text-[#F96167]">Sports</span>
+        </h1>
+      </div>
     </div>
 
-    <div class="w-full lg:w-7/12 flex items-center justify-center p-8 bg-white">
-      <div class="w-full max-w-md">
+    <!-- PANEL DERECHO: Formulario con scroll vertical independiente -->
+    <div class="w-full lg:w-7/12 bg-white h-full overflow-y-auto p-6 sm:p-8">
+      <!-- Contenedor interno centrado verticalmente -->
+      <div
+        class="w-full max-w-md mx-auto min-h-full flex flex-col justify-center py-8"
+      >
         <h2 class="text-3xl font-bold text-[#202759] mb-8">Inicia Sesión</h2>
 
         <form class="space-y-6" @submit.prevent="handleLogin">
@@ -102,7 +110,7 @@ const handleGoogleLogin = async () => {
               required
               :disabled="isLoading"
             />
-            <div class="text-right">
+            <div class="text-right mt-1">
               <router-link
                 to="/cambiar-password"
                 class="text-xs text-[#202759] hover:underline font-semibold cursor-pointer"
@@ -121,7 +129,6 @@ const handleGoogleLogin = async () => {
             <div class="flex-grow border-t border-gray-200"></div>
           </div>
 
-          <!-- Corrección de UI: Agregados cursor-pointer y disabled:cursor-not-allowed -->
           <button
             type="button"
             :disabled="isLoading"
