@@ -7,7 +7,12 @@ import BaseButton from '@/common/components/BaseButton.vue'
 
 const props = defineProps<{
   modelValue: boolean
-  plan: { id: number; precio: number; duracion_dias?: number; nombre?: string } | null
+  plan: {
+    id: number
+    precio: number
+    duracion_dias?: number
+    nombre?: string
+  } | null
   isLoading: boolean
 }>()
 

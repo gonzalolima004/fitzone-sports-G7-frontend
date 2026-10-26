@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/store/auth'
 import { membresiasService } from '@/modules/M1-usuarios/services/membresias.service'
 import BaseButton from '@/common/components/BaseButton.vue'
 import BaseSkeleton from '@/common/components/BaseSkeleton.vue'
@@ -16,37 +17,34 @@ interface PlanApi {
 }
 
 const router = useRouter()
+const authStore = useAuthStore()
 const cargando = ref(true)
-const error = ref<string | null>(null)
 const planes = ref<PlanApi[]>([])
 
-// Ciclo de facturación: mensual o anual (con 30% OFF)
-const cicloFacturacion = ref<'mensual' | 'anual'>('mensual')
-
-// Planes por defecto en caso de retraso en la conexión
+// Planes por defecto en caso de retraso o falla de conexión
 const PLANES_DEFAULT: PlanApi[] = [
   {
     id: 1,
     id_plan: 1,
-    nombre: 'Pase 2 Días',
+    nombre: 'Plan Mensual',
     duracion_dias: 30,
-    precio: 35000,
+    precio: 40000,
     destacado: false,
   },
   {
     id: 2,
     id_plan: 2,
-    nombre: 'Pase 3 Días',
-    duracion_dias: 30,
-    precio: 40000,
+    nombre: 'Plan Trimestral',
+    duracion_dias: 90,
+    precio: 105000,
     destacado: true,
   },
   {
     id: 3,
     id_plan: 3,
-    nombre: 'Pase Libre',
-    duracion_dias: 30,
-    precio: 45000,
+    nombre: 'Plan Anual',
+    duracion_dias: 365,
+    precio: 360000,
     destacado: false,
   },
 ]
@@ -60,77 +58,68 @@ function formatearPrecio(monto: number | string): string {
   }).format(num)
 }
 
-function calcularPrecioRegularAnual(precioBase: number | string): number {
-  const num = Number(precioBase) || 0
-  return num * 12
-}
-
-function calcularTotalAnual(precioBase: number | string): number {
-  const num = Number(precioBase) || 0
-  return Math.round(num * 12 * 0.7)
-}
-
-function calcularAhorroAnual(precioBase: number | string): number {
-  const num = Number(precioBase) || 0
-  return Math.round(num * 12 * 0.3)
-}
-
-function esDestacado(plan: PlanApi, index: number): boolean {
+function esDestacado(plan: PlanApi): boolean {
   if (plan.destacado) return true
+  if (plan.duracion_dias === 90) return true
   const nombre = plan.nombre.toLowerCase()
-  if (nombre.includes('3')) return true
-  if (planes.value.length === 3 && index === 1) return true
-  return false
+  return nombre.includes('trimestral')
 }
 
-function obtenerBeneficios(plan: PlanApi): string[] {
-  const nombre = plan.nombre.toLowerCase()
-
-  if (nombre.includes('2')) {
-    return [
-      '2 accesos semanales a musculación o clases grupales',
-      'Entrená en tu sede habitual elegida',
-      'Acreditación digital instantánea por QR',
-      '15% de descuento en alquiler de canchas',
-      'Sin matrícula ni costos de inscripción',
-    ]
-  }
-
-  if (nombre.includes('3')) {
-    return [
-      '3 accesos semanales a musculación o clases grupales',
-      'Entrená en tu sede habitual elegida',
-      'Acreditación digital instantánea por QR',
-      '15% de descuento en alquiler de canchas',
-      'Sin matrícula ni costos de inscripción',
-    ]
-  }
-
-  // Pase Libre
-  return [
-    'Acceso ilimitado todos los días a musculación y clases',
-    'Libre acceso a todas las sedes de la red provincial',
-    'Acreditación digital instantánea por QR',
-    '15% de descuento en alquiler de canchas',
-    'Sin matrícula ni costos de inscripción',
-  ]
+function obtenerPeriodoLabel(plan: PlanApi): string {
+  if (plan.duracion_dias === 30) return 'Pase Mensual (30 Días)'
+  if (plan.duracion_dias === 90) return 'Pase Trimestral (90 Días)'
+  if (plan.duracion_dias === 365) return 'Pase Anual (12 Meses)'
+  return `Pase de ${plan.duracion_dias} Días`
 }
 
-function seleccionarPlan(plan: PlanApi) {
-  const idPlan = plan.id || plan.id_plan || 1
-  router.push({
-    path: '/registro',
-    query: {
-      plan: idPlan.toString(),
-      ciclo: cicloFacturacion.value,
-    },
-  })
+function obtenerUnidadPeriodo(plan: PlanApi): string {
+  if (plan.duracion_dias === 30) return '/ mes'
+  if (plan.duracion_dias === 90) return '/ 3 meses'
+  if (plan.duracion_dias === 365) return '/ año'
+  return ''
+}
+
+function obtenerSubtextoAhorro(plan: PlanApi) {
+  const num = Number(plan.precio) || 0
+  if (plan.duracion_dias === 90) {
+    const equiv = Math.round(num / 3)
+    return {
+      texto: `Equivale a ${formatearPrecio(equiv)}/mes`,
+      ahorro: '12.5% OFF',
+    }
+  }
+  if (plan.duracion_dias === 365) {
+    const equiv = Math.round(num / 12)
+    return {
+      texto: `Equivale a ${formatearPrecio(equiv)}/mes`,
+      ahorro: '25% OFF',
+    }
+  }
+  return {
+    texto: 'Facturación mes a mes sin permanencia',
+    ahorro: null,
+  }
+}
+
+const BENEFICIOS_PLAN: string[] = [
+  'Acceso libre ilimitado a musculación y cardio',
+  'Acceso a todas las clases grupales sin límite',
+  'Acreditación digital instantánea por QR',
+  '15% de descuento en alquiler de canchas',
+  'Sin costos de matrícula ni inscripción',
+]
+
+function seleccionarPlan() {
+  if (authStore.isAuthenticated) {
+    router.push('/membresia')
+  } else {
+    router.push('/login')
+  }
 }
 
 async function cargarPlanes() {
   try {
     cargando.value = true
-    error.value = null
     const data = await membresiasService.getPlanes()
     if (Array.isArray(data) && data.length > 0) {
       planes.value = data as PlanApi[]
@@ -155,7 +144,7 @@ onMounted(cargarPlanes)
   >
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <!-- Encabezado de la Sección -->
-      <div class="text-center max-w-3xl mx-auto mb-10">
+      <div class="text-center max-w-3xl mx-auto mb-14">
         <span
           class="text-xs font-bold uppercase tracking-[0.2em] text-[#b82a30] bg-[#f96167]/15 px-3.5 py-1.5 rounded-full inline-block mb-3"
         >
@@ -167,64 +156,9 @@ onMounted(cargarPlanes)
           Elegí el plan a la medida de tus objetivos
         </h2>
         <p class="text-base sm:text-lg text-slate-600 leading-relaxed">
-          Precios claros, sin matrícula de inscripción y con acreditación
-          instantánea en tu celular.
+          Precios transparentes, sin matrícula de inscripción y con acreditación
+          instantánea por QR en tu celular.
         </p>
-      </div>
-
-      <!-- Selector de Ciclo de Facturación (Mensual / Anual 30% OFF) -->
-      <div class="flex items-center justify-center gap-3 sm:gap-5 mb-14">
-        <button
-          type="button"
-          class="text-sm sm:text-base font-bold transition-colors cursor-pointer"
-          :class="
-            cicloFacturacion === 'mensual'
-              ? 'text-[#202759]'
-              : 'text-slate-400 hover:text-slate-600'
-          "
-          @click="cicloFacturacion = 'mensual'"
-        >
-          Pago Mensual
-        </button>
-
-        <button
-          type="button"
-          role="switch"
-          :aria-checked="cicloFacturacion === 'anual'"
-          class="relative inline-flex h-8 w-16 shrink-0 cursor-pointer rounded-full p-1 transition-colors duration-200 ease-in-out focus:outline-none shadow-inner"
-          :class="
-            cicloFacturacion === 'anual' ? 'bg-[#202759]' : 'bg-slate-200'
-          "
-          @click="
-            cicloFacturacion =
-              cicloFacturacion === 'mensual' ? 'anual' : 'mensual'
-          "
-        >
-          <span
-            class="pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out"
-            :class="
-              cicloFacturacion === 'anual' ? 'translate-x-8' : 'translate-x-0'
-            "
-          />
-        </button>
-
-        <button
-          type="button"
-          class="text-sm sm:text-base font-bold transition-colors cursor-pointer inline-flex items-center gap-2"
-          :class="
-            cicloFacturacion === 'anual'
-              ? 'text-[#202759]'
-              : 'text-slate-400 hover:text-slate-600'
-          "
-          @click="cicloFacturacion = 'anual'"
-        >
-          <span>Pago Anual</span>
-          <span
-            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 tracking-wide"
-          >
-            30% OFF
-          </span>
-        </button>
       </div>
 
       <!-- Estado de Carga (Skeletons) -->
@@ -257,14 +191,14 @@ onMounted(cargarPlanes)
           :key="plan.id || plan.id_plan || index"
           class="p-8 rounded-3xl bg-white relative flex flex-col justify-between transition-all duration-300 hover:-translate-y-1"
           :class="[
-            esDestacado(plan, index)
+            esDestacado(plan)
               ? 'border-2 border-[#F96167] shadow-2xl shadow-[#F96167]/15 lg:-translate-y-2'
               : 'border border-slate-200/90 shadow-lg shadow-slate-100',
           ]"
         >
           <!-- Badge Destacado -->
           <div
-            v-if="esDestacado(plan, index)"
+            v-if="esDestacado(plan)"
             class="absolute -top-3.5 right-6 inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#F96167] text-white text-xs font-black uppercase tracking-wider shadow-md shadow-[#F96167]/30"
           >
             <PhStar class="w-3.5 h-3.5" weight="fill" />
@@ -275,67 +209,50 @@ onMounted(cargarPlanes)
             <span
               class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1 block"
             >
-              {{
-                cicloFacturacion === 'anual'
-                  ? 'Pase Anual (12 Meses)'
-                  : 'Pase Mensual (30 Días)'
-              }}
+              {{ obtenerPeriodoLabel(plan) }}
             </span>
             <h3 class="text-2xl font-black text-[#202759] mb-4">
               {{ plan.nombre }}
             </h3>
 
-            <!-- Precio y Duración con Espacio Preasignado Compacto (Cero CLS) -->
-            <div class="mb-3.5 pb-2.5 border-b border-slate-100">
-              <!-- Fila 1: Gran número y unidad (siempre 1 línea sin quiebre) -->
+            <!-- Precio y Duración -->
+            <div class="mb-4 pb-3 border-b border-slate-100">
               <div class="flex items-baseline gap-1.5">
                 <span
                   class="text-3xl sm:text-4xl lg:text-[40px] font-black text-[#202759] tracking-tight leading-none"
                 >
-                  {{
-                    cicloFacturacion === 'anual'
-                      ? formatearPrecio(calcularTotalAnual(plan.precio))
-                      : formatearPrecio(plan.precio)
-                  }}
+                  {{ formatearPrecio(plan.precio) }}
                 </span>
                 <span class="text-sm font-semibold text-slate-500 shrink-0">
-                  {{ cicloFacturacion === 'anual' ? '/ año' : '/ mes' }}
+                  {{ obtenerUnidadPeriodo(plan) }}
                 </span>
               </div>
 
-              <!-- Fila 2: Información de ahorro (espacio fijo compacto de 20px) -->
-              <div class="h-5 mt-1.5 flex items-center">
-                <div
-                  v-if="cicloFacturacion === 'anual'"
-                  class="flex items-center gap-1.5 text-xs leading-none"
+              <!-- Fila 2: Información de ahorro -->
+              <div class="h-6 mt-1.5 flex items-center gap-2">
+                <span class="text-xs text-slate-500 leading-none">
+                  {{ obtenerSubtextoAhorro(plan).texto }}
+                </span>
+                <span
+                  v-if="obtenerSubtextoAhorro(plan).ahorro"
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 tracking-wide"
                 >
-                  <span
-                    class="text-slate-400 font-semibold line-through shrink-0"
-                  >
-                    {{
-                      formatearPrecio(calcularPrecioRegularAnual(plan.precio))
-                    }}
-                  </span>
-                  <span class="font-bold text-emerald-700 truncate">
-                    Ahorrás
-                    {{ formatearPrecio(calcularAhorroAnual(plan.precio)) }}
-                    (-30%)
-                  </span>
-                </div>
+                  {{ obtenerSubtextoAhorro(plan).ahorro }}
+                </span>
               </div>
             </div>
 
             <!-- Beneficios con Checkmarks -->
             <ul class="space-y-3.5 text-sm text-slate-700 mb-8 list-none p-0">
               <li
-                v-for="beneficio in obtenerBeneficios(plan)"
+                v-for="beneficio in BENEFICIOS_PLAN"
                 :key="beneficio"
                 class="flex items-start gap-3"
               >
                 <div
                   class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5"
                   :class="[
-                    esDestacado(plan, index)
+                    esDestacado(plan)
                       ? 'bg-[#F96167]/15 text-[#b82a30]'
                       : 'bg-[#202759]/10 text-[#202759]',
                   ]"
@@ -349,20 +266,20 @@ onMounted(cargarPlanes)
 
           <!-- Botón CTA -->
           <BaseButton
-            :variant="esDestacado(plan, index) ? 'secondary' : 'primary'"
+            :variant="esDestacado(plan) ? 'secondary' : 'primary'"
             size="lg"
             class="w-full justify-center shadow-md font-bold min-h-[46px]"
             :class="[
-              esDestacado(plan, index)
+              esDestacado(plan)
                 ? 'shadow-[#F96167]/30 hover:shadow-lg hover:shadow-[#F96167]/40'
                 : '',
             ]"
-            @click="seleccionarPlan(plan)"
+            @click="seleccionarPlan()"
           >
             <template #icon>
               <PhArrowRight class="w-4 h-4 mr-1.5" weight="bold" />
             </template>
-            Elegir este plan
+            Elegir {{ plan.nombre }}
           </BaseButton>
         </div>
       </div>
