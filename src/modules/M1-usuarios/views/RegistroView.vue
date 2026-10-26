@@ -17,8 +17,8 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const fotoPreview = ref<string | null>(null)
 const fotoFile = ref<File | null>(null)
 
+// Se remueve "tipoPerfil" ya que el registro externo siempre es id_rol: 4
 const form = reactive({
-  tipoPerfil: 'socio',
   nombreCompleto: '',
   dni: '',
   email: '',
@@ -83,7 +83,6 @@ const handleFotoUpload = (event: Event) => {
   }
 }
 
-// Función para traducir errores de Supabase
 const traducirErrorSupabase = (msg: string) => {
   if (msg.includes('User already registered'))
     return 'Este correo electrónico ya está registrado.'
@@ -97,7 +96,8 @@ const traducirErrorSupabase = (msg: string) => {
 const handleRegistro = async () => {
   const validation = registroSchema.safeParse(form)
   if (!validation.success) {
-    validation.error.issues.forEach((err) => toast.warning(err.message))
+    // CORRECCIÓN: Mostrar solo el primer error para evitar notificaciones duplicadas (spam)
+    toast.warning(validation.error.issues[0].message)
     return
   }
 
@@ -114,7 +114,7 @@ const handleRegistro = async () => {
       password: form.contrasenia,
     })
 
-    // 2. Backend local
+    // 2. Backend local: Se asigna rígidamente rol de externo (4)
     const nuevoUsuario = await usuariosService.registrarUsuario({
       dni: form.dni,
       email: form.email,
@@ -122,7 +122,7 @@ const handleRegistro = async () => {
       apellido,
       telefono: form.telefono,
       id_sede: form.id_sede,
-      roles: form.tipoPerfil === 'socio' ? [1] : [4],
+      roles: [4],
     })
 
     if (nuevoUsuario.id_usuario && fotoFile.value) {
@@ -139,17 +139,13 @@ const handleRegistro = async () => {
       message?: string
       response?: { data?: { message?: string } }
     }
-
-    // Si el error viene de la API local
     if (err.response?.data?.message) {
       toast.error(
         typeof err.response.data.message === 'string'
           ? err.response.data.message
           : 'Error en el servidor local.'
       )
-    }
-    // Si el error viene de Supabase (ej. User already registered)
-    else if (err.message) {
+    } else if (err.message) {
       toast.error(traducirErrorSupabase(err.message))
     } else {
       toast.error('Error desconocido al procesar el registro.')
@@ -188,123 +184,124 @@ const handleGoogleLogin = async () => {
       <div class="w-full max-w-xl">
         <h2 class="text-3xl font-bold text-[#202759] mb-2">Crea tu Cuenta</h2>
 
-        <form class="space-y-6" @submit.prevent="handleRegistro">
-          <div class="grid grid-cols-2 gap-4">
-            <button
-              type="button"
-              class="border rounded-xl p-4 text-center transition-all"
-              :class="
-                form.tipoPerfil === 'socio'
-                  ? 'border-[#F96167] ring-1 ring-[#F96167] bg-[#F96167]/10'
-                  : 'border-gray-200 hover:bg-gray-50'
-              "
-              @click="form.tipoPerfil = 'socio'"
-            >
-              <div class="font-bold text-sm text-[#202759]">Socio FitZone</div>
-            </button>
-            <button
-              type="button"
-              class="border rounded-xl p-4 text-center transition-all"
-              :class="
-                form.tipoPerfil === 'cliente'
-                  ? 'border-[#F96167] ring-1 ring-[#F96167] bg-[#F96167]/10'
-                  : 'border-gray-200 hover:bg-gray-50'
-              "
-              @click="form.tipoPerfil = 'cliente'"
-            >
-              <div class="font-bold text-sm text-[#202759]">
-                Cliente Externo
-              </div>
-            </button>
-          </div>
-
+        <form class="space-y-6 mt-6" @submit.prevent="handleRegistro">
+          <!-- SECCIÓN 1: Datos de la Cuenta (Separación Semántica) -->
           <div
-            class="border border-gray-200 rounded-lg p-4 flex items-center gap-4 bg-gray-50"
+            class="bg-gray-50 border border-gray-100 p-5 rounded-xl space-y-4"
           >
-            <div
-              class="h-14 w-14 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border border-gray-300"
+            <h3
+              class="text-sm font-bold text-[#202759] uppercase tracking-wider mb-2 border-b border-gray-200 pb-2"
             >
-              <img
-                v-if="fotoPreview"
-                :src="fotoPreview"
-                class="h-full w-full object-cover"
-              />
-              <PhSoccerBall v-else class="h-6 w-6 text-gray-400" />
-            </div>
-            <div>
-              <label class="block text-sm font-bold text-[#202759]"
-                >Foto de Perfil (Opcional)</label
-              >
-              <BaseButton variant="outline" size="sm" @click="triggerFileInput"
-                >Seleccionar Imagen</BaseButton
-              >
-              <input
-                ref="fileInput"
-                type="file"
-                class="hidden"
-                accept="image/*"
-                @change="handleFotoUpload"
-              />
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <BaseInput
-              v-model="form.nombreCompleto"
-              label="Nombre y Apellido"
-              placeholder="Ej: Juan Perez"
-              required
-            />
-            <BaseInput
-              v-model="form.dni"
-              label="DNI (Sin puntos)"
-              placeholder="Ej: 38945120"
-              required
-            />
+              Datos de la Cuenta
+            </h3>
             <BaseInput
               v-model="form.email"
               type="email"
               label="Correo Electrónico"
               required
             />
-            <BaseInput
-              v-model="form.telefono"
-              label="Teléfono"
-              placeholder="Ej: +5493454859676"
-              required
-            />
-            <BaseInput
-              v-model="form.contrasenia"
-              type="password"
-              label="Contraseña"
-              required
-            />
-            <BaseInput
-              v-model="form.confirmarContrasenia"
-              type="password"
-              label="Confirmar Contraseña"
-              required
-            />
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <BaseInput
+                v-model="form.contrasenia"
+                type="password"
+                label="Contraseña"
+                required
+              />
+              <BaseInput
+                v-model="form.confirmarContrasenia"
+                type="password"
+                label="Confirmar Contraseña"
+                required
+              />
+            </div>
           </div>
 
-          <div class="flex flex-col gap-1.5 w-full text-left">
-            <label class="text-xs font-bold text-[#202759] tracking-wide"
-              >Sede</label
+          <!-- SECCIÓN 2: Datos Personales -->
+          <div
+            class="bg-white border border-gray-100 p-5 rounded-xl shadow-sm space-y-4"
+          >
+            <h3
+              class="text-sm font-bold text-[#202759] uppercase tracking-wider mb-2 border-b border-gray-200 pb-2"
             >
-            <select
-              v-model="form.id_sede"
-              class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm"
-              required
+              Datos Personales
+            </h3>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <BaseInput
+                v-model="form.nombreCompleto"
+                label="Nombre y Apellido"
+                placeholder="Ej: Juan Perez"
+                required
+              />
+              <BaseInput
+                v-model="form.dni"
+                label="DNI (Sin puntos)"
+                placeholder="Ej: 38945120"
+                required
+              />
+              <BaseInput
+                v-model="form.telefono"
+                label="Teléfono"
+                placeholder="Ej: +5493454859676"
+                required
+              />
+
+              <div class="flex flex-col gap-1.5 w-full text-left">
+                <label class="text-xs font-bold text-[#202759] tracking-wide"
+                  >Sede Principal</label
+                >
+                <select
+                  v-model="form.id_sede"
+                  class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm"
+                  required
+                >
+                  <option value="" disabled>Selecciona una sede</option>
+                  <option
+                    v-for="sede in sedeStore.sedes"
+                    :key="sede.id_sede"
+                    :value="String(sede.id_sede)"
+                  >
+                    {{ sede.nombre }} - {{ sede.direccion }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <div
+              class="border border-gray-200 rounded-lg p-4 flex items-center gap-4 mt-4 bg-gray-50"
             >
-              <option value="" disabled>Selecciona una sede</option>
-              <option
-                v-for="sede in sedeStore.sedes"
-                :key="sede.id_sede"
-                :value="String(sede.id_sede)"
+              <div
+                class="h-14 w-14 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border border-gray-300"
               >
-                {{ sede.nombre }} - {{ sede.direccion }}
-              </option>
-            </select>
+                <img
+                  v-if="fotoPreview"
+                  :src="fotoPreview"
+                  class="h-full w-full object-cover"
+                />
+                <PhSoccerBall v-else class="h-6 w-6 text-gray-400" />
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-[#202759]"
+                  >Foto de Perfil (Opcional)</label
+                >
+                <BaseButton
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  class="cursor-pointer"
+                  @click="triggerFileInput"
+                >
+                  Seleccionar Imagen
+                </BaseButton>
+                <input
+                  ref="fileInput"
+                  type="file"
+                  class="hidden"
+                  accept="image/*"
+                  @change="handleFotoUpload"
+                />
+              </div>
+            </div>
           </div>
 
           <div class="relative flex items-center py-2">
@@ -316,13 +313,13 @@ const handleGoogleLogin = async () => {
             <div class="flex-grow border-t border-gray-200"></div>
           </div>
 
+          <!-- Corrección de UI: Agregados cursor-pointer y disabled:cursor-not-allowed -->
           <button
             type="button"
             :disabled="isLoading"
-            class="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border-2 border-slate-200 hover:border-slate-300 rounded-xl text-sm font-bold text-[#202759] transition-all disabled:opacity-50"
+            class="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border-2 border-slate-200 hover:border-slate-300 rounded-xl text-sm font-bold text-[#202759] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             @click="handleGoogleLogin"
           >
-            <!-- SVG Oficial de Google -->
             <svg class="w-5 h-5" viewBox="0 0 24 24">
               <path
                 fill="#4285F4"
