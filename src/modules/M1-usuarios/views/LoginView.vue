@@ -1,12 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import {
-  useRouter,
-  /*useRoute */
-} from 'vue-router'
+import { useRouter } from 'vue-router'
 import { z } from 'zod'
 import { useAuthStore } from '@/store/auth'
-//import { rutaPorRol } from '@/common/guards/ruta-por-rol'
 import BaseInput from '@/common/components/BaseInput.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import { authService } from '../services/auth.service'
@@ -18,7 +14,6 @@ const isLoading = ref(false)
 
 const authStore = useAuthStore()
 const router = useRouter()
-//const route = useRoute()
 
 const loginSchema = z.object({
   email: z
@@ -42,7 +37,8 @@ const handleLogin = async () => {
     password: password.value,
   })
   if (!validation.success) {
-    validation.error.issues.forEach((err) => toast.warning(err.message))
+    // Tomamos el primer error para evitar notificaciones duplicadas
+    toast.warning(validation.error.issues[0].message)
     return
   }
 
@@ -50,7 +46,7 @@ const handleLogin = async () => {
 
   try {
     await authStore.login({ email: email.value, password: password.value })
-    router.push({ name: 'home' }) // Redirige sin mostrar Toast
+    router.push({ name: 'home' })
   } catch (error: unknown) {
     const err = error as { message?: string }
     const mensajeReal = err.message
@@ -109,7 +105,7 @@ const handleGoogleLogin = async () => {
             <div class="text-right">
               <router-link
                 to="/cambiar-password"
-                class="text-xs text-[#202759] hover:underline font-semibold"
+                class="text-xs text-[#202759] hover:underline font-semibold cursor-pointer"
               >
                 ¿Olvidaste o quieres cambiar tu contraseña?
               </router-link>
@@ -125,13 +121,13 @@ const handleGoogleLogin = async () => {
             <div class="flex-grow border-t border-gray-200"></div>
           </div>
 
+          <!-- Corrección de UI: Agregados cursor-pointer y disabled:cursor-not-allowed -->
           <button
             type="button"
             :disabled="isLoading"
-            class="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border-2 border-slate-200 hover:border-slate-300 rounded-xl text-sm font-bold text-[#202759] transition-all disabled:opacity-50"
+            class="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border-2 border-slate-200 hover:border-slate-300 rounded-xl text-sm font-bold text-[#202759] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             @click="handleGoogleLogin"
           >
-            <!-- SVG Oficial de Google -->
             <svg class="w-5 h-5" viewBox="0 0 24 24">
               <path
                 fill="#4285F4"
@@ -169,7 +165,7 @@ const handleGoogleLogin = async () => {
             ¿No tienes cuenta?
             <router-link
               to="/registro"
-              class="font-bold text-[#202759] hover:underline"
+              class="font-bold text-[#202759] hover:underline cursor-pointer"
               >Regístrate</router-link
             >
           </p>
