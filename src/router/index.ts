@@ -131,11 +131,9 @@ router.beforeEach(async (to, _from, next) => {
     await authStore.initialize()
   }
 
-  // CORRECCIÓN DE SEGURIDAD CRÍTICA: Sanitización de URL post-OAuth
-  // Eliminamos silenciosamente los tokens (access_token, refresh_token) del hash para evitar filtraciones visuales y de historial.
   if (window.location.hash.includes('access_token=')) {
     window.history.replaceState(
-      null,
+      window.history.state,
       '',
       window.location.pathname + window.location.search
     )
