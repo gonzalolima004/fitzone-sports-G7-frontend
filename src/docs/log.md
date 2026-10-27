@@ -887,3 +887,36 @@
 - **Commits:**
   - `fix(gerencia): quitar codigos de requisitos de las pantallas`
   - `docs(log): corregir formato y registrar correcciones`
+
+---
+
+#### 27/10/2026
+#### Facundo Agüero | Rol: Desarrollador Frontend
+
+- **Tarea:** CRUD de membresías de cada socio y ajuste de las pantallas de gerencia a la maqueta (parte frontend).
+- **Actividades:**
+  - Pantalla `/gerencia/membresias` con una fila por socio, como en la maqueta del directorio de usuarios: iniciales, nombre y email, DNI, sede, plan y vencimiento, y estado. Muestra la membresía activa más reciente o, si no tiene, la última que tuvo; los socios sin membresía también aparecen.
+  - Tarjetas con la cantidad de socios en cada estado de la tabla `membresia_estado` y sin membresía; al tocarlas filtran el listado. Filtros por estado y por sede, y búsqueda por nombre, DNI o email sin distinguir tildes.
+  - Acciones por socio: Asociar (sin membresía), Renovar (vencida), Reactivar (suspendida: vuelve a Activa con `PATCH /membresias/:id/estado`) y Gestionar.
+  - Alta en `MembresiaAltaModal`, que también usan Asociar y Renovar con el socio y el plan ya elegidos: socio con buscador, plan con su precio, fecha de inicio y renovación automática, validados con Zod. Muestra el vencimiento que calcula el backend y avisa si el socio ya tiene una membresía activa, que pasa a Suspendida.
+  - Edición en `MembresiaEdicionModal`: estado, vencimiento y renovación automática. Desde ahí se puede eliminar una membresía cargada por error, con confirmación; si tiene pagos, se muestra el motivo que devuelve el backend (409).
+  - Sedes: buscador por nombre o ciudad y columna "Instalaciones" con las canchas de cada sede agrupadas por tipo (`GET /canchas`).
+  - Panel del gerente según la maqueta del dashboard ejecutivo: indicadores de socios activos, facturación del mes, reservas de hoy y aforo simultáneo, y tabla "Rendimiento por sede" con socios activos, aforo actual y máximo, reservas y recaudación del mes. Se mantienen los accesos de administración.
+  - Se quitaron las menciones al rol admin en los comentarios de los servicios de sedes y planes y en una prueba.
+  - Pruebas con Vitest: listado por socio, resumen y filtros, acciones de cada fila, alta y validaciones, edición con cada endpoint, eliminación con 409 y cálculo del vencimiento; buscador e instalaciones de sedes; indicadores, tabla por sede y fallas parciales del panel.
+- **Decisiones:**
+  - Solo se usan endpoints existentes: los socios y su sede salen de `GET /usuarios` y se cruzan en el navegador con `GET /membresias`; el aforo de cada sede, de `GET /accesos/aforo/:id`; la facturación y las reservas, de los reportes de ingresos y ocupación.
+  - Un socio cuenta como activo si su membresía está Activa y no venció (fecha de fin igual o posterior a hoy).
+  - Los estados salen de `GET /membresias/estados` y no están escritos en el frontend.
+  - De la maqueta quedaron afuera el porcentaje de ocupación de canchas y el estado de cada sede, porque ningún endpoint los calcula; en su lugar se muestran las reservas.
+  - Cada dato del panel se carga por separado: si uno falla, ese indicador muestra "No disponible" o un guion y el resto se ve igual.
+  - Las fechas llegan como `2026-10-01T00:00:00.000Z` y se muestran tomando solo la fecha, para que la zona horaria no las corra un día.
+  - En celular las columnas secundarias se ocultan o pasan debajo del nombre, sin desplazamiento horizontal.
+- **Dificultades:** Ninguna.
+- **Verificación:** 13 archivos y 81 pruebas aprobadas (27 nuevas); typecheck, lint y build aprobados; cada commit compila y pasa sus pruebas. Recorrido visual en navegador con API simulada (escritorio, tablet y celular).
+- **Commits:**
+  - `fix(gerencia): quitar el rol admin de comentarios y pruebas`
+  - `feat(gerencia): agregar CRUD de membresias de socios`
+  - `feat(gerencia): agregar buscador e instalaciones en sedes`
+  - `feat(gerencia): alinear el dashboard con la maqueta`
+  - `docs(log): registrar CRUD de membresias y ajustes a la maqueta`
