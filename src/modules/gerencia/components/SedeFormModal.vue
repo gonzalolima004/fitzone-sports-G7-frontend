@@ -151,7 +151,7 @@ async function agregarCiudad() {
         type="number"
         label="Aforo máximo"
         placeholder="Ej: 150"
-        hint="Cantidad máxima de personas en simultáneo (RF-05)."
+        hint="Cantidad máxima de personas en simultáneo."
         required
         :error="errores.aforo_maximo"
       />

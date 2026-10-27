@@ -146,7 +146,7 @@ onMounted(() => {
     <EncabezadoGerencia
       titulo="Panel de gerencia"
       descripcion="Resumen de la cadena y accesos a la administración de sedes, planes, canchas y reportes."
-      etiqueta="Gerente Central (A4)"
+      etiqueta="Gerente Central"
       :mostrar-volver="false"
     />
 

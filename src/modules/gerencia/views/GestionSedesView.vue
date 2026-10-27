@@ -156,7 +156,7 @@ onMounted(cargarDatos)
     <EncabezadoGerencia
       titulo="Sedes de la cadena"
       descripcion="Alta, modificación y baja de sedes. Los cambios se reflejan en el registro de socios y en el selector de sedes."
-      etiqueta="RNF-04 · Multi-sede"
+      etiqueta="Multi-sede"
     >
       <template #acciones>
         <BaseButton
