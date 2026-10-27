@@ -4,7 +4,7 @@ import type { Ciudad, SedeGestion, SedePayload } from '../types/gerencia.types'
 /**
  * Consumo de la API de sedes y ciudades (M0-sedes) para el panel de gerencia.
  * Las consultas son públicas; alta, modificación y baja requieren rol
- * gerente o admin (el interceptor de Axios agrega el token).
+ * gerente (el interceptor de Axios agrega el token).
  */
 export const sedesService = {
   async listar(): Promise<SedeGestion[]> {

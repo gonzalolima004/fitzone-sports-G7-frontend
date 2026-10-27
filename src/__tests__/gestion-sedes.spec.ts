@@ -117,7 +117,7 @@ describe('Gestión de sedes (panel de gerencia)', () => {
     vi.mocked(http.post).mockRejectedValue(
       errorHttp(
         403,
-        'Acceso denegado: se requiere uno de los siguientes roles: [gerente, admin].'
+        'Acceso denegado: se requiere uno de los siguientes roles: [gerente].'
       )
     )
     const wrapper = await montar()
