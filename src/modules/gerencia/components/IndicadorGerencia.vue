@@ -8,17 +8,28 @@ interface Props {
   detalle?: string
   cargando: boolean
   error?: boolean
+  /** Color del borde izquierdo, como en la maqueta del dashboard ejecutivo. */
+  acento?: 'azul' | 'coral' | 'verde' | 'ambar'
 }
 
 withDefaults(defineProps<Props>(), {
   detalle: '',
   error: false,
+  acento: 'azul',
 })
+
+const BORDES: Record<NonNullable<Props['acento']>, string> = {
+  azul: 'border-l-[#202759]',
+  coral: 'border-l-[#F96167]',
+  verde: 'border-l-emerald-500',
+  ambar: 'border-l-amber-500',
+}
 </script>
 
 <template>
   <article
-    class="p-4 bg-white rounded-2xl border border-slate-200 flex items-center gap-3"
+    class="p-4 bg-white rounded-2xl border border-slate-200 border-l-4 flex items-center gap-3"
+    :class="BORDES[acento]"
     :aria-busy="cargando"
   >
     <div

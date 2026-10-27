@@ -16,6 +16,13 @@ export interface SedePayload {
   id_ciudad: number
 }
 
+/** Aforo de una sede tal como lo devuelve GET /accesos/aforo/:id. */
+export interface AforoSede {
+  idSede: number
+  aforoActual: number
+  aforoMaximo: number
+}
+
 /** Cancha tal como la devuelve GET /canchas (solo los campos que se usan). */
 export interface CanchaResumen {
   id_cancha: number
