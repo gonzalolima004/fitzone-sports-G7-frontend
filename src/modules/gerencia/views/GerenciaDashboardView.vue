@@ -9,6 +9,7 @@ import {
   PhChartLineUp,
   PhCourtBasketball,
   PhCurrencyDollar,
+  PhIdentificationCard,
   PhMedal,
 } from '@phosphor-icons/vue'
 import { useSedeStore } from '@/store/sede'
@@ -61,6 +62,12 @@ const accesos = [
     descripcion: 'Nombre, duración y precio de cada plan.',
     ruta: '/gerencia/planes',
     icono: PhMedal,
+  },
+  {
+    titulo: 'Membresías de socios',
+    descripcion: 'Plan, vigencia, estado y renovación de cada socio.',
+    ruta: '/gerencia/membresias',
+    icono: PhIdentificationCard,
   },
   {
     titulo: 'Canchas',

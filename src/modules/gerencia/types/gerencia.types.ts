@@ -38,3 +38,76 @@ export interface PlanPayload {
   duracion_dias: number
   precio: number
 }
+
+/** Estado de la tabla membresia_estado (GET /membresias/estados). */
+export interface EstadoMembresia {
+  id_membresia_estado: number
+  descripcion: string
+}
+
+/** Socio titular de una membresía (datos básicos). */
+export interface SocioResumen {
+  id_usuario: number
+  nombre: string
+  apellido: string
+  dni: string
+  email: string
+}
+
+/** Membresía de un socio tal como la devuelve GET /membresias. */
+export interface MembresiaSocio {
+  id_membresia: number
+  fecha_inicio: string
+  fecha_fin: string
+  renovacion_automatica: boolean
+  id_usuario: number
+  id_membresia_plan: number
+  id_membresia_estado: number
+  membresia_plan: {
+    id_membresia_plan: number
+    nombre: string
+    duracion_dias: number
+    precio: number
+  }
+  membresia_estado: EstadoMembresia
+  usuario: SocioResumen
+}
+
+/**
+ * Datos que acepta POST /membresias para el alta desde el panel.
+ * La fecha de fin la calcula el backend según la duración del plan.
+ */
+export interface MembresiaAltaPayload {
+  id_usuario: number
+  id_membresia_plan: number
+  fecha_inicio: string
+  renovacion_automatica: boolean
+}
+
+/** Cambios que el gerente puede hacer sobre una membresía existente. */
+export interface MembresiaEdicionPayload {
+  id_membresia_estado: number
+  fecha_fin: string
+  renovacion_automatica: boolean
+}
+
+/** Usuario tal como lo devuelve GET /usuarios (solo los campos que se usan). */
+export interface UsuarioListado extends SocioResumen {
+  id_sede?: number | null
+  sede?: { id_sede: number; nombre: string } | null
+  roles?: Array<{ id_rol: number; nombre: string }>
+  usuario_rol?: Array<{ rol: { id_rol: number; nombre: string } }>
+}
+
+/** Usuario preparado para el panel: datos básicos, sede y si es socio. */
+export interface UsuarioGestion extends SocioResumen {
+  id_sede: number | null
+  sede_nombre: string | null
+  es_socio: boolean
+}
+
+/** Fila del listado de membresías: un socio con su membresía actual (o ninguna). */
+export interface FilaMembresiaSocio {
+  socio: UsuarioGestion
+  membresia: MembresiaSocio | null
+}

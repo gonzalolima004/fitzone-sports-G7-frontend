@@ -109,7 +109,7 @@ describe('Dashboard del gerente', () => {
     expect(wrapper.text()).toContain('Desde el 01/10/2026')
   })
 
-  it('ofrece accesos a sedes, planes, canchas y reportes', async () => {
+  it('ofrece accesos a sedes, planes, membresías, canchas y reportes', async () => {
     servidor(RESPUESTAS)
     const wrapper = await montar()
 
@@ -120,6 +120,7 @@ describe('Dashboard del gerente', () => {
     expect(destinos).toEqual([
       '/gerencia/sedes',
       '/gerencia/planes',
+      '/gerencia/membresias',
       '/gerencia/canchas',
       '/gerencia/reportes',
       '/gerencia/reportes/ocupacion',

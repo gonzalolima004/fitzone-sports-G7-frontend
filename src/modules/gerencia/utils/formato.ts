@@ -20,3 +20,11 @@ export function describirDuracion(dias: number): string {
   const nombre = NOMBRES_DE_DURACION[dias]
   return nombre ? `${texto} · ${nombre}` : texto
 }
+
+/** Minúsculas y sin tildes, para comparar en búsquedas. */
+export function normalizarTexto(texto: string): string {
+  return texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
