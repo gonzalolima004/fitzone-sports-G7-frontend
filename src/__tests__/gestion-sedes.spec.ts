@@ -5,6 +5,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import http from '@/common/api/http'
 import GestionSedesView from '@/modules/gerencia/views/GestionSedesView.vue'
 import type {
+  CanchaResumen,
   Ciudad,
   SedeGestion,
 } from '@/modules/gerencia/types/gerencia.types'
@@ -22,13 +23,24 @@ const CIUDADES: Ciudad[] = [
   { id_ciudad: 2, nombre: 'Paraná', activo: true },
 ]
 
+const CANCHAS: CanchaResumen[] = [
+  { id_cancha: 1, id_sede: 1, cancha_tipo: { descripcion: 'Pádel' } },
+  { id_cancha: 2, id_sede: 1, cancha_tipo: { descripcion: 'Fútbol 5' } },
+  { id_cancha: 3, id_sede: 1, cancha_tipo: { descripcion: 'Pádel' } },
+]
+
 let sedes: SedeGestion[] = []
+let canchas: CanchaResumen[] | Error = CANCHAS
 
 function servidorConSedes(lista: SedeGestion[]) {
   sedes = lista
   vi.mocked(http.get).mockImplementation(async (url: string) => {
     if (url === '/sedes') return { data: sedes }
     if (url === '/ciudades') return { data: CIUDADES }
+    if (url === '/canchas') {
+      if (canchas instanceof Error) throw canchas
+      return { data: canchas }
+    }
     throw new Error(`URL no esperada: ${url}`)
   })
 }
@@ -46,6 +58,7 @@ describe('Gestión de sedes (panel de gerencia)', () => {
     vi.resetAllMocks()
     localStorage.clear()
     setActivePinia(createPinia())
+    canchas = CANCHAS
     servidorConSedes([
       {
         id_sede: 1,
@@ -187,6 +200,38 @@ describe('Gestión de sedes (panel de gerencia)', () => {
     await flushPromises()
 
     expect(http.delete).toHaveBeenCalledWith('/sedes/2')
+  })
+
+  it('muestra las instalaciones de cada sede según sus canchas', async () => {
+    const wrapper = await montar()
+    const instalaciones = wrapper
+      .findAll('[data-testid="instalaciones-sede"]')
+      .map((celda) => celda.text())
+
+    expect(http.get).toHaveBeenCalledWith('/canchas')
+    expect(instalaciones).toEqual(['1 Fútbol 5 · 2 Pádel', 'Sin canchas'])
+  })
+
+  it('si las canchas no cargan, la pantalla sigue funcionando', async () => {
+    canchas = new Error('Network Error')
+    const wrapper = await montar()
+
+    expect(wrapper.findAll('[data-testid="fila-sede"]')).toHaveLength(2)
+    expect(wrapper.get('[data-testid="instalaciones-sede"]').text()).toBe('—')
+  })
+
+  it('busca sedes por nombre o ciudad sin distinguir tildes', async () => {
+    const wrapper = await montar()
+
+    await wrapper.get('#buscar-sede').setValue('parana')
+    const filas = wrapper.findAll('[data-testid="fila-sede"]')
+    expect(filas).toHaveLength(1)
+    expect(filas[0].text()).toContain('Norte')
+
+    await wrapper.get('#buscar-sede').setValue('ninguna')
+    expect(wrapper.text()).toContain('Ninguna sede coincide')
+    await boton(wrapper, 'Limpiar búsqueda').trigger('click')
+    expect(wrapper.findAll('[data-testid="fila-sede"]')).toHaveLength(2)
   })
 
   it('si falla la carga muestra el error y permite reintentar', async () => {

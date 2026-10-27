@@ -1,5 +1,10 @@
 import http from '@/common/api/http'
-import type { Ciudad, SedeGestion, SedePayload } from '../types/gerencia.types'
+import type {
+  CanchaResumen,
+  Ciudad,
+  SedeGestion,
+  SedePayload,
+} from '../types/gerencia.types'
 
 /**
  * Consumo de la API de sedes y ciudades (M0-sedes) para el panel de gerencia.
@@ -38,6 +43,12 @@ export const sedesService = {
 
   async crearCiudad(nombre: string): Promise<Ciudad> {
     const { data } = await http.post<Ciudad>('/ciudades', { nombre })
+    return data
+  },
+
+  /** Canchas activas con su tipo (GET /canchas de M4), para las instalaciones. */
+  async listarCanchas(): Promise<CanchaResumen[]> {
+    const { data } = await http.get<CanchaResumen[]>('/canchas')
     return data
   },
 }

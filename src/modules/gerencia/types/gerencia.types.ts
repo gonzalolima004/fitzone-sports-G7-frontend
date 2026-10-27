@@ -16,6 +16,13 @@ export interface SedePayload {
   id_ciudad: number
 }
 
+/** Cancha tal como la devuelve GET /canchas (solo los campos que se usan). */
+export interface CanchaResumen {
+  id_cancha: number
+  id_sede: number
+  cancha_tipo?: { descripcion: string } | null
+}
+
 /** Ciudad tal como la devuelve GET /ciudades. */
 export interface Ciudad {
   id_ciudad: number
