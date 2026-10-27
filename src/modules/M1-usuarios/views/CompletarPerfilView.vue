@@ -8,6 +8,7 @@ import { useSedeStore } from '@/store/sede'
 import { useAuthStore } from '@/store/auth' // Importamos el store para poder cerrar sesión
 import BaseInput from '@/common/components/BaseInput.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
+import SelectorSede from '@/common/components/SelectorSede.vue'
 import { toast } from '@/common/utils/toast'
 
 const router = useRouter()
@@ -198,25 +199,12 @@ const handleCancelar = async () => {
             />
           </div>
 
-          <div class="flex flex-col gap-1.5 w-full text-left">
-            <label class="text-xs font-bold text-[#202759] tracking-wide"
-              >Sede Principal</label
-            >
-            <select
-              v-model="form.id_sede"
-              class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm"
-              required
-            >
-              <option value="" disabled>Selecciona una sede</option>
-              <option
-                v-for="sede in sedeStore.sedes"
-                :key="sede.id_sede"
-                :value="String(sede.id_sede)"
-              >
-                {{ sede.nombre }} - {{ sede.direccion }}
-              </option>
-            </select>
-          </div>
+          <SelectorSede
+            id="completar-perfil-sede"
+            v-model="form.id_sede"
+            label="Sede Principal"
+            required
+          />
 
           <div class="flex flex-col sm:flex-row gap-4 pt-2">
             <BaseButton
@@ -235,6 +223,7 @@ const handleCancelar = async () => {
               size="lg"
               class="w-full"
               :loading="isSubmitting"
+              :disabled="sedeStore.sedes.length === 0"
             >
               Finalizar Registro
             </BaseButton>

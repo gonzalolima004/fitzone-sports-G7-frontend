@@ -100,7 +100,7 @@ const todasLasSecciones: NavSection[] = [
       },
       {
         nombre: 'Panel de gerencia',
-        ruta: '/gerencia/reportes',
+        ruta: '/gerencia',
         icono: 'chart',
         roles: ['gerente'],
       },
@@ -128,6 +128,24 @@ const seccionesFiltradas = computed(() => {
     }))
     .filter((seccion) => seccion.items.length > 0)
 })
+
+// Se marca solo el ítem de ruta más específica: así "Panel de gerencia"
+// (/gerencia) no queda resaltado junto con "Gestión de Canchas" u otros
+// ítems que viven debajo de /gerencia.
+const rutaActiva = computed(() =>
+  seccionesFiltradas.value
+    .flatMap((seccion) => seccion.items.map((item) => item.ruta))
+    .filter(
+      (ruta) =>
+        route.path === ruta ||
+        (ruta !== '/' && route.path.startsWith(ruta + '/'))
+    )
+    .reduce(
+      (masEspecifica, ruta) =>
+        ruta.length > masEspecifica.length ? ruta : masEspecifica,
+      ''
+    )
+)
 
 // Corrección: Función asíncrona para asegurar el borrado del token antes de navegar
 async function cerrarSesion() {
@@ -187,8 +205,7 @@ async function cerrarSesion() {
                 :to="item.ruta"
                 class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200"
                 :class="
-                  route.path === item.ruta ||
-                  (item.ruta !== '/' && route.path.startsWith(item.ruta + '/'))
+                  item.ruta === rutaActiva
                     ? 'bg-[#F96167] text-white font-bold shadow-md'
                     : 'text-white/80 hover:text-white hover:bg-white/10 hover:translate-x-1'
                 "
