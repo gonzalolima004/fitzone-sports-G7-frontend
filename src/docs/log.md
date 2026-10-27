@@ -156,6 +156,21 @@
 
 ----
 
+#### 26/10/2026
+#### Gonzalo Lima | Rol: Desarrollador Frontend
+
+- **Actividades**:
+  - Migración y alineación completa de los planes de membresía a Plan Mensual (30 días), Plan Trimestral (90 días) y Plan Anual (365 días).
+  - Actualización de la landing page con botones de acción: redirige a /membresia si el usuario está autenticado, o a /login si no lo está.
+  - Actualización del modal de checkout con leyenda dinámica de renovación automática según la duración del plan seleccionado (mensual, trimestral o anual) y emisión del ID de plan y preferencia de renovación al backend.
+- **Decisiones**:
+  - Eliminar los selectores artificiales de ciclo de facturación en la landing para consumir directamente los planes reales desde el endpoint del backend.
+  - Enrutar a los usuarios no autenticados al login al interactuar con acciones comerciales clave de la landing page para optimizar el embudo de conversión a socios.
+- **Dificultades**: Ninguna.
+- **Commits:**
+  - `feat(pagos): enviar id_membresia_plan y texto dinámico de renovación en checkout`
+  - `feat(membresias): actualizar cards, beneficios y landing con los nuevos planes`
+
 #### 03/10/2026 - 05/10/2026
 #### Matías Sillen | Rol: Desarrollador Frontend
 

@@ -23,6 +23,44 @@ const formattedPrice = computed(() => {
   }).format(props.plan.precio)
 })
 
+const periodoLabel = computed(() => {
+  if (props.plan.duracion_dias === 30) return '1 MES (30 DÍAS)'
+  if (props.plan.duracion_dias === 90) return '3 MESES (90 DÍAS)'
+  if (props.plan.duracion_dias === 365) return '1 AÑO (365 DÍAS)'
+  return `${props.plan.duracion_dias} DÍAS`
+})
+
+const subtextoPrecio = computed(() => {
+  if (props.plan.duracion_dias === 90) {
+    const mensual = Math.round(props.plan.precio / 3)
+    const precioFmt = new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: 'ARS',
+      maximumFractionDigits: 0,
+    }).format(mensual)
+    return {
+      texto: `Equivale a ${precioFmt}/mes`,
+      ahorro: '12.5% OFF',
+    }
+  }
+  if (props.plan.duracion_dias === 365) {
+    const mensual = Math.round(props.plan.precio / 12)
+    const precioFmt = new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: 'ARS',
+      maximumFractionDigits: 0,
+    }).format(mensual)
+    return {
+      texto: `Equivale a ${precioFmt}/mes`,
+      ahorro: '25% OFF',
+    }
+  }
+  return {
+    texto: 'Facturación mensual',
+    ahorro: null,
+  }
+})
+
 const features = computed(() => {
   return props.plan.descripcion
     .split('|')
@@ -48,19 +86,31 @@ const features = computed(() => {
     </div>
 
     <div class="text-center mb-6">
-      <span class="text-xs font-bold text-slate-400 tracking-widest uppercase"
-        >{{ plan.duracion_dias }} DÍAS</span
+      <span
+        class="text-xs font-bold text-slate-400 tracking-widest uppercase"
+        >{{ periodoLabel }}</span
       >
       <h3 class="text-xl sm:text-2xl font-bold text-[#202759] mt-1">
         {{ plan.nombre }}
       </h3>
 
-      <div class="mt-4 flex items-baseline justify-center gap-1">
-        <span
-          class="text-3xl sm:text-4xl font-extrabold"
-          :class="isPopular ? 'text-[#F96167]' : 'text-[#202759]'"
-          >{{ formattedPrice }}</span
-        >
+      <div class="mt-4 flex flex-col items-center justify-center">
+        <div class="flex items-baseline justify-center gap-1">
+          <span
+            class="text-3xl sm:text-4xl font-extrabold"
+            :class="isPopular ? 'text-[#F96167]' : 'text-[#202759]'"
+            >{{ formattedPrice }}</span
+          >
+        </div>
+        <div class="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
+          <span>{{ subtextoPrecio.texto }}</span>
+          <span
+            v-if="subtextoPrecio.ahorro"
+            class="px-1.5 py-0.5 rounded-md font-bold text-emerald-700 bg-emerald-50 text-[11px]"
+          >
+            {{ subtextoPrecio.ahorro }}
+          </span>
+        </div>
       </div>
     </div>
 

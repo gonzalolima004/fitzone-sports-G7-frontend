@@ -1,5 +1,10 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/store/auth'
 import { PhArrowRight } from '@phosphor-icons/vue'
+
+const router = useRouter()
+const authStore = useAuthStore()
 
 function scrollA(href: string) {
   if (!href || href === '#' || href === '#top') {
@@ -9,6 +14,14 @@ function scrollA(href: string) {
   const target = document.querySelector(href)
   if (target) {
     target.scrollIntoView({ behavior: 'smooth' })
+  }
+}
+
+function irACanchas() {
+  if (authStore.isAuthenticated) {
+    router.push('/canchas')
+  } else {
+    router.push('/login')
   }
 }
 </script>
@@ -90,7 +103,7 @@ function scrollA(href: string) {
           <button
             type="button"
             class="group w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-4 rounded-xl border border-white/40 text-white font-semibold text-sm sm:text-base hover:bg-white/15 hover:border-white transition-all hover:scale-103 active:scale-97 cursor-pointer backdrop-blur-sm"
-            @click="scrollA('#canchas')"
+            @click="irACanchas"
           >
             <span>Alquilar canchas por turno</span>
             <PhArrowRight
