@@ -27,7 +27,7 @@ const emit = defineEmits<{
   (e: 'guardar', datos: PlanPayload): void
 }>()
 
-/** Planes del RF-02: Mensual, Trimestral y Anual. */
+/** Duraciones sugeridas: mensual, trimestral y anual. */
 const DURACIONES_SUGERIDAS = [
   { dias: 30, nombre: 'Mensual' },
   { dias: 90, nombre: 'Trimestral' },

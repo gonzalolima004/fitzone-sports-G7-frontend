@@ -20,3 +20,27 @@ export function describirDuracion(dias: number): string {
   const nombre = NOMBRES_DE_DURACION[dias]
   return nombre ? `${texto} · ${nombre}` : texto
 }
+
+/** Minúsculas y sin tildes, para comparar en búsquedas. */
+export function normalizarTexto(texto: string): string {
+  return texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
+/**
+ * Resume las canchas de una sede por tipo, ej.: "2 Pádel · 1 Fútbol 5".
+ * Devuelve "Sin canchas" si la sede no tiene ninguna.
+ */
+export function describirInstalaciones(tipos: string[]): string {
+  if (tipos.length === 0) return 'Sin canchas'
+  const cantidades = new Map<string, number>()
+  for (const tipo of tipos) {
+    cantidades.set(tipo, (cantidades.get(tipo) ?? 0) + 1)
+  }
+  return [...cantidades.entries()]
+    .sort(([a], [b]) => a.localeCompare(b, 'es'))
+    .map(([tipo, cantidad]) => `${cantidad} ${tipo}`)
+    .join(' · ')
+}

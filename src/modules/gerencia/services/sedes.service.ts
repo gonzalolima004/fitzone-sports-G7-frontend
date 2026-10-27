@@ -1,10 +1,16 @@
 import http from '@/common/api/http'
-import type { Ciudad, SedeGestion, SedePayload } from '../types/gerencia.types'
+import type {
+  AforoSede,
+  CanchaResumen,
+  Ciudad,
+  SedeGestion,
+  SedePayload,
+} from '../types/gerencia.types'
 
 /**
  * Consumo de la API de sedes y ciudades (M0-sedes) para el panel de gerencia.
  * Las consultas son públicas; alta, modificación y baja requieren rol
- * gerente o admin (el interceptor de Axios agrega el token).
+ * gerente (el interceptor de Axios agrega el token).
  */
 export const sedesService = {
   async listar(): Promise<SedeGestion[]> {
@@ -38,6 +44,18 @@ export const sedesService = {
 
   async crearCiudad(nombre: string): Promise<Ciudad> {
     const { data } = await http.post<Ciudad>('/ciudades', { nombre })
+    return data
+  },
+
+  /** Aforo actual y máximo de una sede (GET /accesos/aforo/:id de M2). */
+  async obtenerAforo(idSede: number): Promise<AforoSede> {
+    const { data } = await http.get<AforoSede>(`/accesos/aforo/${idSede}`)
+    return data
+  },
+
+  /** Canchas activas con su tipo (GET /canchas de M4), para las instalaciones. */
+  async listarCanchas(): Promise<CanchaResumen[]> {
+    const { data } = await http.get<CanchaResumen[]>('/canchas')
     return data
   },
 }

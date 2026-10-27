@@ -4,7 +4,7 @@ import type { PlanMembresia, PlanPayload } from '../types/gerencia.types'
 /**
  * Consumo de la API de planes de membresía (M1-usuarios) para el panel de
  * gerencia. El catálogo es público; alta, modificación y baja requieren rol
- * gerente o admin.
+ * gerente.
  */
 export const planesService = {
   async listar(): Promise<PlanMembresia[]> {

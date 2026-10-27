@@ -153,6 +153,12 @@ const routes: RouteRecordRaw[] = [
               import('../modules/gerencia/views/GestionPlanesView.vue'),
           },
           {
+            path: 'membresias',
+            name: 'gerencia-membresias',
+            component: () =>
+              import('../modules/gerencia/views/GestionMembresiasView.vue'),
+          },
+          {
             path: 'reportes',
             component: () =>
               import('../modules/M6-reportes/views/PanelGerenciaView.vue'),

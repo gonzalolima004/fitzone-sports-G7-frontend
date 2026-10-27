@@ -132,7 +132,7 @@ onMounted(cargarPlanes)
     <EncabezadoGerencia
       titulo="Planes de membresía"
       descripcion="Definí los planes que pueden contratar los socios: nombre, duración y precio."
-      etiqueta="RF-02 · Control de membresía"
+      etiqueta="Control de membresía"
     >
       <template #acciones>
         <BaseButton

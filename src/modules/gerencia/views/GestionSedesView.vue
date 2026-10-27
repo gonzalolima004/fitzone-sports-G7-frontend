@@ -18,7 +18,13 @@ import SedeFormModal from '../components/SedeFormModal.vue'
 import ConfirmarEliminacionModal from '../components/ConfirmarEliminacionModal.vue'
 import { sedesService } from '../services/sedes.service'
 import { obtenerMensajeDeError } from '../utils/errores'
-import type { Ciudad, SedeGestion, SedePayload } from '../types/gerencia.types'
+import { describirInstalaciones, normalizarTexto } from '../utils/formato'
+import type {
+  CanchaResumen,
+  Ciudad,
+  SedeGestion,
+  SedePayload,
+} from '../types/gerencia.types'
 
 const sedeStore = useSedeStore()
 
@@ -26,6 +32,12 @@ const sedes = ref<SedeGestion[]>([])
 const ciudades = ref<Ciudad[]>([])
 const cargando = ref(true)
 const errorCarga = ref('')
+const busqueda = ref('')
+
+// Las canchas (M4) solo completan la columna de instalaciones: si fallan, la
+// pantalla sigue funcionando.
+const canchas = ref<CanchaResumen[]>([])
+const errorCanchas = ref(false)
 
 const formularioAbierto = ref(false)
 const sedeEnEdicion = ref<SedeGestion | null>(null)
@@ -50,6 +62,25 @@ const aforoTotal = computed(() =>
   sedes.value.reduce((total, sede) => total + sede.aforo_maximo, 0)
 )
 
+const sedesFiltradas = computed(() => {
+  const termino = normalizarTexto(busqueda.value.trim())
+  if (!termino) return sedesOrdenadas.value
+  return sedesOrdenadas.value.filter((sede) =>
+    [sede.nombre, sede.direccion, nombreCiudad(sede.id_ciudad)].some((campo) =>
+      normalizarTexto(campo).includes(termino)
+    )
+  )
+})
+
+function instalaciones(idSede: number): string {
+  if (errorCanchas.value) return '—'
+  return describirInstalaciones(
+    canchas.value
+      .filter((cancha) => cancha.id_sede === idSede)
+      .map((cancha) => cancha.cancha_tipo?.descripcion ?? 'Cancha')
+  )
+}
+
 function nombreCiudad(idCiudad: number): string {
   return nombresDeCiudades.value.get(idCiudad) ?? `Ciudad #${idCiudad}`
 }
@@ -72,6 +103,20 @@ async function cargarDatos() {
   } finally {
     cargando.value = false
   }
+}
+
+async function cargarCanchas() {
+  errorCanchas.value = false
+  try {
+    canchas.value = await sedesService.listarCanchas()
+  } catch {
+    errorCanchas.value = true
+  }
+}
+
+async function cargarTodo() {
+  await cargarDatos()
+  await cargarCanchas()
 }
 
 /** Mantiene actualizados el selector del encabezado y el registro. */
@@ -148,7 +193,7 @@ async function confirmarBaja() {
   }
 }
 
-onMounted(cargarDatos)
+onMounted(cargarTodo)
 </script>
 
 <template>
@@ -156,7 +201,7 @@ onMounted(cargarDatos)
     <EncabezadoGerencia
       titulo="Sedes de la cadena"
       descripcion="Alta, modificación y baja de sedes. Los cambios se reflejan en el registro de socios y en el selector de sedes."
-      etiqueta="RNF-04 · Multi-sede"
+      etiqueta="Multi-sede"
     >
       <template #acciones>
         <BaseButton
@@ -164,7 +209,7 @@ onMounted(cargarDatos)
           size="sm"
           title="Actualizar listado"
           :loading="cargando"
-          @click="cargarDatos"
+          @click="cargarTodo"
         >
           <template #icon>
             <PhArrowsClockwise :size="15" />
@@ -273,7 +318,7 @@ onMounted(cargarDatos)
         class="p-10 flex flex-col items-center gap-3 text-center"
       >
         <p class="text-sm text-rose-700">{{ errorCarga }}</p>
-        <BaseButton variant="outline" size="sm" @click="cargarDatos">
+        <BaseButton variant="outline" size="sm" @click="cargarTodo">
           Reintentar
         </BaseButton>
       </div>
@@ -299,82 +344,129 @@ onMounted(cargarDatos)
         >
       </div>
 
-      <div v-else class="overflow-x-auto">
-        <table class="w-full text-left text-sm">
-          <caption class="sr-only">
-            Sedes activas de la cadena
-          </caption>
-          <thead class="bg-slate-50 text-xs uppercase text-slate-500">
-            <tr>
-              <th scope="col" class="px-4 py-3 font-semibold">Sede</th>
-              <th
-                scope="col"
-                class="hidden sm:table-cell px-4 py-3 font-semibold"
-              >
-                Ciudad
-              </th>
-              <th scope="col" class="px-4 py-3 font-semibold text-right">
-                Aforo máximo
-              </th>
-              <th scope="col" class="px-4 py-3 font-semibold text-right">
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="sede in sedesOrdenadas"
-              :key="sede.id_sede"
-              data-testid="fila-sede"
-              class="border-t border-slate-100"
-            >
-              <th scope="row" class="px-4 py-3 font-medium text-slate-800">
-                {{ sede.nombre }}
-                <span class="block text-xs font-normal text-slate-500">
-                  {{ sede.direccion }}
-                </span>
-                <span
-                  class="block text-xs font-normal text-slate-500 sm:hidden"
+      <template v-else>
+        <div
+          class="px-4 py-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+        >
+          <h2 class="text-sm font-bold text-[#202759]">
+            Sucursales habilitadas ({{ sedes.length }})
+          </h2>
+          <input
+            id="buscar-sede"
+            v-model="busqueda"
+            type="search"
+            aria-label="Buscar sede por nombre o ciudad"
+            placeholder="Buscar por nombre o ciudad"
+            class="w-full sm:w-64 px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:border-[#202759] focus:ring-[#202759]/15"
+          />
+        </div>
+
+        <div
+          v-if="sedesFiltradas.length === 0"
+          class="p-10 flex flex-col items-center gap-3 text-center"
+        >
+          <p class="text-sm text-slate-500">
+            Ninguna sede coincide con la búsqueda.
+          </p>
+          <BaseButton variant="outline" size="sm" @click="busqueda = ''">
+            Limpiar búsqueda
+          </BaseButton>
+        </div>
+
+        <div v-else class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <caption class="sr-only">
+              Sedes activas de la cadena
+            </caption>
+            <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+              <tr>
+                <th scope="col" class="px-4 py-3 font-semibold">Sede</th>
+                <th
+                  scope="col"
+                  class="hidden sm:table-cell px-4 py-3 font-semibold"
                 >
+                  Ciudad
+                </th>
+                <th scope="col" class="px-4 py-3 font-semibold text-right">
+                  Aforo máximo
+                </th>
+                <th
+                  scope="col"
+                  class="hidden md:table-cell px-4 py-3 font-semibold"
+                >
+                  Instalaciones
+                </th>
+                <th scope="col" class="px-4 py-3 font-semibold text-right">
+                  Acciones
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="sede in sedesFiltradas"
+                :key="sede.id_sede"
+                data-testid="fila-sede"
+                class="border-t border-slate-100"
+              >
+                <th scope="row" class="px-4 py-3 font-medium text-slate-800">
+                  {{ sede.nombre }}
+                  <span class="block text-xs font-normal text-slate-500">
+                    {{ sede.direccion }}
+                  </span>
+                  <span
+                    class="block text-xs font-normal text-slate-500 sm:hidden"
+                  >
+                    {{ nombreCiudad(sede.id_ciudad) }}
+                  </span>
+                  <span
+                    class="block text-xs font-normal text-slate-500 md:hidden"
+                  >
+                    {{ instalaciones(sede.id_sede) }}
+                  </span>
+                </th>
+                <td class="hidden sm:table-cell px-4 py-3 text-slate-600">
                   {{ nombreCiudad(sede.id_ciudad) }}
-                </span>
-              </th>
-              <td class="hidden sm:table-cell px-4 py-3 text-slate-600">
-                {{ nombreCiudad(sede.id_ciudad) }}
-              </td>
-              <td class="px-4 py-3 text-right tabular-nums">
-                {{ sede.aforo_maximo.toLocaleString('es-AR') }}
-              </td>
-              <td class="px-4 py-3">
-                <div class="flex justify-end gap-2">
-                  <BaseButton
-                    variant="outline"
-                    size="sm"
-                    :aria-label="`Editar sede ${sede.nombre}`"
-                    @click="abrirEdicion(sede)"
-                  >
-                    <template #icon>
-                      <PhPencilSimple :size="14" />
-                    </template>
-                    <span class="hidden sm:inline">Editar</span>
-                  </BaseButton>
-                  <BaseButton
-                    variant="danger-outline"
-                    size="sm"
-                    :aria-label="`Dar de baja sede ${sede.nombre}`"
-                    @click="pedirConfirmacionBaja(sede)"
-                  >
-                    <template #icon>
-                      <PhTrash :size="14" />
-                    </template>
-                    <span class="hidden sm:inline">Dar de baja</span>
-                  </BaseButton>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+                </td>
+                <td class="px-4 py-3 text-right tabular-nums">
+                  {{ sede.aforo_maximo.toLocaleString('es-AR') }}
+                </td>
+                <td
+                  data-testid="instalaciones-sede"
+                  class="hidden md:table-cell px-4 py-3 text-slate-600"
+                >
+                  {{ instalaciones(sede.id_sede) }}
+                </td>
+                <td class="px-4 py-3">
+                  <div class="flex justify-end gap-2">
+                    <BaseButton
+                      variant="outline"
+                      size="sm"
+                      :aria-label="`Editar sede ${sede.nombre}`"
+                      @click="abrirEdicion(sede)"
+                    >
+                      <template #icon>
+                        <PhPencilSimple :size="14" />
+                      </template>
+                      <span class="hidden sm:inline">Editar</span>
+                    </BaseButton>
+                    <BaseButton
+                      variant="danger-outline"
+                      size="sm"
+                      :aria-label="`Dar de baja sede ${sede.nombre}`"
+                      @click="pedirConfirmacionBaja(sede)"
+                    >
+                      <template #icon>
+                        <PhTrash :size="14" />
+                      </template>
+                      <span class="hidden sm:inline">Dar de baja</span>
+                    </BaseButton>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
     </section>
 
     <SedeFormModal
