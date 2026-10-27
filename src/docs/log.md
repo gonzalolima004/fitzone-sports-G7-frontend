@@ -513,9 +513,9 @@
   - Se corrigieron errores de sintaxis y la ausencia de la función de formato de moneda durante el aprendizaje de Vue.
   - Las tablas pago y pago_estado consultadas aparecen vacías. Queda pendiente comprobar filas, filtros e importes con pagos de prueba acordados por el equipo.
 - **Commits:**
-  - `defd2e2` — feat(reportes): agregar filtros de fechas y validar rango.
-  - `1db2b64` — feat(reportes): agregar filtros de sede y concepto.
-  - `6fd52a7` — feat(reportes): consultar ingresos y mostrar resultados.
+  - `feat(reportes): agregar filtros de fechas y validar rango`
+  - `feat(reportes): agregar filtros de sede y concepto`
+  - `feat(reportes): consultar ingresos y mostrar resultados`
 
 ----
 
@@ -604,8 +604,7 @@
   - Se sincronizó `package-lock.json` con las dependencias ya declaradas porque `npm ci` fallaba.
   - Se detectó una consulta incompleta en el backend; su corrección se entregó en una rama separada.
 - **Verificación:** Build y lint aprobados; 5 pruebas aprobadas. Pendiente aceptación visual y prueba con una cuenta del entorno compartido.
-- **Commits:** `58042e7` — feat(reportes): consultar ocupacion y reservas por sede.
-- **Referencia:** https://trello.com/c/mmqjjDHt
+- **Commits:** `feat(reportes): consultar ocupacion y reservas por sede`
 
 ---
 
@@ -623,8 +622,7 @@
   - Publicar `feature/e1-tarea-6-panel-gerencia` con dependencia de `feature/e1-tarea-5-ocupacion`.
 - **Dificultades:** La aceptación integrada requiere la corrección del backend y una sesión real; no se da por realizada con pruebas simuladas.
 - **Verificación:** Build y lint aprobados; 8 pruebas aprobadas incluyendo tarea 5.
-- **Commits:** `72c3ee2` — feat(reportes): integrar panel de gerencia y navegacion.
-- **Referencia:** https://trello.com/c/K0iI9k4e
+- **Commits:** `feat(reportes): integrar panel de gerencia y navegacion`
 
 ---
 
@@ -850,15 +848,15 @@
 #### 23/10/2026
 #### Facundo Agüero | Rol: Desarrollador Frontend
 
-- **Tarea:** E11-T1 — Panel de Gerente, CRUD Sedes/Membresías y Sede Dinámica (parte frontend).
+- **Tarea:** Panel de Gerente, CRUD Sedes/Membresías y Sede Dinámica (parte frontend).
 - **Actividades:**
-  - **Sede dinámica en el registro (B3):** componente común `SelectorSede` conectado al store de sedes (`GET /sedes`), usado en `RegistroView` y en `CompletarPerfilView` (registro con Google). Muestra "Cargando sedes...", un error con reintento y un aviso cuando no hay sedes, y deshabilita el selector y el botón de registro mientras no haya sedes para elegir. El reemplazo de la sede fija por la lista de la API lo había incorporado Matías en E7-T1 (`2ae046c`); esta tarea completó los estados de carga y error y unificó ambos flujos.
-  - **CRUD de sedes (B2a):** pantalla `/gerencia/sedes` con listado de sedes activas (ciudad y aforo), resumen, skeleton, estados vacío y de error; alta y edición en `SedeFormModal` validado con Zod según `CreateSedeDto`; alta de ciudad en línea; baja lógica con confirmación previa y toast posterior.
-  - **CRUD de planes (B2b):** pantalla `/gerencia/planes` con listado ordenado por duración y precio en pesos; alta y edición en `PlanFormModal` (Zod según `CrearPlanDto`, duración entera, precio con hasta 2 decimales y atajos Mensual/Trimestral/Anual del RF-02); eliminación con confirmación.
-  - **Dashboard del gerente (B1):** `/gerencia` pasa a ser la portada del rol gerente (`rutaPorRol` y menú lateral), con cuatro indicadores calculados con endpoints existentes (sedes activas, planes, ingresos del mes y reservas de hoy) y accesos a sedes, planes, canchas y reportes. La pantalla de reportes pasa a titularse "Reportes de gerencia" con enlace para volver al panel.
+  - **Sede dinámica en el registro:** componente común `SelectorSede` conectado al store de sedes (`GET /sedes`), usado en `RegistroView` y en `CompletarPerfilView` (registro con Google). Muestra "Cargando sedes...", un error con reintento y un aviso cuando no hay sedes, y deshabilita el selector y el botón de registro mientras no haya sedes para elegir. El reemplazo de la sede fija por la lista de la API lo había incorporado Matías; esta tarea completó los estados de carga y error y unificó ambos flujos.
+  - **CRUD de sedes:** pantalla `/gerencia/sedes` con listado de sedes activas (ciudad y aforo), resumen, skeleton, estados vacío y de error; alta y edición en `SedeFormModal` validado con Zod según `CreateSedeDto`; alta de ciudad en línea; baja lógica con confirmación previa y toast posterior.
+  - **CRUD de planes:** pantalla `/gerencia/planes` con listado ordenado por duración y precio en pesos; alta y edición en `PlanFormModal` (Zod según `CrearPlanDto`, duración entera, precio con hasta 2 decimales y atajos Mensual/Trimestral/Anual); eliminación con confirmación.
+  - **Dashboard del gerente:** `/gerencia` pasa a ser la portada del rol gerente (`rutaPorRol` y menú lateral), con cuatro indicadores calculados con endpoints existentes (sedes activas, planes, ingresos del mes y reservas de hoy) y accesos a sedes, planes, canchas y reportes. La pantalla de reportes pasa a titularse "Reportes de gerencia" con enlace para volver al panel.
   - Pruebas con Vitest: selector de sede, CRUD de sedes y planes (listado, validación, alta, edición, errores del servidor, baja), dashboard (indicadores, fechas consultadas, accesos y falla parcial) e ítem activo del menú lateral.
 - **Decisiones:**
-  - Agrupar en `src/modules/gerencia` (ruta indicada en el backlog de E11-T1) el dashboard y las pantallas de parametrización del Gerente Central, sin modificar módulos de otros responsables más allá del selector de sede del registro y de la navegación (`ruta-por-rol.ts` y `Sidebar.vue`).
+  - Agrupar en `src/modules/gerencia` (ruta indicada en el backlog) el dashboard y las pantallas de parametrización del Gerente Central, sin modificar módulos de otros responsables más allá del selector de sede del registro y de la navegación (`ruta-por-rol.ts` y `Sidebar.vue`).
   - Reutilizar `BaseModal`, `BaseInput`, `BaseButton`, `BaseSkeleton`, el toast y el store de sedes; seguir el patrón del equipo: modal antes de una acción destructiva y toast después.
   - Recargar el store global de sedes después de cada alta, edición o baja para que el registro y el selector del encabezado muestren los cambios sin recargar la página.
   - La sede del registro arranca vacía y se exige elegirla: preseleccionar la primera podía asignar socios a una sede equivocada.
@@ -867,12 +865,25 @@
   - Eliminar un plan con membresías asociadas devuelve 500 en el backend (clave foránea). La pantalla explica el caso y sugiere editar el plan; el 409 queda pendiente para el responsable de M1.
   - En pantallas angostas las tablas obligaban a desplazarse en horizontal; se reubicó la información secundaria debajo del nombre y los botones quedan solo con ícono.
   - Al integrar con los últimos cambios de `dev`, el menú lateral ya tenía "Directorio de Usuarios" y "Gestión de Canchas", que también viven bajo `/gerencia`; con "Panel de gerencia" apuntando a `/gerencia` se resaltaban dos ítems a la vez. Se ajustó `Sidebar.vue` para marcar solo el ítem de ruta más específica.
-- **Verificación:** 12 archivos y 54 pruebas aprobadas (26 nuevas); typecheck, lint y build aprobados; cada commit compila y pasa sus pruebas. Recorrido visual en navegador con API simulada (escritorio y móvil). Pendiente: recorrido con la cuenta compartida de gerente contra el backend con los guards de E11-T1.
+- **Verificación:** 12 archivos y 54 pruebas aprobadas (26 nuevas); typecheck, lint y build aprobados; cada commit compila y pasa sus pruebas. Recorrido visual en navegador con API simulada (escritorio y móvil). Pendiente: recorrido con la cuenta compartida de gerente contra el backend con los guards de escritura.
 - **Commits:**
-  - `57f97ef` — feat(registro): selector de sede dinamico.
-  - `6f45e94` — feat(gerencia): agregar CRUD de sedes.
-  - `da32e9e` — feat(gerencia): agregar CRUD de planes de membresia.
-  - `e81f5ee` — feat(gerencia): agregar dashboard del gerente.
-- **Referencia:** https://trello.com/c/gn9BCsTu
+  - `feat(registro): selector de sede dinamico`
+  - `feat(gerencia): agregar CRUD de sedes`
+  - `feat(gerencia): agregar CRUD de planes de membresia`
+  - `feat(gerencia): agregar dashboard del gerente`
 
 ---
+
+#### 27/10/2026
+#### Facundo Agüero | Rol: Desarrollador Frontend
+
+- **Tarea:** Correcciones de la revisión del panel de gerencia.
+- **Actividades:**
+  - Se quitaron de las pantallas de sedes, planes y del panel los códigos de requisitos y de actor que aparecían en títulos y ayudas; quedan solo los textos descriptivos.
+  - Se ajustó el formato de mis entradas de esta bitácora: commits sin hash, sin enlace a Trello y sin códigos de tarea, como en el resto del equipo.
+- **Decisiones:** Ninguna.
+- **Dificultades:** Ninguna.
+- **Verificación:** 12 archivos y 54 pruebas aprobadas; typecheck, lint y build aprobados.
+- **Commits:**
+  - `fix(gerencia): quitar codigos de requisitos de las pantallas`
+  - `docs(log): corregir formato y registrar correcciones`
