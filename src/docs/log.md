@@ -156,6 +156,21 @@
 
 ----
 
+#### 26/10/2026
+#### Gonzalo Lima | Rol: Desarrollador Frontend
+
+- **Actividades**:
+  - Migración y alineación completa de los planes de membresía a Plan Mensual (30 días), Plan Trimestral (90 días) y Plan Anual (365 días).
+  - Actualización de la landing page con botones de acción: redirige a /membresia si el usuario está autenticado, o a /login si no lo está.
+  - Actualización del modal de checkout con leyenda dinámica de renovación automática según la duración del plan seleccionado (mensual, trimestral o anual) y emisión del ID de plan y preferencia de renovación al backend.
+- **Decisiones**:
+  - Eliminar los selectores artificiales de ciclo de facturación en la landing para consumir directamente los planes reales desde el endpoint del backend.
+  - Enrutar a los usuarios no autenticados al login al interactuar con acciones comerciales clave de la landing page para optimizar el embudo de conversión a socios.
+- **Dificultades**: Ninguna.
+- **Commits:**
+  - `feat(pagos): enviar id_membresia_plan y texto dinámico de renovación en checkout`
+  - `feat(membresias): actualizar cards, beneficios y landing con los nuevos planes`
+
 #### 03/10/2026 - 05/10/2026
 #### Matías Sillen | Rol: Desarrollador Frontend
 
@@ -498,9 +513,9 @@
   - Se corrigieron errores de sintaxis y la ausencia de la función de formato de moneda durante el aprendizaje de Vue.
   - Las tablas pago y pago_estado consultadas aparecen vacías. Queda pendiente comprobar filas, filtros e importes con pagos de prueba acordados por el equipo.
 - **Commits:**
-  - `defd2e2` — feat(reportes): agregar filtros de fechas y validar rango.
-  - `1db2b64` — feat(reportes): agregar filtros de sede y concepto.
-  - `6fd52a7` — feat(reportes): consultar ingresos y mostrar resultados.
+  - `feat(reportes): agregar filtros de fechas y validar rango`
+  - `feat(reportes): agregar filtros de sede y concepto`
+  - `feat(reportes): consultar ingresos y mostrar resultados`
 
 ----
 
@@ -589,8 +604,7 @@
   - Se sincronizó `package-lock.json` con las dependencias ya declaradas porque `npm ci` fallaba.
   - Se detectó una consulta incompleta en el backend; su corrección se entregó en una rama separada.
 - **Verificación:** Build y lint aprobados; 5 pruebas aprobadas. Pendiente aceptación visual y prueba con una cuenta del entorno compartido.
-- **Commits:** `58042e7` — feat(reportes): consultar ocupacion y reservas por sede.
-- **Referencia:** https://trello.com/c/mmqjjDHt
+- **Commits:** `feat(reportes): consultar ocupacion y reservas por sede`
 
 ---
 
@@ -608,8 +622,7 @@
   - Publicar `feature/e1-tarea-6-panel-gerencia` con dependencia de `feature/e1-tarea-5-ocupacion`.
 - **Dificultades:** La aceptación integrada requiere la corrección del backend y una sesión real; no se da por realizada con pruebas simuladas.
 - **Verificación:** Build y lint aprobados; 8 pruebas aprobadas incluyendo tarea 5.
-- **Commits:** `72c3ee2` — feat(reportes): integrar panel de gerencia y navegacion.
-- **Referencia:** https://trello.com/c/K0iI9k4e
+- **Commits:** `feat(reportes): integrar panel de gerencia y navegacion`
 
 ---
 
@@ -832,6 +845,7 @@
 
 ---
 
+<<<<<<< HEAD
 #### 26/10/2026
 
 #### Matías Sillen | Rol: Desarrollador Frontend
@@ -862,3 +876,80 @@
 * `style(auth): centrar logo de FitZone y unificar layout de scroll con registro`
 * `fix(auth): separar campos nombre/apellido y forzar rol externo en autocompletado`
 * `fix(router): preservar history state al limpiar url para evitar demoras en navegacion`
+=======
+#### 23/10/2026
+#### Facundo Agüero | Rol: Desarrollador Frontend
+
+- **Tarea:** Panel de Gerente, CRUD Sedes/Membresías y Sede Dinámica (parte frontend).
+- **Actividades:**
+  - **Sede dinámica en el registro:** componente común `SelectorSede` conectado al store de sedes (`GET /sedes`), usado en `RegistroView` y en `CompletarPerfilView` (registro con Google). Muestra "Cargando sedes...", un error con reintento y un aviso cuando no hay sedes, y deshabilita el selector y el botón de registro mientras no haya sedes para elegir. El reemplazo de la sede fija por la lista de la API lo había incorporado Matías; esta tarea completó los estados de carga y error y unificó ambos flujos.
+  - **CRUD de sedes:** pantalla `/gerencia/sedes` con listado de sedes activas (ciudad y aforo), resumen, skeleton, estados vacío y de error; alta y edición en `SedeFormModal` validado con Zod según `CreateSedeDto`; alta de ciudad en línea; baja lógica con confirmación previa y toast posterior.
+  - **CRUD de planes:** pantalla `/gerencia/planes` con listado ordenado por duración y precio en pesos; alta y edición en `PlanFormModal` (Zod según `CrearPlanDto`, duración entera, precio con hasta 2 decimales y atajos Mensual/Trimestral/Anual); eliminación con confirmación.
+  - **Dashboard del gerente:** `/gerencia` pasa a ser la portada del rol gerente (`rutaPorRol` y menú lateral), con cuatro indicadores calculados con endpoints existentes (sedes activas, planes, ingresos del mes y reservas de hoy) y accesos a sedes, planes, canchas y reportes. La pantalla de reportes pasa a titularse "Reportes de gerencia" con enlace para volver al panel.
+  - Pruebas con Vitest: selector de sede, CRUD de sedes y planes (listado, validación, alta, edición, errores del servidor, baja), dashboard (indicadores, fechas consultadas, accesos y falla parcial) e ítem activo del menú lateral.
+- **Decisiones:**
+  - Agrupar en `src/modules/gerencia` (ruta indicada en el backlog) el dashboard y las pantallas de parametrización del Gerente Central, sin modificar módulos de otros responsables más allá del selector de sede del registro y de la navegación (`ruta-por-rol.ts` y `Sidebar.vue`).
+  - Reutilizar `BaseModal`, `BaseInput`, `BaseButton`, `BaseSkeleton`, el toast y el store de sedes; seguir el patrón del equipo: modal antes de una acción destructiva y toast después.
+  - Recargar el store global de sedes después de cada alta, edición o baja para que el registro y el selector del encabezado muestren los cambios sin recargar la página.
+  - La sede del registro arranca vacía y se exige elegirla: preseleccionar la primera podía asignar socios a una sede equivocada.
+  - No crear endpoints nuevos para el dashboard: cada indicador usa una consulta existente y carga por separado, de modo que si una falla las demás se muestran.
+- **Dificultades y resolución:**
+  - Eliminar un plan con membresías asociadas devuelve 500 en el backend (clave foránea). La pantalla explica el caso y sugiere editar el plan; el 409 queda pendiente para el responsable de M1.
+  - En pantallas angostas las tablas obligaban a desplazarse en horizontal; se reubicó la información secundaria debajo del nombre y los botones quedan solo con ícono.
+  - Al integrar con los últimos cambios de `dev`, el menú lateral ya tenía "Directorio de Usuarios" y "Gestión de Canchas", que también viven bajo `/gerencia`; con "Panel de gerencia" apuntando a `/gerencia` se resaltaban dos ítems a la vez. Se ajustó `Sidebar.vue` para marcar solo el ítem de ruta más específica.
+- **Verificación:** 12 archivos y 54 pruebas aprobadas (26 nuevas); typecheck, lint y build aprobados; cada commit compila y pasa sus pruebas. Recorrido visual en navegador con API simulada (escritorio y móvil). Pendiente: recorrido con la cuenta compartida de gerente contra el backend con los guards de escritura.
+- **Commits:**
+  - `feat(registro): selector de sede dinamico`
+  - `feat(gerencia): agregar CRUD de sedes`
+  - `feat(gerencia): agregar CRUD de planes de membresia`
+  - `feat(gerencia): agregar dashboard del gerente`
+
+---
+
+#### 27/10/2026
+#### Facundo Agüero | Rol: Desarrollador Frontend
+
+- **Tarea:** Correcciones de la revisión del panel de gerencia.
+- **Actividades:**
+  - Se quitaron de las pantallas de sedes, planes y del panel los códigos de requisitos y de actor que aparecían en títulos y ayudas; quedan solo los textos descriptivos.
+  - Se ajustó el formato de mis entradas de esta bitácora: commits sin hash, sin enlace a Trello y sin códigos de tarea, como en el resto del equipo.
+- **Decisiones:** Ninguna.
+- **Dificultades:** Ninguna.
+- **Verificación:** 12 archivos y 54 pruebas aprobadas; typecheck, lint y build aprobados.
+- **Commits:**
+  - `fix(gerencia): quitar codigos de requisitos de las pantallas`
+  - `docs(log): corregir formato y registrar correcciones`
+
+---
+
+#### 27/10/2026
+#### Facundo Agüero | Rol: Desarrollador Frontend
+
+- **Tarea:** CRUD de membresías de cada socio y ajuste de las pantallas de gerencia a la maqueta (parte frontend).
+- **Actividades:**
+  - Pantalla `/gerencia/membresias` con una fila por socio, como en la maqueta del directorio de usuarios: iniciales, nombre y email, DNI, sede, plan y vencimiento, y estado. Muestra la membresía activa más reciente o, si no tiene, la última que tuvo; los socios sin membresía también aparecen.
+  - Tarjetas con la cantidad de socios en cada estado de la tabla `membresia_estado` y sin membresía; al tocarlas filtran el listado. Filtros por estado y por sede, y búsqueda por nombre, DNI o email sin distinguir tildes.
+  - Acciones por socio: Asociar (sin membresía), Renovar (vencida), Reactivar (suspendida: vuelve a Activa con `PATCH /membresias/:id/estado`) y Gestionar.
+  - Alta en `MembresiaAltaModal`, que también usan Asociar y Renovar con el socio y el plan ya elegidos: socio con buscador, plan con su precio, fecha de inicio y renovación automática, validados con Zod. Muestra el vencimiento que calcula el backend y avisa si el socio ya tiene una membresía activa, que pasa a Suspendida.
+  - Edición en `MembresiaEdicionModal`: estado, vencimiento y renovación automática. Desde ahí se puede eliminar una membresía cargada por error, con confirmación; si tiene pagos, se muestra el motivo que devuelve el backend (409).
+  - Sedes: buscador por nombre o ciudad y columna "Instalaciones" con las canchas de cada sede agrupadas por tipo (`GET /canchas`).
+  - Panel del gerente según la maqueta del dashboard ejecutivo: indicadores de socios activos, facturación del mes, reservas de hoy y aforo simultáneo, y tabla "Rendimiento por sede" con socios activos, aforo actual y máximo, reservas y recaudación del mes. Se mantienen los accesos de administración.
+  - Se quitaron las menciones al rol admin en los comentarios de los servicios de sedes y planes y en una prueba.
+  - Pruebas con Vitest: listado por socio, resumen y filtros, acciones de cada fila, alta y validaciones, edición con cada endpoint, eliminación con 409 y cálculo del vencimiento; buscador e instalaciones de sedes; indicadores, tabla por sede y fallas parciales del panel.
+- **Decisiones:**
+  - Solo se usan endpoints existentes: los socios y su sede salen de `GET /usuarios` y se cruzan en el navegador con `GET /membresias`; el aforo de cada sede, de `GET /accesos/aforo/:id`; la facturación y las reservas, de los reportes de ingresos y ocupación.
+  - Un socio cuenta como activo si su membresía está Activa y no venció (fecha de fin igual o posterior a hoy).
+  - Los estados salen de `GET /membresias/estados` y no están escritos en el frontend.
+  - De la maqueta quedaron afuera el porcentaje de ocupación de canchas y el estado de cada sede, porque ningún endpoint los calcula; en su lugar se muestran las reservas.
+  - Cada dato del panel se carga por separado: si uno falla, ese indicador muestra "No disponible" o un guion y el resto se ve igual.
+  - Las fechas llegan como `2026-10-01T00:00:00.000Z` y se muestran tomando solo la fecha, para que la zona horaria no las corra un día.
+  - En celular las columnas secundarias se ocultan o pasan debajo del nombre, sin desplazamiento horizontal.
+- **Dificultades:** Ninguna.
+- **Verificación:** 13 archivos y 81 pruebas aprobadas (27 nuevas); typecheck, lint y build aprobados; cada commit compila y pasa sus pruebas. Recorrido visual en navegador con API simulada (escritorio, tablet y celular).
+- **Commits:**
+  - `fix(gerencia): quitar el rol admin de comentarios y pruebas`
+  - `feat(gerencia): agregar CRUD de membresias de socios`
+  - `feat(gerencia): agregar buscador e instalaciones en sedes`
+  - `feat(gerencia): alinear el dashboard con la maqueta`
+  - `docs(log): registrar CRUD de membresias y ajustes a la maqueta`
+>>>>>>> 977cfee6bff0bdec288b13cd61df75adcb3383d8

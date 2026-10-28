@@ -14,9 +14,9 @@ const FAQ_ITEMS: FaqItem[] = [
       '¡Sí, claro! Podés alquilar turnos de pádel, fútbol o tenis pagando únicamente el valor del turno que jugás, sin matrícula ni cuotas obligatorias. Y si tenés una membresía activa, tenés un 15% de descuento en el alquiler.',
   },
   {
-    pregunta: '¿Qué diferencia hay entre los pases de 2 días, 3 días y Libre?',
+    pregunta: '¿Qué diferencia hay entre el Plan Mensual, Trimestral y Anual?',
     respuesta:
-      'La cantidad de veces por semana que podés venir a entrenar a musculación o a clases: con el Pase 2 Días tenés hasta 2 accesos por semana en tu sede elegida, con el Pase 3 Días hasta 3 accesos, y con el Pase Libre venís todos los días que quieras y podés entrenar en cualquier sede de la provincia.',
+      'Todos los planes te dan exactamente el mismo acceso libre ilimitado a todas nuestras sedes, salas de musculación, clases grupales y 15% de descuento en alquiler de canchas. La única diferencia es el período contratado y el ahorro: los planes Trimestral y Anual ofrecen un precio mensual con descuento (hasta 25% OFF) y congelan el valor de tu cuota.',
   },
   {
     pregunta: '¿Cómo hago para entrar al gimnasio o a las canchas?',

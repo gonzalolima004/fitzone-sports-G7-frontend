@@ -38,24 +38,13 @@ const fetchDatos = async () => {
       membresiasService.verificarEstado(userId),
     ])) as unknown as [PlanMembresia[], EstadoMembresia]
 
-    planes.value = planesData.map((p) => {
-      let desc =
-        'Acceso a musculación y clases grupales|Credencial digital QR|15% off en canchas|Sin matrícula'
+    const BENEFICIOS_PLAN =
+      'Acceso libre ilimitado a musculación y cardio|Acceso a todas las clases grupales sin límite|Acreditación digital instantánea por QR|15% de descuento en alquiler de canchas|Sin costos de matrícula ni inscripción'
 
-      const nombre = (p.nombre || '').toLowerCase()
-      if (nombre.includes('2')) {
-        desc =
-          '2 accesos por semana a musculación y clases|Acreditación digital instantánea por QR|15% de descuento en canchas|Sin matrícula ni costo de inscripción'
-      } else if (nombre.includes('3')) {
-        desc =
-          '3 accesos por semana a musculación y clases|Acreditación digital instantánea por QR|15% de descuento en canchas|Sin matrícula ni costo de inscripción'
-      } else if (nombre.includes('libre')) {
-        desc =
-          'Acceso ilimitado todos los días a musculación y clases|Libre acceso a todas las sedes provinciales|Acreditación digital instantánea por QR|15% de descuento en canchas'
-      }
-
-      return { ...p, descripcion: desc }
-    })
+    planes.value = planesData.map((p) => ({
+      ...p,
+      descripcion: BENEFICIOS_PLAN,
+    }))
 
     miEstado.value = estadoData
   } catch {
@@ -88,12 +77,13 @@ const abrirCheckout = (planRecibido: PlanMembresia) => {
   modalAbierto.value = true
 }
 
-const confirmarPago = async () => {
+const confirmarPago = async (_planId?: number, renovacionAutomatica = true) => {
   isProcessingPayment.value = true
   try {
     const payload = {
-      id_membresia: planSeleccionado.value?.id,
+      id_membresia_plan: planSeleccionado.value?.id,
       monto: planSeleccionado.value?.precio ?? 0,
+      renovacion_automatica: renovacionAutomatica,
       email_pagador: authStore.usuario?.email || 'test@fitzone.com',
       titulo: `Suscripción - ${planSeleccionado.value?.nombre ?? ''}`,
     }
