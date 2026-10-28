@@ -845,7 +845,6 @@
 
 ---
 
-<<<<<<< HEAD
 #### 26/10/2026
 
 #### Matías Sillen | Rol: Desarrollador Frontend
@@ -876,7 +875,6 @@
 * `style(auth): centrar logo de FitZone y unificar layout de scroll con registro`
 * `fix(auth): separar campos nombre/apellido y forzar rol externo en autocompletado`
 * `fix(router): preservar history state al limpiar url para evitar demoras en navegacion`
-=======
 #### 23/10/2026
 #### Facundo Agüero | Rol: Desarrollador Frontend
 
@@ -952,4 +950,3 @@
   - `feat(gerencia): agregar buscador e instalaciones en sedes`
   - `feat(gerencia): alinear el dashboard con la maqueta`
   - `docs(log): registrar CRUD de membresias y ajustes a la maqueta`
->>>>>>> 977cfee6bff0bdec288b13cd61df75adcb3383d8
