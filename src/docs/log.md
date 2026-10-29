@@ -845,6 +845,36 @@
 
 ---
 
+#### 26/10/2026
+
+#### Matías Sillen | Rol: Desarrollador Frontend
+
+* **Actividades:**
+* Separación de los campos de identidad en los formularios de registro y completado de perfil, diferenciando explícitamente `nombre` y `apellido` bajo validaciones estrictas de Zod.
+* Implementación de la funcionalidad completa de gestión de fotos de perfil (carga local, previsualización en miniatura circular, botón de cambio y opción de eliminación) tanto en `RegistroView.vue` como en `CompletarPerfilView.vue`.
+* Eliminación del selector de tipos de perfil en las vistas públicas, forzando la asignación automática y estricta del rol de "cliente externo" (`id_rol: 4`).
+* Unificación y mejora del layout visual en las pantallas de autenticación, configurando un panel izquierdo fijo con el logo centrado y un panel derecho con scroll vertical independiente (`h-screen overflow-hidden` y `overflow-y-auto`).
+* Adición de un indicador dinámico de fuerza de contraseña en tiempo real y un botón de retroceso hacia el inicio de sesión.
+* Corrección en la sanitización de URLs post-OAuth en `src/router/index.ts`, pasando de un estado nulo a preservar `window.history.state` al limpiar los tokens de Supabase del hash.
+
+
+* **Decisiones:**
+* Preservar el estado actual del historial del navegador (`window.history.state`) al ejecutar `replaceState` para evitar la pérdida de referencias de Vue Router, eliminando así los warnings de consola y la latencia al hacer clic en los ítems del menú.
+* Precompletar automáticamente los campos de nombre y apellido dividiendo el `full_name` devuelto por los metadatos de Google OAuth al completar el perfil.
+
+
+* **Dificultades:**
+* Retrasos intermitentes en la transición de rutas del menú lateral provocados por la eliminación drástica del historial al remover los tokens de la barra de direcciones de forma insegura, lo cual se resolvió correctamente manteniendo el contexto del router.
+
+
+* **Commits:**
+* `fix(auth): corregir cursor de botones interactivos`
+* `fix(auth): mejorar errores, separar campos y retirar opcion de socio`
+* `fix(auth): proteger tokens en interceptor y sanitizar URL de redireccion`
+* `fix(auth): separar nombre/apellido, agregar volver, scroll de panel y medidor de contraseña`
+* `style(auth): centrar logo de FitZone y unificar layout de scroll con registro`
+* `fix(auth): separar campos nombre/apellido y forzar rol externo en autocompletado`
+* `fix(router): preservar history state al limpiar url para evitar demoras en navegacion`
 #### 23/10/2026
 #### Facundo Agüero | Rol: Desarrollador Frontend
 

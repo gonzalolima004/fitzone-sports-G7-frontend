@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { z } from 'zod'
-import { PhSoccerBall } from '@phosphor-icons/vue'
+import { PhSoccerBall, PhArrowLeft } from '@phosphor-icons/vue'
 import { usuariosService } from '../services/usuarios.service'
 import { authService } from '../services/auth.service'
 import { useSedeStore } from '@/store/sede'
@@ -19,8 +19,8 @@ const fotoPreview = ref<string | null>(null)
 const fotoFile = ref<File | null>(null)
 
 const form = reactive({
-  tipoPerfil: 'socio',
-  nombreCompleto: '',
+  nombre: '',
+  apellido: '',
   dni: '',
   email: '',
   telefono: '',
@@ -36,12 +36,19 @@ onMounted(async () => {
 // VALIDACIÓN ESTRICTA
 const registroSchema = z
   .object({
-    nombreCompleto: z
+    nombre: z
       .string()
-      .min(3, 'El nombre debe tener al menos 3 caracteres.')
+      .min(2, 'El nombre debe tener al menos 2 caracteres.')
       .regex(
         /^[a-zA-ZÀ-ÿ\s]+$/,
         'El nombre solo puede contener letras y espacios.'
+      ),
+    apellido: z
+      .string()
+      .min(2, 'El apellido debe tener al menos 2 caracteres.')
+      .regex(
+        /^[a-zA-ZÀ-ÿ\s]+$/,
+        'El apellido solo puede contener letras y espacios.'
       ),
     dni: z
       .string()
@@ -69,10 +76,45 @@ const registroSchema = z
     message: 'Las contraseñas no coinciden.',
     path: ['confirmarContrasenia'],
   })
-  .refine((data) => data.nombreCompleto.trim().split(' ').length > 1, {
-    message: 'Por favor, ingresa tanto tu nombre como tu apellido.',
-    path: ['nombreCompleto'],
-  })
+
+// INDICADOR DE FUERZA DE CONTRASEÑA
+const pwdStrength = computed(() => {
+  const pwd = form.contrasenia
+  if (!pwd)
+    return {
+      score: 0,
+      color: 'bg-gray-200',
+      textColor: 'text-gray-400',
+      label: '',
+    }
+
+  let score = 0
+  if (pwd.length >= 8) score += 1
+  if (/[a-z]/.test(pwd)) score += 1
+  if (/[A-Z]/.test(pwd)) score += 1
+  if (/[0-9]/.test(pwd)) score += 1
+
+  if (score <= 2)
+    return {
+      score,
+      color: 'bg-red-500',
+      textColor: 'text-red-500',
+      label: 'Débil',
+    }
+  if (score === 3)
+    return {
+      score,
+      color: 'bg-yellow-500',
+      textColor: 'text-yellow-500',
+      label: 'Buena',
+    }
+  return {
+    score: 4,
+    color: 'bg-green-500',
+    textColor: 'text-green-500',
+    label: 'Fuerte',
+  }
+})
 
 const triggerFileInput = () => fileInput.value?.click()
 
@@ -84,7 +126,15 @@ const handleFotoUpload = (event: Event) => {
   }
 }
 
-// Función para traducir errores de Supabase
+// NUEVA FUNCIÓN: Eliminar foto seleccionada
+const removerFoto = () => {
+  fotoFile.value = null
+  fotoPreview.value = null
+  if (fileInput.value) {
+    fileInput.value.value = '' // Limpiamos el input para permitir volver a elegir el mismo archivo
+  }
+}
+
 const traducirErrorSupabase = (msg: string) => {
   if (msg.includes('User already registered'))
     return 'Este correo electrónico ya está registrado.'
@@ -98,13 +148,9 @@ const traducirErrorSupabase = (msg: string) => {
 const handleRegistro = async () => {
   const validation = registroSchema.safeParse(form)
   if (!validation.success) {
-    validation.error.issues.forEach((err) => toast.warning(err.message))
+    toast.warning(validation.error.issues[0].message)
     return
   }
-
-  const partesNombre = form.nombreCompleto.trim().split(' ')
-  const nombre = partesNombre[0]
-  const apellido = partesNombre.slice(1).join(' ')
 
   isLoading.value = true
 
@@ -115,15 +161,15 @@ const handleRegistro = async () => {
       password: form.contrasenia,
     })
 
-    // 2. Backend local
+    // 2. Backend local: Se asigna rígidamente rol de externo (4)
     const nuevoUsuario = await usuariosService.registrarUsuario({
       dni: form.dni,
       email: form.email,
-      nombre,
-      apellido,
+      nombre: form.nombre.trim(),
+      apellido: form.apellido.trim(),
       telefono: form.telefono,
       id_sede: form.id_sede,
-      roles: form.tipoPerfil === 'socio' ? [1] : [4],
+      roles: [4],
     })
 
     if (nuevoUsuario.id_usuario && fotoFile.value) {
@@ -140,17 +186,13 @@ const handleRegistro = async () => {
       message?: string
       response?: { data?: { message?: string } }
     }
-
-    // Si el error viene de la API local
     if (err.response?.data?.message) {
       toast.error(
         typeof err.response.data.message === 'string'
           ? err.response.data.message
           : 'Error en el servidor local.'
       )
-    }
-    // Si el error viene de Supabase (ej. User already registered)
-    else if (err.message) {
+    } else if (err.message) {
       toast.error(traducirErrorSupabase(err.message))
     } else {
       toast.error('Error desconocido al procesar el registro.')
@@ -172,123 +214,235 @@ const handleGoogleLogin = async () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex">
+  <div class="h-screen w-full flex overflow-hidden font-sans">
+    <!-- PANEL IZQUIERDO -->
     <div
-      class="hidden lg:flex lg:w-5/12 bg-[#202759] text-white p-12 flex-col justify-center relative"
+      class="hidden lg:flex lg:w-5/12 bg-[#202759] text-white p-12 flex-col justify-center items-center relative h-full"
     >
-      <div class="max-w-md mx-auto">
+      <div class="max-w-md mx-auto text-center">
         <h1 class="text-4xl font-bold mb-4">
           FitZone <span class="text-[#F96167]">Sports</span>
         </h1>
       </div>
     </div>
 
-    <div
-      class="w-full lg:w-7/12 flex items-center justify-center p-8 bg-white overflow-y-auto"
-    >
-      <div class="w-full max-w-xl">
+    <!-- PANEL DERECHO -->
+    <div class="w-full lg:w-7/12 bg-white h-full overflow-y-auto p-6 sm:p-8">
+      <div
+        class="w-full max-w-xl mx-auto min-h-full flex flex-col justify-center py-8"
+      >
+        <router-link
+          to="/login"
+          class="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-[#F96167] transition-colors mb-6 font-semibold w-fit"
+        >
+          <PhArrowLeft weight="bold" class="w-4 h-4" />
+          Volver al inicio de sesión
+        </router-link>
+
         <h2 class="text-3xl font-bold text-[#202759] mb-2">Crea tu Cuenta</h2>
 
-        <form class="space-y-6" @submit.prevent="handleRegistro">
-          <div class="grid grid-cols-2 gap-4">
-            <button
-              type="button"
-              class="border rounded-xl p-4 text-center transition-all"
-              :class="
-                form.tipoPerfil === 'socio'
-                  ? 'border-[#F96167] ring-1 ring-[#F96167] bg-[#F96167]/10'
-                  : 'border-gray-200 hover:bg-gray-50'
-              "
-              @click="form.tipoPerfil = 'socio'"
-            >
-              <div class="font-bold text-sm text-[#202759]">Socio FitZone</div>
-            </button>
-            <button
-              type="button"
-              class="border rounded-xl p-4 text-center transition-all"
-              :class="
-                form.tipoPerfil === 'cliente'
-                  ? 'border-[#F96167] ring-1 ring-[#F96167] bg-[#F96167]/10'
-                  : 'border-gray-200 hover:bg-gray-50'
-              "
-              @click="form.tipoPerfil = 'cliente'"
-            >
-              <div class="font-bold text-sm text-[#202759]">
-                Cliente Externo
-              </div>
-            </button>
-          </div>
-
+        <form class="space-y-6 mt-6" @submit.prevent="handleRegistro">
+          <!-- SECCIÓN 1: Datos de la Cuenta -->
           <div
-            class="border border-gray-200 rounded-lg p-4 flex items-center gap-4 bg-gray-50"
+            class="bg-gray-50 border border-gray-100 p-5 rounded-xl space-y-4"
           >
-            <div
-              class="h-14 w-14 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border border-gray-300"
+            <h3
+              class="text-sm font-bold text-[#202759] uppercase tracking-wider mb-2 border-b border-gray-200 pb-2"
             >
-              <img
-                v-if="fotoPreview"
-                :src="fotoPreview"
-                class="h-full w-full object-cover"
-              />
-              <PhSoccerBall v-else class="h-6 w-6 text-gray-400" />
-            </div>
-            <div>
-              <label class="block text-sm font-bold text-[#202759]"
-                >Foto de Perfil (Opcional)</label
-              >
-              <BaseButton variant="outline" size="sm" @click="triggerFileInput"
-                >Seleccionar Imagen</BaseButton
-              >
-              <input
-                ref="fileInput"
-                type="file"
-                class="hidden"
-                accept="image/*"
-                @change="handleFotoUpload"
-              />
-            </div>
-          </div>
+              Datos de la Cuenta
+            </h3>
 
-          <div class="grid grid-cols-2 gap-4">
-            <BaseInput
-              v-model="form.nombreCompleto"
-              label="Nombre y Apellido"
-              placeholder="Ej: Juan Perez"
-              required
-            />
-            <BaseInput
-              v-model="form.dni"
-              label="DNI (Sin puntos)"
-              placeholder="Ej: 38945120"
-              required
-            />
             <BaseInput
               v-model="form.email"
               type="email"
               label="Correo Electrónico"
               required
             />
-            <BaseInput
-              v-model="form.telefono"
-              label="Teléfono"
-              placeholder="Ej: +5493454859676"
-              required
-            />
-            <BaseInput
-              v-model="form.contrasenia"
-              type="password"
-              label="Contraseña"
-              required
-            />
-            <BaseInput
-              v-model="form.confirmarContrasenia"
-              type="password"
-              label="Confirmar Contraseña"
-              required
-            />
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="flex flex-col">
+                <BaseInput
+                  v-model="form.contrasenia"
+                  type="password"
+                  label="Contraseña"
+                  required
+                />
+                <div class="mt-2 flex items-center gap-2 w-full">
+                  <div
+                    class="flex-grow flex gap-1 h-1.5 rounded-full overflow-hidden bg-gray-200"
+                  >
+                    <div
+                      class="h-full transition-colors duration-300 w-1/4"
+                      :class="[
+                        pwdStrength.score >= 1
+                          ? pwdStrength.color
+                          : 'bg-transparent',
+                      ]"
+                    ></div>
+                    <div
+                      class="h-full transition-colors duration-300 w-1/4"
+                      :class="[
+                        pwdStrength.score >= 2
+                          ? pwdStrength.color
+                          : 'bg-transparent',
+                      ]"
+                    ></div>
+                    <div
+                      class="h-full transition-colors duration-300 w-1/4"
+                      :class="[
+                        pwdStrength.score >= 3
+                          ? pwdStrength.color
+                          : 'bg-transparent',
+                      ]"
+                    ></div>
+                    <div
+                      class="h-full transition-colors duration-300 w-1/4"
+                      :class="[
+                        pwdStrength.score >= 4
+                          ? pwdStrength.color
+                          : 'bg-transparent',
+                      ]"
+                    ></div>
+                  </div>
+                  <span
+                    class="text-[10px] font-bold uppercase tracking-wider w-10 text-right"
+                    :class="pwdStrength.textColor"
+                  >
+                    {{ pwdStrength.label }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="flex flex-col">
+                <BaseInput
+                  v-model="form.confirmarContrasenia"
+                  type="password"
+                  label="Confirmar Contraseña"
+                  required
+                />
+              </div>
+            </div>
           </div>
 
-          <SelectorSede id="registro-sede" v-model="form.id_sede" required />
+          <!-- SECCIÓN 2: Datos Personales -->
+          <div
+            class="bg-white border border-gray-100 p-5 rounded-xl shadow-sm space-y-4"
+          >
+            <h3
+              class="text-sm font-bold text-[#202759] uppercase tracking-wider mb-2 border-b border-gray-200 pb-2"
+            >
+              Datos Personales
+            </h3>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <BaseInput
+                v-model="form.nombre"
+                label="Nombre"
+                placeholder="Ej: Juan"
+                required
+              />
+              <BaseInput
+                v-model="form.apellido"
+                label="Apellido"
+                placeholder="Ej: Perez"
+                required
+              />
+
+              <BaseInput
+                v-model="form.dni"
+                label="DNI (Sin puntos)"
+                placeholder="Ej: 38945120"
+                required
+              />
+              <BaseInput
+                v-model="form.telefono"
+                label="Teléfono"
+                placeholder="Ej: +5493454859676"
+                required
+              />
+
+              <div class="flex flex-col gap-1.5 w-full text-left sm:col-span-2">
+                <label class="text-xs font-bold text-[#202759] tracking-wide"
+                  >Sede Principal</label
+                >
+                <select
+                  v-model="form.id_sede"
+                  class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-[#202759] focus:ring-2 focus:ring-[#202759]/15 transition-all"
+                  required
+                >
+                  <option value="" disabled>Selecciona una sede</option>
+                  <option
+                    v-for="sede in sedeStore.sedes"
+                    :key="sede.id_sede"
+                    :value="String(sede.id_sede)"
+                  >
+                    {{ sede.nombre }} - {{ sede.direccion }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <!-- COMPONENTE ACTUALIZADO: Manejo de Foto -->
+            <div
+              class="border border-gray-200 rounded-lg p-4 flex items-center gap-4 mt-4 bg-gray-50"
+            >
+              <div
+                class="h-14 w-14 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border border-gray-300 shrink-0"
+              >
+                <img
+                  v-if="fotoPreview"
+                  :src="fotoPreview"
+                  class="h-full w-full object-cover"
+                />
+                <PhSoccerBall v-else class="h-6 w-6 text-gray-400" />
+              </div>
+              <div class="flex-grow">
+                <label class="block text-sm font-bold text-[#202759] mb-1"
+                  >Foto de Perfil (Opcional)</label
+                >
+
+                <!-- Botones si YA HAY foto -->
+                <div v-if="fotoPreview" class="flex items-center gap-2 mt-1">
+                  <BaseButton
+                    variant="outline"
+                    size="sm"
+                    type="button"
+                    class="cursor-pointer"
+                    @click="triggerFileInput"
+                  >
+                    Cambiar
+                  </BaseButton>
+                  <button
+                    type="button"
+                    class="text-xs font-bold text-[#F96167] hover:text-red-700 transition-colors px-3 py-1.5 rounded-lg border border-transparent hover:border-red-200 hover:bg-red-50 focus:outline-none"
+                    @click="removerFoto"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+
+                <!-- Botón si NO HAY foto -->
+                <BaseButton
+                  v-else
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  class="cursor-pointer mt-1"
+                  @click="triggerFileInput"
+                >
+                  Seleccionar Imagen
+                </BaseButton>
+
+                <input
+                  ref="fileInput"
+                  type="file"
+                  class="hidden"
+                  accept="image/*"
+                  @change="handleFotoUpload"
+                />
+              </div>
+            </div>
+          </div>
 
           <div class="relative flex items-center py-2">
             <div class="flex-grow border-t border-gray-200"></div>
@@ -302,10 +456,9 @@ const handleGoogleLogin = async () => {
           <button
             type="button"
             :disabled="isLoading"
-            class="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border-2 border-slate-200 hover:border-slate-300 rounded-xl text-sm font-bold text-[#202759] transition-all disabled:opacity-50"
+            class="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border-2 border-slate-200 hover:border-slate-300 rounded-xl text-sm font-bold text-[#202759] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             @click="handleGoogleLogin"
           >
-            <!-- SVG Oficial de Google -->
             <svg class="w-5 h-5" viewBox="0 0 24 24">
               <path
                 fill="#4285F4"

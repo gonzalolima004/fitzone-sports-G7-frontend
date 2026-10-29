@@ -1,12 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import {
-  useRouter,
-  /*useRoute */
-} from 'vue-router'
+import { useRouter } from 'vue-router'
 import { z } from 'zod'
 import { useAuthStore } from '@/store/auth'
-//import { rutaPorRol } from '@/common/guards/ruta-por-rol'
 import BaseInput from '@/common/components/BaseInput.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import { authService } from '../services/auth.service'
@@ -18,7 +14,6 @@ const isLoading = ref(false)
 
 const authStore = useAuthStore()
 const router = useRouter()
-//const route = useRoute()
 
 const loginSchema = z.object({
   email: z
@@ -42,7 +37,8 @@ const handleLogin = async () => {
     password: password.value,
   })
   if (!validation.success) {
-    validation.error.issues.forEach((err) => toast.warning(err.message))
+    // Tomamos el primer error para evitar notificaciones duplicadas
+    toast.warning(validation.error.issues[0].message)
     return
   }
 
@@ -50,7 +46,7 @@ const handleLogin = async () => {
 
   try {
     await authStore.login({ email: email.value, password: password.value })
-    router.push({ name: 'home' }) // Redirige sin mostrar Toast
+    router.push({ name: 'home' })
   } catch (error: unknown) {
     const err = error as { message?: string }
     const mensajeReal = err.message
@@ -74,17 +70,25 @@ const handleGoogleLogin = async () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex font-sans">
+  <!-- h-screen y overflow-hidden para igualar el layout de Registro -->
+  <div class="h-screen w-full flex overflow-hidden font-sans">
+    <!-- PANEL IZQUIERDO: Estático, centrado, ocupa toda la altura -->
     <div
-      class="hidden lg:flex lg:w-5/12 bg-[#202759] text-white p-12 flex-col justify-center"
+      class="hidden lg:flex lg:w-5/12 bg-[#202759] text-white p-12 flex-col justify-center items-center relative h-full"
     >
-      <h1 class="text-4xl font-bold mb-4">
-        FitZone <span class="text-[#F96167]">Sports</span>
-      </h1>
+      <div class="max-w-md mx-auto text-center">
+        <h1 class="text-4xl font-bold mb-4">
+          FitZone <span class="text-[#F96167]">Sports</span>
+        </h1>
+      </div>
     </div>
 
-    <div class="w-full lg:w-7/12 flex items-center justify-center p-8 bg-white">
-      <div class="w-full max-w-md">
+    <!-- PANEL DERECHO: Formulario con scroll vertical independiente -->
+    <div class="w-full lg:w-7/12 bg-white h-full overflow-y-auto p-6 sm:p-8">
+      <!-- Contenedor interno centrado verticalmente -->
+      <div
+        class="w-full max-w-md mx-auto min-h-full flex flex-col justify-center py-8"
+      >
         <h2 class="text-3xl font-bold text-[#202759] mb-8">Inicia Sesión</h2>
 
         <form class="space-y-6" @submit.prevent="handleLogin">
@@ -106,10 +110,10 @@ const handleGoogleLogin = async () => {
               required
               :disabled="isLoading"
             />
-            <div class="text-right">
+            <div class="text-right mt-1">
               <router-link
                 to="/cambiar-password"
-                class="text-xs text-[#202759] hover:underline font-semibold"
+                class="text-xs text-[#202759] hover:underline font-semibold cursor-pointer"
               >
                 ¿Olvidaste o quieres cambiar tu contraseña?
               </router-link>
@@ -128,10 +132,9 @@ const handleGoogleLogin = async () => {
           <button
             type="button"
             :disabled="isLoading"
-            class="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border-2 border-slate-200 hover:border-slate-300 rounded-xl text-sm font-bold text-[#202759] transition-all disabled:opacity-50"
+            class="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border-2 border-slate-200 hover:border-slate-300 rounded-xl text-sm font-bold text-[#202759] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             @click="handleGoogleLogin"
           >
-            <!-- SVG Oficial de Google -->
             <svg class="w-5 h-5" viewBox="0 0 24 24">
               <path
                 fill="#4285F4"
@@ -169,7 +172,7 @@ const handleGoogleLogin = async () => {
             ¿No tienes cuenta?
             <router-link
               to="/registro"
-              class="font-bold text-[#202759] hover:underline"
+              class="font-bold text-[#202759] hover:underline cursor-pointer"
               >Regístrate</router-link
             >
           </p>
