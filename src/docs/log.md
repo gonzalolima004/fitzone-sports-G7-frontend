@@ -974,3 +974,21 @@
 
 * **Commits:**
 * `fix(router): restaurar rbac, roles de rutas anidadas e inyectar fix de seguridad y performance`
+
+---
+
+#### 29/10/2026
+#### Joaquín Ribarola | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Corrección en `ClasesView.vue` del mapeo de reservas activas del socio: filtrado estricto por reservas confirmadas (`id_clase_reserva_estado: 1` o `estado === 'CONFIRMADA'`) y descarte de reservas canceladas devueltas por el endpoint `GET /reservas-clases/mis-reservas`.
+  - Validación de concordancia de fecha para reservas e inscripciones en lista de espera (`obtenerFechaLocalISO(r.fecha_inicio) === fechaSeleccionada`), evitando que reservas de otras fechas o clases recurrentes bloqueen incorrectamente la vista actual.
+  - Corrección de errores críticos en `src/router/index.ts`: eliminación de redeclaración de variable `requiresAuth` en guard global y restauración de la jerarquía de rutas del módulo de gerencia y reportes (`/gerencia` y sus hijos) resolviendo colisiones de nombres de propiedades duplicadas (`TS1117`).
+  - Limpieza de import no usado de `SelectorSede` en `CompletarPerfilView.vue`.
+- **Decisiones:**
+  - Descartar del cálculo del estado de la tarjeta de clase cualquier reserva con estado cancelado, asegurando que ante una cancelación y posterior recarga de página el botón vuelva al estado "Reservar clase" (`DISPONIBLE`).
+  - Mantener redirecciones de retrocompatibilidad para `/reportes` y `/reportes/ocupacion` hacia `/gerencia/reportes`.
+- **Dificultades:**
+  - El backend devolvía el historial completo de reservas del socio sin discriminar las canceladas (`where: { id_usuario }`), lo que provocaba que el frontend interpretara erróneamente cualquier reserva histórica como una reserva activa concurrente.
+- **Commits:**
+  - `fix(clases): corregir estado de reservas canceladas en agenda y resolver errores de router`

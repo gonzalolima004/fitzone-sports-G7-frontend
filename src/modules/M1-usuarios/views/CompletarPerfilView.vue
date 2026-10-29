@@ -9,7 +9,6 @@ import { useSedeStore } from '@/store/sede'
 import { useAuthStore } from '@/store/auth'
 import BaseInput from '@/common/components/BaseInput.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
-import SelectorSede from '@/common/components/SelectorSede.vue'
 import { toast } from '@/common/utils/toast'
 
 const router = useRouter()

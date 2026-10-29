@@ -1,8 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import MainLayout from '../common/layouts/MainLayout.vue'
 import { useAuthStore, type RolUsuario } from '../store/auth'
-import { rutaPorRol } from '@/common/guards/ruta-por-rol'
-import { rutasLanding } from '@/modules/landing/routes'
 import PerfilView from '@/modules/M1-usuarios/views/PerfilView.vue'
 import { authService } from '@/modules/M1-usuarios/services/auth.service'
 
@@ -73,15 +71,28 @@ const routes: RouteRecordRaw[] = [
           import('../modules/M5-pagos/views/ResultadoPagoView.vue'),
       },
       {
-        path: 'reportes',
-        component: () =>
-          import('../modules/M6-reportes/views/PanelGerenciaView.vue'),
+        path: 'gerencia',
+        meta: {
+          requiresAuth: true,
+          roles: ['gerente'],
+        },
         children: [
           {
-            path: '',
-            name: 'reportes',
+            path: 'directorio-usuarios',
+            name: 'directorio-usuarios',
             component: () =>
-              import('../modules/M6-reportes/views/ReportesView.vue'),
+              import('@/modules/M1-usuarios/views/DirectorioUsuariosView.vue'),
+            meta: { requiresAuth: true, roles: ['gerente'] },
+          },
+          {
+            path: 'canchas',
+            name: 'gerencia-canchas',
+            component: () =>
+              import('../modules/M4-canchas/views/GerenciaCanchasView.vue'),
+            meta: { requiresAuth: true, roles: ['gerente'] },
+          },
+          {
+            path: '',
             name: 'gerencia',
             component: () =>
               import('../modules/gerencia/views/GerenciaDashboardView.vue'),
@@ -105,12 +116,34 @@ const routes: RouteRecordRaw[] = [
               import('../modules/gerencia/views/GestionMembresiasView.vue'),
           },
           {
-            path: 'ocupacion',
-            name: 'reportes-ocupacion',
+            path: 'reportes',
             component: () =>
-              import('../modules/M6-reportes/views/OcupacionView.vue'),
+              import('../modules/M6-reportes/views/PanelGerenciaView.vue'),
+            children: [
+              {
+                path: '',
+                name: 'reportes',
+                component: () =>
+                  import('../modules/M6-reportes/views/ReportesView.vue'),
+              },
+              {
+                path: 'ocupacion',
+                name: 'reportes-ocupacion',
+                component: () =>
+                  import('../modules/M6-reportes/views/OcupacionView.vue'),
+              },
+            ],
           },
         ],
+      },
+      // Redirecciones de retrocompatibilidad para /reportes
+      {
+        path: 'reportes',
+        redirect: '/gerencia/reportes',
+      },
+      {
+        path: 'reportes/ocupacion',
+        redirect: '/gerencia/reportes/ocupacion',
       },
     ],
   },
@@ -177,8 +210,6 @@ router.beforeEach(async (to, _from, next) => {
   if (requiresAuth && !authStore.isAuthenticated) {
     return next({ name: 'login' })
   }
-
-  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
 
   // 2. VERIFICACIÓN PROACTIVA
   if (

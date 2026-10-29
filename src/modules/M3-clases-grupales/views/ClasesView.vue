@@ -93,12 +93,44 @@ const clasesAgendadas = computed<ClaseCardProps[]>(() => {
     }
 
     // Identificar si el usuario tiene reserva activa para esta clase en este horario
-    const miReserva = misReservas.value.find(
-      (r) => r.id_clase === clase.id_clase
-    )
-    const miInscripcion = misInscripciones.value.find(
-      (i) => i.id_clase === clase.id_clase
-    )
+    const miReserva = misReservas.value.find((r) => {
+      if (r.id_clase !== clase.id_clase) return false
+
+      // Validar que la reserva esté activa/confirmada (id_clase_reserva_estado: 1) y no cancelada
+      const esConfirmada =
+        r.id_clase_reserva_estado === 1 ||
+        (r.estado && r.estado.toUpperCase() === 'CONFIRMADA')
+      const esCancelada =
+        r.id_clase_reserva_estado === 4 ||
+        r.id_clase_reserva_estado === 2 ||
+        (r.estado && r.estado.toUpperCase() === 'CANCELADA')
+
+      if (!esConfirmada || esCancelada) return false
+
+      // Si la reserva especifica fecha_inicio, validar que coincida con el día seleccionado
+      if (r.fecha_inicio) {
+        const fechaReserva = obtenerFechaLocalISO(r.fecha_inicio)
+        if (fechaReserva !== fechaSeleccionada.value) return false
+      }
+
+      return true
+    })
+
+    const miInscripcion = misInscripciones.value.find((i) => {
+      if (i.id_clase !== clase.id_clase) return false
+
+      const esActiva =
+        i.id_clase_lista_espera_estado === 1 ||
+        (i.estado && i.estado.toUpperCase() !== 'CANCELADA')
+      if (!esActiva) return false
+
+      if (i.fecha_inicio) {
+        const fechaInscripcion = obtenerFechaLocalISO(i.fecha_inicio)
+        if (fechaInscripcion !== fechaSeleccionada.value) return false
+      }
+
+      return true
+    })
 
     let estado: ClaseCardProps['estado'] = clase.estado
     if (miReserva) {
@@ -441,8 +473,12 @@ async function confirmarCancelacion() {
   if (!claseACancelar.value) return
   const idReserva =
     claseACancelar.value.idReserva ||
-    misReservas.value.find((r) => r.id_clase === claseACancelar.value?.id)
-      ?.id_clase_reserva
+    misReservas.value.find(
+      (r) =>
+        r.id_clase === claseACancelar.value?.id &&
+        (r.id_clase_reserva_estado === 1 ||
+          r.estado?.toUpperCase() === 'CONFIRMADA')
+    )?.id_clase_reserva
 
   if (!idReserva) {
     errorCancelacion.value = 'No se encontró la reserva activa para cancelar.'
