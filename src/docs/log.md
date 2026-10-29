@@ -950,3 +950,27 @@
   - `feat(gerencia): agregar buscador e instalaciones en sedes`
   - `feat(gerencia): alinear el dashboard con la maqueta`
   - `docs(log): registrar CRUD de membresias y ajustes a la maqueta`
+
+---
+
+#### 27/10/2026 - 29/10/2026
+
+#### Matías Sillen | Rol: Desarrollador Frontend
+
+* **Actividades:**
+* Restauración y unificación completa del sistema de enrutamiento en `src/router/index.ts`, reintegrando el control de acceso basado en roles (RBAC), las rutas anidadas del módulo de gerencia y las landing pages.
+* Corrección de la sanitización de URLs post-OAuth de Supabase, reemplazando el paso de un estado nulo por la preservación de `window.history.state` en la API de History del navegador.
+* Reintegración de la lógica de mapeo de rol del backend (`authStore.setPerfilInterno`) dentro del bloque de Verificación Proactiva del Guard global.
+
+
+* **Decisiones:**
+* Preservar el objeto de estado interno (`window.history.state`) al momento de limpiar el token de la barra de direcciones (`replaceState`). Esto permite mantener la URL segura sin destruir las referencias de navegación internas que utiliza Vue Router.
+* Mantener la inicialización de Supabase centralizada y controlada en el Store para evitar la creación de múltiples instancias de `GoTrueClient` que generaban cuellos de botella en el almacenamiento local.
+
+
+* **Dificultades:**
+* Al limpiar el fragmento de la URL (`#access_token=...`) para evitar la exposición de credenciales, Vue Router perdía su historial de estado, lo que provocaba advertencias en consola (`history.state seems to have been manually replaced`) y generaba una latencia notoria al navegar entre las distintas pantallas del menú lateral.
+
+
+* **Commits:**
+* `fix(router): restaurar rbac, roles de rutas anidadas e inyectar fix de seguridad y performance`

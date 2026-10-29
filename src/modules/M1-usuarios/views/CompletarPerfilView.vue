@@ -302,6 +302,67 @@ const handleCancelar = async () => {
             </div>
           </div>
 
+          <!-- COMPONENTE: Manejo de Foto -->
+          <div
+            class="border border-gray-200 rounded-lg p-4 flex items-center gap-4 bg-gray-50"
+          >
+            <div
+              class="h-14 w-14 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border border-gray-300 shrink-0"
+            >
+              <img
+                v-if="fotoPreview"
+                :src="fotoPreview"
+                class="h-full w-full object-cover"
+              />
+              <PhSoccerBall v-else class="h-6 w-6 text-gray-400" />
+            </div>
+            <div class="flex-grow">
+              <label class="block text-sm font-bold text-[#202759] mb-1"
+                >Foto de Perfil (Opcional)</label
+              >
+
+              <!-- Botones si YA HAY foto -->
+              <div v-if="fotoPreview" class="flex items-center gap-2 mt-1">
+                <BaseButton
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  class="cursor-pointer"
+                  @click="triggerFileInput"
+                >
+                  Cambiar
+                </BaseButton>
+                <button
+                  type="button"
+                  class="text-xs font-bold text-[#F96167] hover:text-red-700 transition-colors px-3 py-1.5 rounded-lg border border-transparent hover:border-red-200 hover:bg-red-50 focus:outline-none"
+                  @click="removerFoto"
+                >
+                  Eliminar
+                </button>
+              </div>
+
+              <!-- Botón si NO HAY foto -->
+              <BaseButton
+                v-else
+                variant="outline"
+                size="sm"
+                type="button"
+                class="cursor-pointer mt-1"
+                @click="triggerFileInput"
+              >
+                Seleccionar Imagen
+              </BaseButton>
+
+              <input
+                ref="fileInput"
+                type="file"
+                class="hidden"
+                accept="image/*"
+                @change="handleFotoUpload"
+              />
+            </div>
+          </div>
+
           <div class="flex flex-col sm:flex-row gap-4 pt-2">
             <BaseButton
               type="button"

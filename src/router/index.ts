@@ -1,8 +1,17 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import MainLayout from '../common/layouts/MainLayout.vue'
-import { useAuthStore } from '../store/auth'
+import { useAuthStore, type RolUsuario } from '../store/auth'
+import { rutaPorRol } from '@/common/guards/ruta-por-rol'
+import { rutasLanding } from '@/modules/landing/routes'
 import PerfilView from '@/modules/M1-usuarios/views/PerfilView.vue'
 import { authService } from '@/modules/M1-usuarios/services/auth.service'
+
+declare module 'vue-router' {
+  interface RouteMeta {
+    requiresAuth?: boolean
+    roles?: RolUsuario[]
+  }
+}
 
 const routes: RouteRecordRaw[] = [
   {
@@ -152,12 +161,21 @@ router.beforeEach(async (to, _from, next) => {
     await authStore.initialize()
   }
 
+  // CORRECCIÓN DE SEGURIDAD CRÍTICA Y RENDIMIENTO: Sanitización de URL post-OAuth
+  // Usamos window.history.state para no romper el historial de Vue Router y evitar latencia
   if (window.location.hash.includes('access_token=')) {
     window.history.replaceState(
       window.history.state,
       '',
       window.location.pathname + window.location.search
     )
+  }
+
+  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
+
+  // 2. Sin sesión en ruta privada -> login
+  if (requiresAuth && !authStore.isAuthenticated) {
+    return next({ name: 'login' })
   }
 
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)

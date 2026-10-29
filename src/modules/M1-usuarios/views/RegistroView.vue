@@ -361,25 +361,13 @@ const handleGoogleLogin = async () => {
                 required
               />
 
-              <div class="flex flex-col gap-1.5 w-full text-left sm:col-span-2">
-                <label class="text-xs font-bold text-[#202759] tracking-wide"
-                  >Sede Principal</label
-                >
-                <select
-                  v-model="form.id_sede"
-                  class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-[#202759] focus:ring-2 focus:ring-[#202759]/15 transition-all"
-                  required
-                >
-                  <option value="" disabled>Selecciona una sede</option>
-                  <option
-                    v-for="sede in sedeStore.sedes"
-                    :key="sede.id_sede"
-                    :value="String(sede.id_sede)"
-                  >
-                    {{ sede.nombre }} - {{ sede.direccion }}
-                  </option>
-                </select>
-              </div>
+              <SelectorSede
+                id="registro-sede"
+                v-model="form.id_sede"
+                label="Sede Principal"
+                class="sm:col-span-2"
+                required
+              />
             </div>
 
             <!-- COMPONENTE ACTUALIZADO: Manejo de Foto -->
