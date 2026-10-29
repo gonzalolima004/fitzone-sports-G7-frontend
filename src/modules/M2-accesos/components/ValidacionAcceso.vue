@@ -8,6 +8,7 @@ import {
   PhKeyboard,
   PhQrCode,
   PhX,
+  PhIdentificationCard,
 } from '@phosphor-icons/vue'
 import { accesosService } from '../services/accesos.service'
 import type {
@@ -25,8 +26,14 @@ const sedeStore = useSedeStore()
 // Pestaña activa: 'ingreso' o 'egreso'
 const tipoOperacion = ref<'ingreso' | 'egreso'>('ingreso')
 
+// Modo de lectura general: 'manual' o 'camara'
 const modoLectura = ref<'manual' | 'camara'>('manual')
+
+// Sub-modo dentro de manual: 'qr' o 'dni'
+const metodoManual = ref<'qr' | 'dni'>('qr')
+
 const tokenIngresado = ref<string>('')
+const dniIngresado = ref<string>('')
 const isLoading = ref<boolean>(false)
 const errorMensaje = ref<string | null>(null)
 const resultadoValidacion = ref<ValidarAccesoResponseDto | null>(null)
@@ -45,16 +52,20 @@ const cambiarTipoOperacion = async (tipo: 'ingreso' | 'egreso') => {
   await detenerEscaneoCamara()
   tipoOperacion.value = tipo
   tokenIngresado.value = ''
+  dniIngresado.value = ''
   limpiarEstados()
 }
 
-// Acción de Validar Ingreso
+// Acción de Validar Ingreso (soporta QR o DNI)
 const handleIngreso = async (tokenAValidar?: string): Promise<void> => {
-  const tokenFinal = tokenAValidar || tokenIngresado.value
+  const isDniMode = metodoManual.value === 'dni' && !tokenAValidar
+  const valorFinal =
+    tokenAValidar || (isDniMode ? dniIngresado.value : tokenIngresado.value)
 
-  if (!tokenFinal.trim() || isLoading.value) {
-    errorMensaje.value =
-      'Debe ingresar o escanear un token QR válido antes de procesar.'
+  if (!valorFinal.trim() || isLoading.value) {
+    errorMensaje.value = isDniMode
+      ? 'Debe ingresar un DNI válido antes de procesar.'
+      : 'Debe ingresar o escanear un token QR válido antes de procesar.'
     return
   }
 
@@ -63,52 +74,60 @@ const handleIngreso = async (tokenAValidar?: string): Promise<void> => {
   limpiarEstados()
 
   try {
-    const respuesta = await accesosService.validarAcceso({
-      qrToken: tokenFinal.trim(),
-      id_sede: sedeStore.idSedeSeleccionada ?? 1,
-    })
+    const idSede = sedeStore.idSedeSeleccionada
+
+    if (idSede == null) {
+      throw new Error('No se ha seleccionado una sede válida.')
+    }
+
+    // Enviamos el payload dependiendo si es QR o DNI
+    const payload = isDniMode
+      ? { dni: valorFinal.trim(), id_sede: idSede }
+      : { qrToken: valorFinal.trim(), id_sede: idSede }
+
+    const respuesta = await accesosService.validarAcceso(payload)
     resultadoValidacion.value = respuesta
   } catch (error: unknown) {
     if (axios.isAxiosError<ApiErrorDto>(error) && error.response) {
-      const status = error.response.status
-      const apiError = error.response.data as ApiErrorDto & { codigo?: string }
-      // Mensajes descriptivos basados en el código de error o el status HTTP
-      if (apiError?.codigo === 'QR_EXPIRADO' || status === 401) {
-        errorMensaje.value =
-          'El código QR ha expirado. Solicite al socio que actualice su pase digital.'
-      } else if (apiError?.codigo === 'MEMBRESIA_INACTIVA' || status === 403) {
-        errorMensaje.value =
-          'Acceso denegado: El socio posee una membresía inactiva, vencida o en mora.'
-      } else if (apiError?.codigo === 'SEDE_LLENA' || status === 409) {
-        errorMensaje.value =
-          'Sede llena: Se ha alcanzado la capacidad máxima de ocupación permitida.'
-      } else if (apiError?.codigo === 'DOBLE_INGRESO' || status === 422) {
-        errorMensaje.value =
-          'El socio ya se encuentra registrado adentro de otra sede actualmente.'
+      const data = error.response.data as {
+        message?: string | string[]
+        detail?: string
+        title?: string
+      }
+
+      const rawMessage =
+        data?.message ||
+        data?.detail ||
+        data?.title ||
+        'Ocurrió un error en el servidor.'
+
+      // Si el mensaje viene como un array (ej. validaciones de class-validator de NestJS), lo unimos en un texto plano
+      if (Array.isArray(rawMessage)) {
+        errorMensaje.value = rawMessage.join('. ')
       } else {
-        errorMensaje.value =
-          apiError?.detail ||
-          apiError?.title ||
-          'El servidor rechazó el intento de ingreso.'
+        errorMensaje.value = rawMessage
       }
     } else if (error instanceof Error) {
       errorMensaje.value = `Error de conexión: ${error.message}`
     } else {
       errorMensaje.value =
-        'Ocurrió un error inesperado al validar el ingreso en el sistema.'
+        'Ocurrió un error inesperado al procesar la solicitud.'
     }
   } finally {
     isLoading.value = false
   }
 }
 
-// Acción de Registrar Egreso
+// Acción de Registrar Egreso (soporta QR o DNI)
 const handleEgreso = async (tokenAValidar?: string): Promise<void> => {
-  const tokenFinal = tokenAValidar || tokenIngresado.value
+  const isDniMode = metodoManual.value === 'dni' && !tokenAValidar
+  const valorFinal =
+    tokenAValidar || (isDniMode ? dniIngresado.value : tokenIngresado.value)
 
-  if (!tokenFinal.trim() || isLoading.value) {
-    errorMensaje.value =
-      'Debe ingresar o escanear el token QR para registrar la salida.'
+  if (!valorFinal.trim() || isLoading.value) {
+    errorMensaje.value = isDniMode
+      ? 'Debe ingresar un DNI para registrar la salida.'
+      : 'Debe ingresar o escanear el token QR para registrar la salida.'
     return
   }
 
@@ -117,15 +136,19 @@ const handleEgreso = async (tokenAValidar?: string): Promise<void> => {
   limpiarEstados()
 
   try {
-    // Si tienes el ID del socio o si el backend procesa el egreso por token / socio ID:
-    await accesosService.registrarEgreso({
-      qrToken: tokenFinal.trim(),
-      id_sede: sedeStore.idSedeSeleccionada ?? 1,
-    })
+    const payload = isDniMode
+      ? { dni: valorFinal.trim(), id_sede: sedeStore.idSedeSeleccionada ?? 1 }
+      : {
+          qrToken: valorFinal.trim(),
+          id_sede: sedeStore.idSedeSeleccionada ?? 1,
+        }
+
+    await accesosService.registrarEgreso(payload)
 
     mensajeExito.value =
       '¡Salida (Egreso) registrada correctamente! Cupo liberado en el aforo.'
     tokenIngresado.value = ''
+    dniIngresado.value = ''
     setTimeout(() => {
       mensajeExito.value = null
     }, 4000)
@@ -284,46 +307,91 @@ onUnmounted(() => {
       </div>
 
       <!-- Modo Manual -->
-      <div
-        v-if="modoLectura === 'manual'"
-        class="flex flex-col sm:flex-row items-end gap-3 pt-2"
-      >
-        <div class="w-full">
-          <BaseInput
-            v-model="tokenIngresado"
-            :label="
-              tipoOperacion === 'ingreso'
-                ? 'Token QR de Ingreso'
-                : 'Token QR para Egreso'
+      <div v-if="modoLectura === 'manual'" class="space-y-3 pt-2">
+        <!-- Sub-selector: QR vs DNI -->
+        <div class="flex gap-2 pb-1">
+          <button
+            type="button"
+            class="px-3 py-1 text-xs font-semibold rounded-lg border transition-all flex items-center gap-1.5"
+            :class="
+              metodoManual === 'qr'
+                ? 'bg-[#202759] text-white border-[#202759]'
+                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
             "
-            placeholder="Pegue aquí el token dinámico..."
-            :error="errorMensaje ?? undefined"
-            @keyup.enter="
+            @click="((metodoManual = 'qr'), limpiarEstados())"
+          >
+            <PhQrCode :size="14" />
+            <span>Por Token QR</span>
+          </button>
+          <button
+            type="button"
+            class="px-3 py-1 text-xs font-semibold rounded-lg border transition-all flex items-center gap-1.5"
+            :class="
+              metodoManual === 'dni'
+                ? 'bg-[#202759] text-white border-[#202759]'
+                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+            "
+            @click="((metodoManual = 'dni'), limpiarEstados())"
+          >
+            <PhIdentificationCard :size="14" />
+            <span>Por DNI del Usuario</span>
+          </button>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-end gap-3">
+          <div class="w-full">
+            <!-- Input para QR -->
+            <BaseInput
+              v-if="metodoManual === 'qr'"
+              v-model="tokenIngresado"
+              :label="
+                tipoOperacion === 'ingreso'
+                  ? 'Token QR de Ingreso'
+                  : 'Token QR para Egreso'
+              "
+              placeholder="Pegue aquí el token dinámico..."
+              :error="errorMensaje ?? undefined"
+              @keyup.enter="
+                () =>
+                  tipoOperacion === 'ingreso' ? handleIngreso() : handleEgreso()
+              "
+            />
+            <!-- Input para DNI -->
+            <BaseInput
+              v-else
+              v-model="dniIngresado"
+              label="Número de DNI del Usuario"
+              placeholder="Ej: 38456789"
+              :error="errorMensaje ?? undefined"
+              @keyup.enter="
+                () =>
+                  tipoOperacion === 'ingreso' ? handleIngreso() : handleEgreso()
+              "
+            />
+          </div>
+          <BaseButton
+            :variant="tipoOperacion === 'ingreso' ? 'primary' : 'outline'"
+            size="md"
+            :loading="isLoading"
+            class="w-full sm:w-auto shrink-0 mb-0.5"
+            @click="
               () =>
                 tipoOperacion === 'ingreso' ? handleIngreso() : handleEgreso()
             "
-          />
+          >
+            <template #icon>
+              <component
+                :is="tipoOperacion === 'ingreso' ? PhSignIn : PhSignOut"
+                :size="18"
+              />
+            </template>
+            {{
+              tipoOperacion === 'ingreso'
+                ? 'Validar Ingreso'
+                : 'Registrar Egreso'
+            }}
+          </BaseButton>
         </div>
-        <BaseButton
-          :variant="tipoOperacion === 'ingreso' ? 'primary' : 'outline'"
-          size="md"
-          :loading="isLoading"
-          class="w-full sm:w-auto shrink-0 mb-0.5"
-          @click="
-            () =>
-              tipoOperacion === 'ingreso' ? handleIngreso() : handleEgreso()
-          "
-        >
-          <template #icon>
-            <component
-              :is="tipoOperacion === 'ingreso' ? PhSignIn : PhSignOut"
-              :size="18"
-            />
-          </template>
-          {{
-            tipoOperacion === 'ingreso' ? 'Validar Ingreso' : 'Registrar Egreso'
-          }}
-        </BaseButton>
       </div>
 
       <!-- Modo Lector por Cámara -->
@@ -369,7 +437,7 @@ onUnmounted(() => {
 
       <!-- Mensaje de Error -->
       <div
-        v-if="errorMensaje"
+        v-if="errorMensaje && modoLectura === 'camara'"
         class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700"
       >
         {{ errorMensaje }}
