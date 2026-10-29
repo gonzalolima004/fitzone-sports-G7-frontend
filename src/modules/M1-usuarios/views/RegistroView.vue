@@ -8,6 +8,7 @@ import { authService } from '../services/auth.service'
 import { useSedeStore } from '@/store/sede'
 import BaseInput from '@/common/components/BaseInput.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
+import SelectorSede from '@/common/components/SelectorSede.vue'
 import { toast } from '@/common/utils/toast'
 
 const router = useRouter()
@@ -485,6 +486,7 @@ const handleGoogleLogin = async () => {
             size="lg"
             class="w-full"
             :loading="isLoading"
+            :disabled="sedeStore.sedes.length === 0"
           >
             Completar Registro
           </BaseButton>

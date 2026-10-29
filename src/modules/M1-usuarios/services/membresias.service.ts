@@ -6,7 +6,7 @@ export interface PlanMembresia {
   duracion_dias: number
   precio: number
   descripcion: string
-  activo: boolean
+  activo?: boolean
 }
 
 export interface EstadoMembresia {
@@ -20,8 +20,8 @@ export interface EstadoMembresia {
 }
 
 export const membresiasService = {
-  async getPlanes(): Promise<unknown[]> {
-    const response = await apiClient.get('/planes')
+  async getPlanes(): Promise<PlanMembresia[]> {
+    const response = await apiClient.get<PlanMembresia[]>('/planes')
     return response.data
   },
 
