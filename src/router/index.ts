@@ -3,9 +3,8 @@ import MainLayout from '../common/layouts/MainLayout.vue'
 import { useAuthStore, type RolUsuario } from '../store/auth'
 import { rutaPorRol } from '@/common/guards/ruta-por-rol'
 import { rutasLanding } from '@/modules/landing/routes'
-//import RegistroView from '@/modules/M1-usuarios/views/RegistroView.vue'
 import PerfilView from '@/modules/M1-usuarios/views/PerfilView.vue'
-import { authService } from '@/modules/M1-usuarios/services/auth.service.ts'
+import { authService } from '@/modules/M1-usuarios/services/auth.service'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -15,7 +14,6 @@ declare module 'vue-router' {
 }
 
 const routes: RouteRecordRaw[] = [
-  ...rutasLanding,
   {
     path: '/',
     component: MainLayout,
@@ -25,29 +23,19 @@ const routes: RouteRecordRaw[] = [
         path: 'perfil',
         name: 'perfil',
         component: PerfilView,
-        meta: {
-          requiresAuth: true,
-          roles: ['socio', 'externo', 'recepcionista', 'gerente'],
-        },
+        meta: { requiresAuth: true },
       },
       {
         path: 'membresia',
         name: 'membresia',
         component: () =>
           import('../modules/M1-usuarios/views/MembresiaView.vue'),
-        meta: {
-          requiresAuth: true,
-          roles: ['socio', 'externo', 'recepcionista', 'gerente'],
-        },
+        meta: { requiresAuth: true },
       },
       {
-        path: 'inicio',
+        path: '',
         name: 'home',
         component: () => import('../common/views/HomeView.vue'),
-        meta: {
-          requiresAuth: true,
-          roles: ['socio', 'recepcionista', 'gerente'],
-        },
       },
       {
         path: 'accesos',
@@ -83,19 +71,11 @@ const routes: RouteRecordRaw[] = [
         name: 'clases',
         component: () =>
           import('../modules/M3-clases-grupales/views/ClasesView.vue'),
-        meta: {
-          requiresAuth: true,
-          roles: ['socio', 'recepcionista', 'gerente'],
-        },
       },
       {
         path: 'canchas',
         name: 'canchas',
         component: () => import('../modules/M4-canchas/views/CanchasView.vue'),
-        meta: {
-          requiresAuth: true,
-          roles: ['socio', 'externo', 'recepcionista', 'gerente'],
-        },
       },
       {
         path: 'canchas/reservas/:id',
@@ -107,10 +87,6 @@ const routes: RouteRecordRaw[] = [
         path: 'pagos',
         name: 'pagos',
         component: () => import('../modules/M5-pagos/views/PagosView.vue'),
-        meta: {
-          requiresAuth: true,
-          roles: ['socio', 'externo', 'recepcionista', 'gerente'],
-        },
       },
       {
         path: 'pagos/resultado',
@@ -118,34 +94,17 @@ const routes: RouteRecordRaw[] = [
         alias: ['/pagos/exito', '/pagos/error', '/pagos/pendiente'],
         component: () =>
           import('../modules/M5-pagos/views/ResultadoPagoView.vue'),
-        meta: {
-          requiresAuth: true,
-          roles: ['socio', 'externo', 'recepcionista', 'gerente'],
-        },
       },
       {
-        path: 'gerencia',
-        meta: {
-          requiresAuth: true,
-          roles: ['gerente'], // Protege el prefijo /gerencia y todas sus rutas hijas
-        },
+        path: 'reportes',
+        component: () =>
+          import('../modules/M6-reportes/views/PanelGerenciaView.vue'),
         children: [
           {
-            path: 'directorio-usuarios',
-            name: 'directorio-usuarios',
-            component: () =>
-              import('@/modules/M1-usuarios/views/DirectorioUsuariosView.vue'),
-            meta: { requiresAuth: true, roles: ['gerente'] },
-          },
-          {
-            path: 'canchas',
-            name: 'gerencia-canchas',
-            component: () =>
-              import('../modules/M4-canchas/views/GerenciaCanchasView.vue'),
-            meta: { requiresAuth: true, roles: ['gerente'] },
-          },
-          {
             path: '',
+            name: 'reportes',
+            component: () =>
+              import('../modules/M6-reportes/views/ReportesView.vue'),
             name: 'gerencia',
             component: () =>
               import('../modules/gerencia/views/GerenciaDashboardView.vue'),
@@ -169,34 +128,12 @@ const routes: RouteRecordRaw[] = [
               import('../modules/gerencia/views/GestionMembresiasView.vue'),
           },
           {
-            path: 'reportes',
+            path: 'ocupacion',
+            name: 'reportes-ocupacion',
             component: () =>
-              import('../modules/M6-reportes/views/PanelGerenciaView.vue'),
-            children: [
-              {
-                path: '',
-                name: 'reportes',
-                component: () =>
-                  import('../modules/M6-reportes/views/ReportesView.vue'),
-              },
-              {
-                path: 'ocupacion',
-                name: 'reportes-ocupacion',
-                component: () =>
-                  import('../modules/M6-reportes/views/OcupacionView.vue'),
-              },
-            ],
+              import('../modules/M6-reportes/views/OcupacionView.vue'),
           },
         ],
-      },
-      // Redirecciones de retrocompatibilidad para /reportes
-      {
-        path: 'reportes',
-        redirect: '/gerencia/reportes',
-      },
-      {
-        path: 'reportes/ocupacion',
-        redirect: '/gerencia/reportes/ocupacion',
       },
     ],
   },
@@ -209,7 +146,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/registro',
     name: 'registro',
-    component: () => import('@/modules/M1-usuarios/views/RegistroView.vue'), // Lazy Loading aplicado
+    component: () => import('@/modules/M1-usuarios/views/RegistroView.vue'),
     meta: { requiresAuth: false },
   },
   {
@@ -224,7 +161,7 @@ const routes: RouteRecordRaw[] = [
     name: 'completar-perfil',
     component: () =>
       import('@/modules/M1-usuarios/views/CompletarPerfilView.vue'),
-    meta: { requiresAuth: true }, // Debe estar logueado en Supabase para verla
+    meta: { requiresAuth: true },
   },
   {
     path: '/:pathMatch(.*)*',
@@ -238,13 +175,23 @@ export const router = createRouter({
   routes,
 })
 
-// Guard de navegación global con RBAC
+// Guard de navegación global
 router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
 
   // 1. Aseguramos que Supabase haya leído la URL (vital para Google OAuth)
   if (!authStore.isInitialized) {
     await authStore.initialize()
+  }
+
+  // CORRECCIÓN DE SEGURIDAD CRÍTICA Y RENDIMIENTO: Sanitización de URL post-OAuth
+  // Usamos window.history.state para no romper el historial de Vue Router y evitar latencia
+  if (window.location.hash.includes('access_token=')) {
+    window.history.replaceState(
+      window.history.state,
+      '',
+      window.location.pathname + window.location.search
+    )
   }
 
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
@@ -254,62 +201,34 @@ router.beforeEach(async (to, _from, next) => {
     return next({ name: 'login' })
   }
 
-  // 3. VERIFICACIÓN PROACTIVA: obtiene perfil interno y ROL real desde el backend
+  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
+
+  // 2. VERIFICACIÓN PROACTIVA
   if (
+    requiresAuth &&
     authStore.isAuthenticated &&
-    to.path !== '/completar-perfil' &&
-    (requiresAuth || to.name === 'login' || to.name === 'registro')
+    to.path !== '/completar-perfil'
   ) {
-    // Solo consultamos si todavía no cargamos el perfil de esta sesión
-    if (!authStore.usuario?.rol) {
-      try {
-        const respuesta = await authService.verifyLocalProfile()
-        const u = respuesta?.user
-        if (u) {
-          const rolBackend = String(
-            u.rol ?? u.roles?.[0] ?? 'socio'
-          ).toLowerCase() as RolUsuario
-          authStore.setPerfilInterno({
-            id: u.id_usuario,
-            email: u.email,
-            rol: rolBackend,
-          })
-        }
-      } catch (error) {
-        const err = error as { response?: { status?: number } }
-        // Si el backend arrojó 403, el interceptor (http.ts) ya redirigió a /completar-perfil.
-        if (err.response?.status === 403) {
-          return
-        }
-        // Otro error grave: limpiamos sesión por seguridad.
-        await authStore.logout()
-        return next({ name: 'login' })
+    try {
+      await authService.verifyLocalProfile()
+    } catch (error) {
+      const err = error as { response?: { status?: number } }
+      if (err.response?.status === 403) {
+        return
       }
+      await authStore.logout()
+      return next({ name: 'login' })
     }
   }
 
-  // 4. Ya logueado y quiere ir a login/registro -> a su ruta por rol
-  if (
-    (to.name === 'login' || to.name === 'registro') &&
-    authStore.isAuthenticated
-  ) {
-    return next(rutaPorRol(authStore.rol))
+  // 3. Reglas estándar de navegación
+  if (requiresAuth && !authStore.isAuthenticated) {
+    next({ name: 'login' })
+  } else if (to.name === 'login' && authStore.isAuthenticated) {
+    next({ name: 'home' })
+  } else {
+    next()
   }
-
-  // 5. Control de acceso por roles (RBAC)
-  if (authStore.isAuthenticated) {
-    const rolActual = authStore.rol
-    const tienePermiso = to.matched.every((record) => {
-      const roles = record.meta?.roles as RolUsuario[] | undefined
-      return !roles || (rolActual && roles.includes(rolActual))
-    })
-
-    if (!tienePermiso) {
-      return next(rutaPorRol(rolActual))
-    }
-  }
-
-  next()
 })
 
 export default router
