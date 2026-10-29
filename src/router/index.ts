@@ -42,6 +42,29 @@ const routes: RouteRecordRaw[] = [
         name: 'accesos',
         component: () =>
           import('../modules/M2-accesos/views/CredencialView.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['socio', 'recepcionista', 'gerente'],
+        },
+      },
+      {
+        path: 'recepcion',
+        name: 'recepcion',
+        component: () =>
+          import('../modules/M2-accesos/views/RecepcionView.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['recepcionista', 'gerente'],
+        },
+      },
+      {
+        path: 'aforo',
+        name: 'aforo',
+        component: () => import('../modules/M2-accesos/views/AforoView.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['recepcionista', 'gerente'],
+        },
       },
       {
         path: 'clases',
