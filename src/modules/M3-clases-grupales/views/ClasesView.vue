@@ -212,7 +212,7 @@ function setupRealtimeNotifications() {
         // Estado 1 = En Espera, 2 = Notificado / Promovido
         if (newData.id_clase_lista_espera_estado === 2) {
           toast.success(
-            `¡Se ha liberado un lugar en tu clase! Revisa tus notificaciones para confirmar la reserva.`,
+            `¡Se ha liberado un lugar en tu clase! Se te ha asignado y confirmado la vacante automáticamente.`,
             { autoClose: false }
           )
           cargarClases()
@@ -395,6 +395,14 @@ async function confirmarReserva() {
   } finally {
     reservando.value = false
     await cargarClases()
+  }
+}
+
+function irAListaEsperaDesdeError() {
+  const clase = claseAReservar.value
+  modalReservaVisible.value = false
+  if (clase) {
+    handleListaEspera(clase.id)
   }
 }
 
@@ -878,14 +886,27 @@ async function confirmarEliminacion() {
 
       <div
         v-if="errorReserva"
-        class="bg-rose-50 text-rose-700 p-3 rounded-lg text-sm border border-rose-200 mt-4 flex gap-2 items-start"
+        class="bg-rose-50 text-rose-700 p-3 rounded-lg text-sm border border-rose-200 mt-4 flex flex-col gap-2"
       >
-        <PhWarning
-          :size="20"
-          weight="fill"
-          class="shrink-0 text-rose-500 mt-0.5"
-        />
-        <p class="font-medium">{{ errorReserva }}</p>
+        <div class="flex gap-2 items-start">
+          <PhWarning
+            :size="20"
+            weight="fill"
+            class="shrink-0 text-rose-500 mt-0.5"
+          />
+          <p class="font-medium">{{ errorReserva }}</p>
+        </div>
+        <button
+          v-if="
+            errorReserva.toLowerCase().includes('cupo') ||
+            errorReserva.toLowerCase().includes('lleno')
+          "
+          type="button"
+          class="self-start text-xs font-bold text-rose-700 underline hover:text-rose-900 cursor-pointer pt-1"
+          @click="irAListaEsperaDesdeError"
+        >
+          Anotarme en lista de espera para esta clase →
+        </button>
       </div>
 
       <template #actions>
