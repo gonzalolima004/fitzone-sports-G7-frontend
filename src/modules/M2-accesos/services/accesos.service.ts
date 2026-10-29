@@ -4,6 +4,7 @@ import type {
   QrResponseDto,
   SocioPerfilDto,
   ValidarAccesoRequestDto,
+  RegistrarEgresoRequestDto, // <-- Importar el tipo de egreso
   ValidarAccesoResponseDto,
   AforoResponseDto,
 } from '../types/accesos.types'
@@ -13,7 +14,7 @@ import { supabase } from '@/common/utils/supabase'
 export const accesosService = {
   async obtenerQr(): Promise<QrResponseDto> {
     const authStore = useAuthStore()
-    const userId = authStore.usuario?.id ?? 7 // Obtiene el ID real del usuario con fallback a 7
+    const userId = authStore.usuario?.id
 
     const response = await http.get<BackendQrResponseDto>(
       '/access/qr/generate',
@@ -57,10 +58,8 @@ export const accesosService = {
     return response.data
   },
 
-  async registrarEgreso(data: {
-    qrToken: string
-    id_sede: number
-  }): Promise<void> {
+  // Actualizado para aceptar QR o DNI mediante la unión de tipos
+  async registrarEgreso(data: RegistrarEgresoRequestDto): Promise<void> {
     await http.post('/accesos/registrar-egreso', data)
   },
 
@@ -84,10 +83,9 @@ export const accesosService = {
       .channel(channelName)
       .on(
         'broadcast',
-        { event: 'aforo_actualizado' }, // Asegurate que coincida con el nombre del evento que emite el backend (o ajustalo si usan otro)
+        { event: 'aforo_actualizado' },
         (payload: { payload: AforoResponseDto }) => {
           console.log('[Supabase Realtime Broadcast] Datos recibidos:', payload)
-          // El backend suele enviar los datos dentro de la propiedad payload o directamente
           const newData = (payload.payload || payload) as AforoResponseDto
           onCambio(newData)
         }
@@ -99,7 +97,6 @@ export const accesosService = {
         }
       })
 
-    // Retorna la función de limpieza (cleanup)
     return () => {
       supabase.removeChannel(channel)
     }
