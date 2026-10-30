@@ -69,7 +69,7 @@ const subtextoPrecio = computed(() => {
 })
 
 const features = computed(() => {
-  return props.plan.descripcion
+  return (props.plan.descripcion || '')
     .split('|')
     .map((f) => f.trim())
     .filter((f) => f.length > 0)

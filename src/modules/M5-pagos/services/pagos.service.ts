@@ -20,7 +20,6 @@ export interface IniciarPagoRequest {
   id_cancha_reserva?: number
   id_membresia_plan?: number
   id_membresia?: number
-  renovacion_automatica?: boolean
   email_pagador?: string
 }
 

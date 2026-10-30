@@ -171,6 +171,25 @@
   - `feat(pagos): enviar id_membresia_plan y texto dinámico de renovación en checkout`
   - `feat(membresias): actualizar cards, beneficios y landing con los nuevos planes`
 
+----
+
+#### 29/10/2026
+#### Gonzalo Lima | Rol: Desarrollador Frontend
+
+- **Actividades**:
+  - Vista de membresías: visualización del estado y vigencia de la suscripción en cabecera (plan actual, fechas y badges) y dinamización de acciones en tarjetas de planes.
+  - Modal de checkout: simplificación del flujo reemplazando el formulario simulado de tarjeta por confirmación directa y redirección a Mercado Pago.
+  - Remoción de la opción de renovación automática en checkout y vista de membresías.
+- **Decisiones**:
+  - Delegar el cobro exclusivamente a Checkout Pro de Mercado Pago sin formularios intermedios de tarjeta.
+- **Dificultades**: Ninguna.
+- **Commits**:
+  - `fix(pagos): reemplazar inputs ficticios de tarjeta por modal de confirmacion en checkout`
+  - `feat(membresias): resaltar plan actual, dinamizar botones y mostrar vigencia en cabecera`
+  - `refactor(pagos): remover seleccion de renovacion automatica en checkout`
+
+----
+
 #### 03/10/2026 - 05/10/2026
 #### Matías Sillen | Rol: Desarrollador Frontend
 

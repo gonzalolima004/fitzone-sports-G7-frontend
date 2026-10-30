@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import {
   PhIdentificationCard,
   PhClock,
@@ -24,17 +24,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void
-  (e: 'confirmar', planId: number, renovacionAutomatica?: boolean): void
+  (e: 'confirmar', planId: number): void
 }>()
-
-const renovacionAuto = ref(true)
-
-const textoPeriodo = computed(() => {
-  const dias = props.plan?.duracion_dias
-  if (dias === 90) return 'trimestral'
-  if (dias === 365) return 'anual'
-  return 'mensual'
-})
 
 const etiquetaDuracion = computed(() => {
   const dias = props.plan?.duracion_dias
@@ -110,19 +101,6 @@ function cerrarModal() {
           <span class="font-medium text-slate-700">Email pagador:</span>
           {{ emailPagador }}
         </p>
-
-        <label
-          class="flex items-center gap-2 mt-3 pt-3 border-t border-slate-200/70 cursor-pointer"
-        >
-          <input
-            v-model="renovacionAuto"
-            type="checkbox"
-            class="w-4 h-4 text-[#F96167] rounded border-slate-300 focus:ring-[#F96167]"
-          />
-          <span class="text-xs sm:text-sm text-slate-600">
-            Activar renovación automática {{ textoPeriodo }}
-          </span>
-        </label>
       </div>
 
       <!-- Desglose de importe -->
@@ -173,7 +151,7 @@ function cerrarModal() {
         size="md"
         :disabled="isLoading"
         :loading="isLoading"
-        @click="emit('confirmar', props.plan?.id ?? 0, renovacionAuto)"
+        @click="emit('confirmar', props.plan?.id ?? 0)"
       >
         <template #icon>
           <PhArrowSquareOut :size="18" weight="bold" />

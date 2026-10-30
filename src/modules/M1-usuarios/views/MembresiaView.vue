@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/store/auth'
-import { PhMedal, PhWarningCircle, PhShieldCheck } from '@phosphor-icons/vue'
+import { PhMedal, PhWarningCircle } from '@phosphor-icons/vue'
 
 import PlanCard from '../components/PlanCard.vue'
 import CheckoutModal from '../../M5-pagos/components/CheckoutModal.vue'
@@ -39,30 +39,14 @@ const fetchDatos = async () => {
       membresiasService.getPlanes(),
       membresiasService.verificarEstado(userId),
       membresiasService.getMembresiaActiva(userId).catch(() => null),
-    ])) as unknown as [
-      PlanMembresia[],
-      EstadoMembresia,
-      MembresiaActiva | null,
-    ]
+    ])) as unknown as [PlanMembresia[], EstadoMembresia, MembresiaActiva | null]
 
-    planes.value = planesData.map((p) => {
-      let desc =
-        'Acceso a musculación y clases grupales|Credencial digital QR|15% off en canchas|Sin matrícula'
-
-      const nombre = (p.nombre || '').toLowerCase()
-      if (nombre.includes('2')) {
-        desc =
-          '2 accesos por semana a musculación y clases|Acreditación digital instantánea por QR|15% de descuento en canchas|Sin matrícula ni costo de inscripción'
-      } else if (nombre.includes('3')) {
-        desc =
-          '3 accesos por semana a musculación y clases|Acreditación digital instantánea por QR|15% de descuento en canchas|Sin matrícula ni costo de inscripción'
-      } else if (nombre.includes('libre')) {
-        desc =
-          'Acceso ilimitado todos los días a musculación y clases|Libre acceso a todas las sedes provinciales|Acreditación digital instantánea por QR|15% de descuento en canchas'
-      }
-
-      return { ...p, descripcion: desc }
-    })
+    planes.value = planesData.map((p) => ({
+      ...p,
+      descripcion:
+        p.descripcion ||
+        'Acceso a musculación y clases grupales|Credencial digital QR|15% off en canchas|Sin matrícula',
+    }))
 
     miEstado.value = estadoData
     membresiaActiva.value = activaData
@@ -100,7 +84,7 @@ const confirmarPago = async () => {
   isProcessingPayment.value = true
   try {
     const payload = {
-      id_membresia: planSeleccionado.value?.id,
+      id_membresia_plan: planSeleccionado.value?.id,
       monto: planSeleccionado.value?.precio ?? 0,
       email_pagador: authStore.usuario?.email || 'test@fitzone.com',
       titulo: `Suscripción - ${planSeleccionado.value?.nombre ?? ''}`,
@@ -159,9 +143,7 @@ const estadoConfig = computed(() => {
       miEstado.value.planNombre ||
       'Plan Activo'
     const inicioStr = formatFecha(
-      membresiaActiva.value?.fecha_inicio ??
-        miEstado.value.fecha_inicio ??
-        null
+      membresiaActiva.value?.fecha_inicio ?? miEstado.value.fecha_inicio ?? null
     )
     const finStr = formatFecha(
       membresiaActiva.value?.fecha_fin ??
@@ -306,8 +288,8 @@ const isPopularPlan = (plan: PlanMembresia) => plan.duracion_dias === 90
             :has-active-plan="
               Boolean(
                 miEstado?.esSocioActivo ||
-                  membresiaActiva ||
-                  miEstado?.nombre_plan
+                membresiaActiva ||
+                miEstado?.nombre_plan
               )
             "
             :is-popular="isPopularPlan(plan)"
@@ -316,26 +298,6 @@ const isPopularPlan = (plan: PlanMembresia) => plan.duracion_dias === 90
             "
             @subscribe="abrirCheckout"
           />
-        </div>
-
-        <!-- Footer Informativo -->
-        <div
-          class="mt-10 sm:mt-12 bg-blue-50/50 border border-blue-100 p-4 sm:p-5 rounded-xl flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4"
-        >
-          <div class="bg-blue-100 p-2 rounded-full shrink-0">
-            <PhShieldCheck :size="24" weight="duotone" class="text-blue-600" />
-          </div>
-          <div>
-            <h4 class="text-sm font-bold text-[#202759]">
-              Seguridad de Datos y Tokenización
-            </h4>
-            <p class="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed">
-              FitZone Sports no almacena datos sensibles de tarjetas de crédito
-              o débito en sus bases de datos locales. La transacción se procesa
-              directamente mediante el checkout seguro oficial de la pasarela de
-              pagos.
-            </p>
-          </div>
         </div>
 
         <!-- Modal de Checkout -->
