@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/store/auth'
-import { PhMedal, PhWarningCircle, PhShieldCheck } from '@phosphor-icons/vue'
+import { PhMedal, PhWarningCircle } from '@phosphor-icons/vue'
 
 import PlanCard from '../components/PlanCard.vue'
 import CheckoutModal from '../../M5-pagos/components/CheckoutModal.vue'
@@ -10,6 +10,7 @@ import {
   membresiasService,
   type PlanMembresia,
   type EstadoMembresia,
+  type MembresiaActiva,
 } from '../services/membresias.service'
 import { pagosService } from '../../M5-pagos/services/pagos.service'
 import { toast } from '@/common/utils/toast'
@@ -24,6 +25,7 @@ const modalAbierto = ref(false)
 
 const planes = ref<PlanMembresia[]>([])
 const miEstado = ref<EstadoMembresia | null>(null)
+const membresiaActiva = ref<MembresiaActiva | null>(null)
 const planSeleccionado = ref<PlanMembresia | null>(null)
 
 const fetchDatos = async () => {
@@ -33,20 +35,21 @@ const fetchDatos = async () => {
 
     if (!userId) throw new Error('Usuario no identificado')
 
-    const [planesData, estadoData] = (await Promise.all([
+    const [planesData, estadoData, activaData] = (await Promise.all([
       membresiasService.getPlanes(),
       membresiasService.verificarEstado(userId),
-    ])) as unknown as [PlanMembresia[], EstadoMembresia]
-
-    const BENEFICIOS_PLAN =
-      'Acceso libre ilimitado a musculación y cardio|Acceso a todas las clases grupales sin límite|Acreditación digital instantánea por QR|15% de descuento en alquiler de canchas|Sin costos de matrícula ni inscripción'
+      membresiasService.getMembresiaActiva(userId).catch(() => null),
+    ])) as unknown as [PlanMembresia[], EstadoMembresia, MembresiaActiva | null]
 
     planes.value = planesData.map((p) => ({
       ...p,
-      descripcion: BENEFICIOS_PLAN,
+      descripcion:
+        p.descripcion ||
+        'Acceso a musculación y clases grupales|Credencial digital QR|15% off en canchas|Sin matrícula',
     }))
 
     miEstado.value = estadoData
+    membresiaActiva.value = activaData
   } catch {
     toast.error('Ocurrió un error al cargar la información de la membresía.')
   } finally {
@@ -77,25 +80,33 @@ const abrirCheckout = (planRecibido: PlanMembresia) => {
   modalAbierto.value = true
 }
 
-const confirmarPago = async (_planId?: number, renovacionAutomatica = true) => {
+const confirmarPago = async () => {
   isProcessingPayment.value = true
   try {
     const payload = {
       id_membresia_plan: planSeleccionado.value?.id,
       monto: planSeleccionado.value?.precio ?? 0,
-      renovacion_automatica: renovacionAutomatica,
       email_pagador: authStore.usuario?.email || 'test@fitzone.com',
       titulo: `Suscripción - ${planSeleccionado.value?.nombre ?? ''}`,
     }
 
-    const response = (await pagosService.iniciarPago(payload)) as {
-      initPoint?: string
-      sandboxInitPoint?: string
+    const response = await pagosService.iniciarPago(payload)
+
+    if (response?.id_pago) {
+      localStorage.setItem(
+        'fitzone_pago_pendiente',
+        JSON.stringify({
+          id_pago: response.id_pago,
+          preferenceId: response.preferenceId,
+          fecha: new Date().toISOString(),
+        })
+      )
     }
 
-    if (response?.initPoint || response?.sandboxInitPoint) {
-      window.location.href = (response.initPoint ||
-        response.sandboxInitPoint) as string
+    const checkoutUrl = response?.sandboxInitPoint || response?.initPoint
+    if (checkoutUrl) {
+      window.location.href = checkoutUrl
+      return
     }
   } catch {
     toast.error('No se pudo iniciar el proceso de pago. Inténtalo nuevamente.')
@@ -118,24 +129,45 @@ const formatFecha = (fechaStr: string | null) => {
 }
 
 const estadoConfig = computed(() => {
-  if (!miEstado.value)
+  if (!miEstado.value) {
     return {
       class: 'bg-slate-100 text-slate-600 border-slate-200',
-      text: 'CARGANDO...',
+      text: 'Cargando...',
     }
+  }
 
-  if (miEstado.value.esSocioActivo) {
+  if (miEstado.value.esSocioActivo || membresiaActiva.value) {
+    const nombrePlan =
+      membresiaActiva.value?.membresia_plan?.nombre ||
+      miEstado.value.nombre_plan ||
+      miEstado.value.planNombre ||
+      'Plan Activo'
+    const inicioStr = formatFecha(
+      membresiaActiva.value?.fecha_inicio ?? miEstado.value.fecha_inicio ?? null
+    )
+    const finStr = formatFecha(
+      membresiaActiva.value?.fecha_fin ??
+        miEstado.value.fecha_vencimiento ??
+        miEstado.value.fechaVencimiento ??
+        null
+    )
+
+    const detalleFechas =
+      inicioStr !== '-' && finStr !== '-'
+        ? ` • Inicio: ${inicioStr} - Fin: ${finStr}`
+        : finStr !== '-'
+          ? ` • Fin: ${finStr}`
+          : ''
+
     return {
       class: 'bg-green-100 text-green-700 border-green-200',
-      text: 'ACTIVA',
+      text: `${nombrePlan}${detalleFechas}`,
     }
-  } else if (miEstado.value.enMora) {
-    return { class: 'bg-red-100 text-red-700 border-red-200', text: 'VENCIDA' }
-  } else {
-    return {
-      class: 'bg-slate-100 text-slate-600 border-slate-200',
-      text: 'SIN SUSCRIPCIÓN',
-    }
+  }
+
+  return {
+    class: 'bg-slate-100 text-slate-600 border-slate-200',
+    text: 'Sin membresía',
   }
 })
 
@@ -182,15 +214,10 @@ const isPopularPlan = (plan: PlanMembresia) => plan.duracion_dias === 90
 
           <div class="flex items-center flex-wrap gap-2 sm:gap-3">
             <span
-              class="px-3 py-1.5 text-[10px] sm:text-[11px] font-bold tracking-wide rounded-full border bg-white text-slate-600 shadow-sm whitespace-nowrap"
-            >
-              Cobertura: 25+ Sucursales
-            </span>
-            <span
-              class="px-3 py-1.5 text-[10px] sm:text-[11px] font-bold tracking-wide rounded-full border uppercase shadow-sm whitespace-nowrap"
+              class="px-3.5 py-1.5 text-xs font-bold tracking-wide rounded-full border shadow-sm whitespace-nowrap"
               :class="estadoConfig.class"
             >
-              ESTADO: {{ estadoConfig.text }}
+              {{ estadoConfig.text }}
             </span>
           </div>
         </header>
@@ -213,7 +240,11 @@ const isPopularPlan = (plan: PlanMembresia) => plan.duracion_dias === 90
               <p class="text-red-700 text-xs sm:text-sm mt-1 leading-relaxed">
                 Tu plan actual finalizó el
                 <strong>{{
-                  formatFecha(miEstado?.fechaVencimiento ?? null)
+                  formatFecha(
+                    miEstado?.fecha_vencimiento ??
+                      miEstado?.fechaVencimiento ??
+                      null
+                  )
                 }}</strong
                 >. <br class="hidden sm:block" />
                 Actualmente
@@ -250,7 +281,17 @@ const isPopularPlan = (plan: PlanMembresia) => plan.duracion_dias === 90
             v-for="plan in planes"
             :key="plan.id"
             :plan="plan"
-            :is-current="miEstado?.nombre_plan === plan.nombre"
+            :is-current="
+              (membresiaActiva?.membresia_plan?.nombre ??
+                miEstado?.nombre_plan) === plan.nombre
+            "
+            :has-active-plan="
+              Boolean(
+                miEstado?.esSocioActivo ||
+                membresiaActiva ||
+                miEstado?.nombre_plan
+              )
+            "
             :is-popular="isPopularPlan(plan)"
             :is-loading="
               isProcessingPayment && planSeleccionado?.id === plan.id
@@ -259,32 +300,13 @@ const isPopularPlan = (plan: PlanMembresia) => plan.duracion_dias === 90
           />
         </div>
 
-        <!-- Footer Informativo -->
-        <div
-          class="mt-10 sm:mt-12 bg-blue-50/50 border border-blue-100 p-4 sm:p-5 rounded-xl flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4"
-        >
-          <div class="bg-blue-100 p-2 rounded-full shrink-0">
-            <PhShieldCheck :size="24" weight="duotone" class="text-blue-600" />
-          </div>
-          <div>
-            <h4 class="text-sm font-bold text-[#202759]">
-              Seguridad de Datos y Tokenización
-            </h4>
-            <p class="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed">
-              FitZone Sports no almacena datos sensibles de tarjetas de crédito
-              o débito en sus bases de datos locales. La transacción se procesa
-              directamente mediante el checkout seguro oficial de la pasarela de
-              pagos.
-            </p>
-          </div>
-        </div>
-
         <!-- Modal de Checkout -->
         <CheckoutModal
           v-if="planSeleccionado"
           v-model="modalAbierto"
           :plan="planSeleccionado"
           :is-loading="isProcessingPayment"
+          :email-pagador="authStore.usuario?.email"
           @confirmar="confirmarPago"
         />
       </div>
