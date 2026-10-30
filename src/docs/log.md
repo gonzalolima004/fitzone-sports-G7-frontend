@@ -171,6 +171,25 @@
   - `feat(pagos): enviar id_membresia_plan y texto dinámico de renovación en checkout`
   - `feat(membresias): actualizar cards, beneficios y landing con los nuevos planes`
 
+----
+
+#### 29/10/2026
+#### Gonzalo Lima | Rol: Desarrollador Frontend
+
+- **Actividades**:
+  - Vista de membresías: visualización del estado y vigencia de la suscripción en cabecera (plan actual, fechas y badges) y dinamización de acciones en tarjetas de planes.
+  - Modal de checkout: simplificación del flujo reemplazando el formulario simulado de tarjeta por confirmación directa y redirección a Mercado Pago.
+  - Remoción de la opción de renovación automática en checkout y vista de membresías.
+- **Decisiones**:
+  - Delegar el cobro exclusivamente a Checkout Pro de Mercado Pago sin formularios intermedios de tarjeta.
+- **Dificultades**: Ninguna.
+- **Commits**:
+  - `fix(pagos): reemplazar inputs ficticios de tarjeta por modal de confirmacion en checkout`
+  - `feat(membresias): resaltar plan actual, dinamizar botones y mostrar vigencia en cabecera`
+  - `refactor(pagos): remover seleccion de renovacion automatica en checkout`
+
+----
+
 #### 03/10/2026 - 05/10/2026
 #### Matías Sillen | Rol: Desarrollador Frontend
 
@@ -996,3 +1015,33 @@
 - **Commits:**
   - `fix(clases): corregir estado de reservas canceladas en agenda y resolver errores de router`
   - `feat(clases): optimizar flujo de concurrencia de reservas y notificacion de lista de espera`
+  
+---
+  
+#### 29/10/2026
+#### Angelina Vialle | Rol: Team Leader / Desarrolladora Frontend
+
+- **Actividades**:
+  - **Módulo M2 (Accesos y Aforo - Validación por DNI y QR)**:
+    - Tipado polimórfico en `accesos.types.ts`: actualización de los DTOs `ValidarAccesoRequestDto` y `RegistrarEgresoRequestDto` como unión de tipos (`{ qrToken, id_sede } | { dni, id_sede }`) para dar soporte a la validación de ingreso y registro de egreso tanto por código QR como por documento de identidad (DNI).
+    - Métodos del servicio `accesos.service.ts`: adaptación de `registrarEgreso` para admitir DNI o QR dinámicamente, eliminación de fallback hardcodeado de ID de usuario en `obtenerQr` y mejora en el tipado y limpieza de suscripciones en Supabase Realtime Broadcast (`aforo_actualizado`).
+    - Componente interactivo `ValidacionAcceso.vue`: implementación de un selector secundario con botones toggle en el modo manual para alternar ágilmente entre "Por Token QR" (ícono `PhQrCode`) y "Por DNI del Usuario" (ícono `PhIdentificationCard`).
+    - Gestión de estado y ejecución en recepción: vinculación reactiva para `dniIngresado` y `tokenIngresado`, reseteo de estados al alternar métodos y adaptación de los métodos `handleIngreso` y `handleEgreso` para enviar el payload correspondiente según el método seleccionado.
+    - Normalización y robustez de errores: deserialización y concatenación de respuestas de error provenientes del backend (arrays de validación de `class-validator`, o propiedades `detail`, `title`, `message`) para brindar feedback claro al recepcionista, y separación visual de errores entre modo manual y cámara.
+    - Navegación lateral en `Sidebar.vue`: agregado del acceso a "Recepción" (`/recepcion`) en la sección de Administración para los roles `gerente` y `recepcionista`, y ajuste para que "Directorio de Usuarios" quede restringido exclusivamente al rol `gerente`.
+  - **Enrutamiento y Control de Acceso (`router/index.ts`)**:
+    - Registro de la ruta protegida `/recepcion` apuntando a `RecepcionView.vue` bajo control de acceso RBAC para roles `recepcionista` y `gerente`.
+    - Actualización y unificación del enrutador central: sincronización de rutas hijas del módulo de gerencia y reportes, asegurando la verificación de rol en guardias de navegación.
+- **Decisiones**:
+  - Modelar los DTOs de validación y egreso como tipos unión (`qrToken` | `dni`) en el frontend en lugar de crear endpoints o métodos paralelos.
+  - Diseñar una alternancia clara y accesible mediante toggle buttons en `ValidacionAcceso.vue` para que el personal de recepción pueda registrar socios que olviden su teléfono o tengan dificultades técnicas con el código QR.
+  - Centralizar el formateo de errores del backend para procesar tanto errores genéricos como arrays de validación de NestJS, evitando mensajes genéricos o vacíos.
+- **Dificultades**:
+  - Manejo heterogéneo de respuestas de error del servidor, que en validaciones de DTOs devolvían un array de mensajes (`message: string[]`) mientras que en otros casos devolvían `detail` o `title`, requiriendo normalizar la respuesta para mostrarla legíblemente.
+- **Commits:**
+- `feat(M2): actualizacion index para accesos`
+- `feat(M2): cambio en tipos para agregar la opcion de ingreso por dni`
+- `feat(M2): actualizacion para aceptar tanto dni o qrtoken`
+- `feat(M2): correciones para agregar la opcion de ingresar por DNI`
+- `feat(M2): adicion de acceso en barra lateral`
+- `actualizacion index`

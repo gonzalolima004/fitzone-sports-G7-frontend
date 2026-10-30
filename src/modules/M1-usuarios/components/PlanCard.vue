@@ -7,6 +7,7 @@ import type { PlanMembresia } from '../services/membresias.service'
 const props = defineProps<{
   plan: PlanMembresia
   isCurrent: boolean
+  hasActivePlan?: boolean
   isPopular?: boolean
   isLoading?: boolean
 }>()
@@ -14,6 +15,12 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'subscribe', plan: PlanMembresia): void // <-- Pasamos el objeto entero
 }>()
+
+const buttonText = computed(() => {
+  if (props.isCurrent) return 'Renovar'
+  if (props.hasActivePlan) return 'Cambiar a este Plan'
+  return 'Suscribirme'
+})
 
 const formattedPrice = computed(() => {
   return new Intl.NumberFormat('es-AR', {
@@ -62,7 +69,7 @@ const subtextoPrecio = computed(() => {
 })
 
 const features = computed(() => {
-  return props.plan.descripcion
+  return (props.plan.descripcion || '')
     .split('|')
     .map((f) => f.trim())
     .filter((f) => f.length > 0)
@@ -71,15 +78,23 @@ const features = computed(() => {
 
 <template>
   <div
-    class="relative border rounded-2xl p-6 sm:p-8 flex flex-col transition-all duration-300 bg-white"
+    class="relative border rounded-2xl p-6 sm:p-8 flex flex-col transition-all duration-300"
     :class="
-      isPopular
-        ? 'border-[#F96167] shadow-xl transform hover:-translate-y-1'
-        : 'border-slate-200 hover:shadow-md hover:border-[#202759]/30'
+      isCurrent
+        ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-lg bg-emerald-50/15 transform hover:-translate-y-1'
+        : isPopular
+          ? 'border-[#F96167] shadow-xl bg-white transform hover:-translate-y-1'
+          : 'border-slate-200 bg-white hover:shadow-md hover:border-[#202759]/30'
     "
   >
     <div
-      v-if="isPopular"
+      v-if="isCurrent"
+      class="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-emerald-600 text-white text-[10px] sm:text-xs font-black px-4 py-1 rounded-full tracking-wider uppercase whitespace-nowrap shadow-sm"
+    >
+      TU PLAN ACTUAL
+    </div>
+    <div
+      v-else-if="isPopular"
       class="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-[#F96167] text-white text-[10px] sm:text-xs font-black px-4 py-1 rounded-full tracking-wider uppercase whitespace-nowrap shadow-sm"
     >
       MÁS ELEGIDO
@@ -98,7 +113,13 @@ const features = computed(() => {
         <div class="flex items-baseline justify-center gap-1">
           <span
             class="text-3xl sm:text-4xl font-extrabold"
-            :class="isPopular ? 'text-[#F96167]' : 'text-[#202759]'"
+            :class="
+              isCurrent
+                ? 'text-emerald-700'
+                : isPopular
+                  ? 'text-[#F96167]'
+                  : 'text-[#202759]'
+            "
             >{{ formattedPrice }}</span
           >
         </div>
@@ -134,11 +155,11 @@ const features = computed(() => {
     <!-- En el botón al final del template -->
     <BaseButton
       class="w-full"
-      :variant="isPopular || isCurrent ? 'secondary' : 'outline'"
+      :variant="isCurrent ? 'primary' : isPopular ? 'secondary' : 'outline'"
       :loading="isLoading"
       @click="emit('subscribe', plan)"
     >
-      {{ isCurrent ? 'Renovar / Cambiar Plan' : 'Suscribirme' }}
+      {{ buttonText }}
     </BaseButton>
   </div>
 </template>
