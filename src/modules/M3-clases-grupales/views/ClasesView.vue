@@ -93,12 +93,44 @@ const clasesAgendadas = computed<ClaseCardProps[]>(() => {
     }
 
     // Identificar si el usuario tiene reserva activa para esta clase en este horario
-    const miReserva = misReservas.value.find(
-      (r) => r.id_clase === clase.id_clase
-    )
-    const miInscripcion = misInscripciones.value.find(
-      (i) => i.id_clase === clase.id_clase
-    )
+    const miReserva = misReservas.value.find((r) => {
+      if (r.id_clase !== clase.id_clase) return false
+
+      // Validar que la reserva esté activa/confirmada (id_clase_reserva_estado: 1) y no cancelada
+      const esConfirmada =
+        r.id_clase_reserva_estado === 1 ||
+        (r.estado && r.estado.toUpperCase() === 'CONFIRMADA')
+      const esCancelada =
+        r.id_clase_reserva_estado === 4 ||
+        r.id_clase_reserva_estado === 2 ||
+        (r.estado && r.estado.toUpperCase() === 'CANCELADA')
+
+      if (!esConfirmada || esCancelada) return false
+
+      // Si la reserva especifica fecha_inicio, validar que coincida con el día seleccionado
+      if (r.fecha_inicio) {
+        const fechaReserva = obtenerFechaLocalISO(r.fecha_inicio)
+        if (fechaReserva !== fechaSeleccionada.value) return false
+      }
+
+      return true
+    })
+
+    const miInscripcion = misInscripciones.value.find((i) => {
+      if (i.id_clase !== clase.id_clase) return false
+
+      const esActiva =
+        i.id_clase_lista_espera_estado === 1 ||
+        (i.estado && i.estado.toUpperCase() !== 'CANCELADA')
+      if (!esActiva) return false
+
+      if (i.fecha_inicio) {
+        const fechaInscripcion = obtenerFechaLocalISO(i.fecha_inicio)
+        if (fechaInscripcion !== fechaSeleccionada.value) return false
+      }
+
+      return true
+    })
 
     let estado: ClaseCardProps['estado'] = clase.estado
     if (miReserva) {
@@ -180,7 +212,7 @@ function setupRealtimeNotifications() {
         // Estado 1 = En Espera, 2 = Notificado / Promovido
         if (newData.id_clase_lista_espera_estado === 2) {
           toast.success(
-            `¡Se ha liberado un lugar en tu clase! Revisa tus notificaciones para confirmar la reserva.`,
+            `¡Se ha liberado un lugar en tu clase! Se te ha asignado y confirmado la vacante automáticamente.`,
             { autoClose: false }
           )
           cargarClases()
@@ -366,6 +398,14 @@ async function confirmarReserva() {
   }
 }
 
+function irAListaEsperaDesdeError() {
+  const clase = claseAReservar.value
+  modalReservaVisible.value = false
+  if (clase) {
+    handleListaEspera(clase.id)
+  }
+}
+
 // ESTADO MODAL LISTA DE ESPERA
 const modalEsperaVisible = ref(false)
 const claseAEsperar = ref<ClaseCardProps | null>(null)
@@ -441,8 +481,12 @@ async function confirmarCancelacion() {
   if (!claseACancelar.value) return
   const idReserva =
     claseACancelar.value.idReserva ||
-    misReservas.value.find((r) => r.id_clase === claseACancelar.value?.id)
-      ?.id_clase_reserva
+    misReservas.value.find(
+      (r) =>
+        r.id_clase === claseACancelar.value?.id &&
+        (r.id_clase_reserva_estado === 1 ||
+          r.estado?.toUpperCase() === 'CONFIRMADA')
+    )?.id_clase_reserva
 
   if (!idReserva) {
     errorCancelacion.value = 'No se encontró la reserva activa para cancelar.'
@@ -842,14 +886,27 @@ async function confirmarEliminacion() {
 
       <div
         v-if="errorReserva"
-        class="bg-rose-50 text-rose-700 p-3 rounded-lg text-sm border border-rose-200 mt-4 flex gap-2 items-start"
+        class="bg-rose-50 text-rose-700 p-3 rounded-lg text-sm border border-rose-200 mt-4 flex flex-col gap-2"
       >
-        <PhWarning
-          :size="20"
-          weight="fill"
-          class="shrink-0 text-rose-500 mt-0.5"
-        />
-        <p class="font-medium">{{ errorReserva }}</p>
+        <div class="flex gap-2 items-start">
+          <PhWarning
+            :size="20"
+            weight="fill"
+            class="shrink-0 text-rose-500 mt-0.5"
+          />
+          <p class="font-medium">{{ errorReserva }}</p>
+        </div>
+        <button
+          v-if="
+            errorReserva.toLowerCase().includes('cupo') ||
+            errorReserva.toLowerCase().includes('lleno')
+          "
+          type="button"
+          class="self-start text-xs font-bold text-rose-700 underline hover:text-rose-900 cursor-pointer pt-1"
+          @click="irAListaEsperaDesdeError"
+        >
+          Anotarme en lista de espera para esta clase →
+        </button>
       </div>
 
       <template #actions>

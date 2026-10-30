@@ -113,6 +113,16 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: 'recepcion',
+        name: 'recepcion',
+        component: () =>
+          import('../modules/M2-accesos/views/RecepcionView.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['recepcionista', 'gerente'],
+        },
+      },
+      {
         path: 'gerencia',
         meta: {
           requiresAuth: true,
