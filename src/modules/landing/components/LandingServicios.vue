@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import http from '@/common/api/http'
 import { useAuthStore } from '@/store/auth'
 import { useSedeStore } from '@/store/sede'
 import {
@@ -22,21 +21,6 @@ import {
   PhMagnifyingGlass,
 } from '@phosphor-icons/vue'
 
-interface CiudadApi {
-  id_ciudad: number
-  nombre: string
-  activo?: boolean
-}
-
-interface SedeApi {
-  id_sede: number
-  nombre: string
-  direccion?: string
-  aforo_maximo?: number
-  activo?: boolean
-  id_ciudad: number
-}
-
 const router = useRouter()
 const authStore = useAuthStore()
 const sedeStore = useSedeStore()
@@ -45,8 +29,8 @@ const cargando = ref(true)
 const cargandoClases = ref(false)
 const error = ref<string | null>(null)
 
-const ciudades = ref<CiudadApi[]>([])
-const sedes = ref<SedeApi[]>([])
+const ciudades = computed(() => sedeStore.ciudades)
+const sedes = computed(() => sedeStore.sedes)
 const idCiudadSeleccionada = ref<number | null>(null)
 const idSedeSeleccionada = ref<number | null>(null)
 
@@ -164,14 +148,15 @@ async function inicializarDatos() {
     cargando.value = true
     error.value = null
 
-    // Cargar ciudades y sedes en paralelo
-    const [resCiudades, resSedes] = await Promise.all([
-      http.get<CiudadApi[]>('/ciudades'),
-      http.get<SedeApi[]>('/sedes'),
+    // Sincronizar ciudades y sedes desde el store en paralelo
+    await Promise.all([
+      sedeStore.ciudades.length === 0
+        ? sedeStore.cargarCiudades()
+        : Promise.resolve(),
+      sedeStore.sedes.length === 0
+        ? sedeStore.cargarSedes()
+        : Promise.resolve(),
     ])
-
-    ciudades.value = Array.isArray(resCiudades.data) ? resCiudades.data : []
-    sedes.value = Array.isArray(resSedes.data) ? resSedes.data : []
 
     if (ciudades.value.length > 0) {
       // Determinar ciudad y sede inicial
@@ -179,9 +164,8 @@ async function inicializarDatos() {
         (s) => s.id_sede === sedeStore.idSedeSeleccionada
       )
 
-      const ciudadInicial = sedeGuardada
-        ? sedeGuardada.id_ciudad
-        : ciudades.value[0].id_ciudad
+      const ciudadInicial =
+        sedeGuardada?.id_ciudad ?? ciudades.value[0].id_ciudad
 
       idCiudadSeleccionada.value = ciudadInicial
 
@@ -206,10 +190,13 @@ async function inicializarDatos() {
 watch(
   () => sedeStore.idSedeSeleccionada,
   async (nuevoId) => {
-    if (!nuevoId || nuevoId === idSedeSeleccionada.value) return
+    if (cargando.value || !nuevoId || nuevoId === idSedeSeleccionada.value)
+      return
     const sedeEncontrada = sedes.value.find((s) => s.id_sede === nuevoId)
     if (sedeEncontrada) {
-      idCiudadSeleccionada.value = sedeEncontrada.id_ciudad
+      if (sedeEncontrada.id_ciudad !== undefined) {
+        idCiudadSeleccionada.value = sedeEncontrada.id_ciudad
+      }
       idSedeSeleccionada.value = nuevoId
       await cargarClases(nuevoId)
     }
@@ -218,9 +205,6 @@ watch(
 
 onMounted(async () => {
   document.addEventListener('click', handleClickOutside)
-  if (sedeStore.sedes.length === 0) {
-    await sedeStore.cargarSedes().catch(() => {})
-  }
   await inicializarDatos()
 })
 

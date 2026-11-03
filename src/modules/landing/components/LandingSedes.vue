@@ -2,30 +2,14 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import http from '@/common/api/http'
-import { useSedeStore } from '@/store/sede'
+import { useSedeStore, type Sede } from '@/store/sede'
 import BaseSkeleton from '@/common/components/BaseSkeleton.vue'
 import { PhMapPin, PhBuildings, PhSparkle } from '@phosphor-icons/vue'
-
-interface CiudadApi {
-  id_ciudad: number
-  nombre: string
-  activo?: boolean
-}
-
-interface SedeApi {
-  id_sede: number
-  nombre: string
-  direccion?: string
-  aforo_maximo?: number
-  activo?: boolean
-  id_ciudad: number
-}
 
 interface CiudadConSedes {
   id_ciudad: number
   nombre: string
-  sedes: SedeApi[]
+  sedes: Sede[]
   totalSedes: number
   lat: number
   lng: number
@@ -35,8 +19,8 @@ const sedeStore = useSedeStore()
 
 const cargando = ref(true)
 const error = ref<string | null>(null)
-const ciudades = ref<CiudadApi[]>([])
-const sedes = ref<SedeApi[]>([])
+const ciudades = computed(() => sedeStore.ciudades)
+const sedes = computed(() => sedeStore.sedes)
 const ciudadActivaId = ref<number | null>(null)
 
 const mapContainer = ref<HTMLElement | null>(null)
@@ -229,7 +213,7 @@ function scrollA(href: string) {
   }
 }
 
-function irAClasesDeSede(sede: SedeApi) {
+function irAClasesDeSede(sede: Sede) {
   sedeStore.seleccionarSede(sede.id_sede)
   scrollA('#actividades')
 }
@@ -238,19 +222,26 @@ async function cargarDatos() {
   try {
     cargando.value = true
     error.value = null
-    const [resCiudades, resSedes] = await Promise.all([
-      http.get<CiudadApi[]>('/ciudades'),
-      http.get<SedeApi[]>('/sedes'),
+    await Promise.all([
+      sedeStore.ciudades.length === 0
+        ? sedeStore.cargarCiudades()
+        : Promise.resolve(),
+      sedeStore.sedes.length === 0
+        ? sedeStore.cargarSedes()
+        : Promise.resolve(),
     ])
-    ciudades.value = Array.isArray(resCiudades.data) ? resCiudades.data : []
-    sedes.value = Array.isArray(resSedes.data) ? resSedes.data : []
+
+    if (sedeStore.error && sedes.value.length === 0) {
+      error.value =
+        'No se pudieron sincronizar las sedes desde la base de datos.'
+    }
 
     // Seleccionar ciudad inicial (priorizar la que tenga sedes activas)
     if (ciudades.value.length > 0) {
       const sedePrevia = sedes.value.find(
         (s) => s.id_sede === sedeStore.idSedeSeleccionada
       )
-      if (sedePrevia) {
+      if (sedePrevia?.id_ciudad !== undefined) {
         ciudadActivaId.value = sedePrevia.id_ciudad
       } else {
         const conSedes = ciudadesConSedes.value.find((c) => c.totalSedes > 0)
@@ -269,9 +260,6 @@ async function cargarDatos() {
 }
 
 onMounted(async () => {
-  if (sedeStore.sedes.length === 0) {
-    sedeStore.cargarSedes().catch(() => {})
-  }
   await nextTick()
   inicializarMapa()
   await cargarDatos()
