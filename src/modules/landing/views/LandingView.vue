@@ -29,7 +29,7 @@ import LandingFooter from '../components/LandingFooter.vue'
       <!-- 6. Clases Grupales y Actividades (Sincronizado en tiempo real) -->
       <LandingServicios />
 
-      <!-- 7. Alquiler de Canchas (Pádel, Fútbol, Tenis) -->
+      <!-- 7. Alquiler de Canchas -->
       <LandingCanchas />
 
       <!-- 8. Membresías y Planes Oficiales -->
