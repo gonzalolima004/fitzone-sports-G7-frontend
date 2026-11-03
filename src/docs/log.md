@@ -679,6 +679,27 @@
 
 ---
 
+#### 03/11/2026
+#### Marcos Caraballo | Rol: Desarrollador Frontend
+- **Actividades**:
+  - Centralización del horario operativo de sedes en `useSedeStore` mediante `obtenerHorarioOperativo` y caché reactiva en memoria (`horariosCache`), evitando estados locales duplicados en vistas.
+  - Optimización de carga inicial y eliminación de peticiones redundantes en `CanchasView.vue` controlando la ejecución de los `watch()` mediante un flag de inicialización (`inicializado`).
+  - Implementación de deduplicación de promesas en vuelo en `sede.ts` para llamadas concurrentes a `cargarSedes()` y `obtenerHorarioOperativo()`.
+  - Refactorización de `canchas.service.ts` para delegar consultas de horarios operativos a `sedeStore` y sincronizar respuestas por lote (`getDisponibilidadPorSede`) directamente en la caché del store.
+  - Adaptación tipográfica estricta en `canchas.types.ts` extendiendo `HorarioOperativo` de la tienda sin recurrir a `any`.
+- **Decisiones**:
+  - Manejar el horario operativo como propiedad computada en `CanchasView.vue` vinculada a `sedeStore.horariosCache`, garantizando una única fuente de verdad reactiva y evitando peticiones de red al revisitar fechas o sedes.
+  - Controlar las suscripciones reactivas en `CanchasView.vue` para que los observadores de filtros y sede no disparen llamadas en cascada durante el montaje inicial (`onMounted`).
+  - Utilizar un mapa de promesas activas en `useSedeStore` para deduplicar peticiones simultáneas idénticas antes de su resolución.
+- **Dificultades**:
+  - Disparo de múltiples solicitudes HTTP duplicadas al recargar la página en `/canchas` debido a la ejecución simultánea de `onMounted` (en `MainLayout` y `CanchasView`) y la activación anticipada de watchers al resolverse la sede por defecto.
+  - Las peticiones concurrentes a `obtenerHorarioOperativo` antes de que se completara el primer GET causaban fallos en la verificación de caché (`horariosCache.value[key] === undefined`), solucionado mediante caché de promesas en vuelo.
+- **Commits:**
+- `feat(M4): fix de reserva y optimizacion de requests`
+- `feat(pinia): evitar requests redundantes en store`
+
+---
+
 #### 22/10/2026
 #### Marcos Caraballo | Rol: Desarrollador Frontend
 - **Actividades**:
@@ -842,6 +863,9 @@
 - `feat(M1): vista de gerente directorio de usuarios`
 - `feat(M1): soporte para selección de roles en edición y configurar duración de toasts en validación Zod`
 - `docs(log): actualizacion de bitacora`
+
+---
+
 #### 24/10/2026
 #### Marcos Caraballo | Rol: Desarrollador Frontend
 - **Actividades**:
@@ -860,6 +884,26 @@
 - `feat(M4): CRUD de mantenimiento dentro de canchas`
 - `chore: agregar gestion de canchas a sidebar`
 - `chore: formato con prettier`
+- `docs(log): actualizacion de bitacora`
+
+---
+
+#### 03/11/2026
+#### Marcos Caraballo | Rol: Desarrollador Frontend
+- **Actividades**:
+  - Centralización del horario operativo de sedes en `useSedeStore` mediante `obtenerHorarioOperativo` y caché reactiva en memoria (`horariosCache`), evitando estados locales duplicados en vistas.
+  - Optimización de carga inicial y eliminación de peticiones redundantes en `CanchasView.vue` controlando la ejecución de los `watch()` mediante un flag de inicialización (`inicializado`).
+  - Implementación de deduplicación de promesas en vuelo en `sede.ts` para llamadas concurrentes a `cargarSedes()` y `obtenerHorarioOperativo()`.
+  - Refactorización de `canchas.service.ts` para delegar consultas de horarios operativos a `sedeStore` y sincronizar respuestas por lote (`getDisponibilidadPorSede`) directamente en la caché del store.
+- **Decisiones**:
+  - Manejar el horario operativo como propiedad computada en `CanchasView.vue` vinculada a `sedeStore.horariosCache`, garantizando una única fuente de verdad reactiva y evitando peticiones de red al revisitar fechas o sedes.
+  - Controlar las suscripciones reactivas en `CanchasView.vue` para que los observadores de filtros y sede no disparen llamadas en cascada durante el montaje inicial (`onMounted`).
+  - Utilizar un mapa de promesas activas en `useSedeStore` para deduplicar peticiones simultáneas idénticas antes de su resolución.
+- **Dificultades**:
+  - Disparo de múltiples solicitudes HTTP duplicadas al recargar la página en `/canchas` debido a la ejecución simultánea de `onMounted` (en `MainLayout` y `CanchasView`) y la activación anticipada de watchers al resolverse la sede por defecto.
+- **Commits:**
+- `feat(M4): fix de reserva y optimizacion de requests`
+- `feat(pinia): evitar requests redundantes en store`
 - `docs(log): actualizacion de bitacora`
 
 ---
