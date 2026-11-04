@@ -190,6 +190,26 @@
 
 ----
 
+#### 04/11/2026
+#### Gonzalo Lima | Rol: Desarrollador Frontend
+
+- **Actividades**:
+  - Optimización de la Landing Page: centralización y deduplicación de peticiones en el store para evitar llamadas repetidas.
+  - Obtención dinámica de los tipos de cancha desde el backend,eliminando datos hardcodeados.
+  - Rediseño del botón "Mi panel" y ocultamiento del botón de menú hamburguesa en mobile cuando el usuario tiene sesión activa.
+  - Verificación de pago de membresías: reconciliación automática de pagos pendientes y sincronización inmediata del rol del usuario de `"externo"` a `"socio"` en `authStore` tras acreditarse el pago.
+- **Decisiones**:
+  - Reutilizar la promesa en vuelo dentro del store de Pinia para que múltiples componentes montados en simultáneo compartan una única petición HTTP.
+  - Refrescar el perfil local contra el backend al detectarse la membresía activa para actualizar los permisos del menú lateral sin obligar al usuario a reloguear.
+- **Dificultades**: En el entorno Sandbox de Mercado Pago sobre `localhost` no se muestra el botón de retorno automático al sitio, por lo que se resolvió verificando los pagos pendientes del usuario al ingresar a la vista de membresías.
+- **Commits**:
+  - `feat(landing): utilizar el store para una única llamada a la api de sedes y ciudades`
+  - `feat(landing): obtener los tipos de cancha dinámicamente desde el backend`
+  - `chore(landing): mejorar estética del botón "Mi panel"`
+  - `feat(membresias): acreditar pagos de membresia y promover rol externo a socio`
+
+----
+
 #### 03/10/2026 - 05/10/2026
 #### Matías Sillen | Rol: Desarrollador Frontend
 
