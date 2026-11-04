@@ -3,12 +3,20 @@ import { ref, computed } from 'vue'
 import axios from 'axios'
 import http from '../common/api/http'
 
+export interface Ciudad {
+  id_ciudad: number
+  nombre: string
+  activo?: boolean
+}
+
 export interface Sede {
   id_sede: number
   nombre: string
   direccion?: string
   telefono?: string
+  aforo_maximo?: number
   activo?: boolean
+  id_ciudad?: number
 }
 
 export interface HorarioOperativo {
@@ -21,12 +29,17 @@ export interface HorarioOperativo {
 
 export const useSedeStore = defineStore('sede', () => {
   const sedes = ref<Sede[]>([])
+  const ciudades = ref<Ciudad[]>([])
   const guardada = localStorage.getItem('id_sede_seleccionada')
   const idSedeSeleccionada = ref<number | null>(
     guardada ? Number(guardada) : null
   )
   const cargando = ref(false)
   const error = ref<string | null>(null)
+
+  // Promesas en curso para evitar peticiones concurrentes duplicadas
+  let promesaCarga: Promise<void> | null = null
+  let promesaCargaCiudades: Promise<void> | null = null
 
   // Contador de versión de contexto: cambia cada vez que el usuario cambia de sede
   // para que las vistas limpien datos anteriores y recarguen información
@@ -50,13 +63,15 @@ export const useSedeStore = defineStore('sede', () => {
   const peticionesHorarioEnCurso = new Map<string, Promise<HorarioOperativo>>()
 
   // Consultar sedes activas desde la API del backend
-  async function cargarSedes(forzar = false) {
-    if (!forzar && sedes.value.length > 0) return
-    if (peticionSedesEnCurso) return peticionSedesEnCurso
+  async function cargarSedes() {
+    if (promesaCarga) {
+      return promesaCarga
+    }
 
-    peticionSedesEnCurso = (async () => {
-      cargando.value = true
-      error.value = null
+    cargando.value = true
+    error.value = null
+
+    promesaCarga = (async () => {
       try {
         const respuesta = await http.get<Sede[]>('/sedes')
         sedes.value = Array.isArray(respuesta.data) ? respuesta.data : []
@@ -84,11 +99,31 @@ export const useSedeStore = defineStore('sede', () => {
         console.error('[useSedeStore]:', error.value)
       } finally {
         cargando.value = false
-        peticionSedesEnCurso = null
+        promesaCarga = null
       }
     })()
 
-    return peticionSedesEnCurso
+    return promesaCarga
+  }
+
+  // Consultar ciudades activas desde la API del backend
+  async function cargarCiudades() {
+    if (promesaCargaCiudades) {
+      return promesaCargaCiudades
+    }
+
+    promesaCargaCiudades = (async () => {
+      try {
+        const respuesta = await http.get<Ciudad[]>('/ciudades')
+        ciudades.value = Array.isArray(respuesta.data) ? respuesta.data : []
+      } catch (err: unknown) {
+        console.error('[useSedeStore]: Error al cargar ciudades', err)
+      } finally {
+        promesaCargaCiudades = null
+      }
+    })()
+
+    return promesaCargaCiudades
   }
 
   // Cambiar la sede activa y actualizar contexto
@@ -133,6 +168,7 @@ export const useSedeStore = defineStore('sede', () => {
 
   return {
     sedes,
+    ciudades,
     idSedeSeleccionada,
     sedeSeleccionada,
     cargando,
@@ -140,6 +176,7 @@ export const useSedeStore = defineStore('sede', () => {
     versionContexto,
     horariosCache,
     cargarSedes,
+    cargarCiudades,
     seleccionarSede,
     obtenerHorarioOperativo,
   }

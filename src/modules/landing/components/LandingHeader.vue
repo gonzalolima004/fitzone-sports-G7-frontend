@@ -139,11 +139,15 @@ onUnmounted(() => {
           <template v-if="authStore.isAuthenticated">
             <button
               type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/15 border border-white/20 text-white font-bold text-sm hover:bg-white/25 transition-all cursor-pointer"
+              class="group inline-flex items-center gap-2 px-5 py-2 rounded-full bg-[#F96167] text-white font-black text-sm shadow-md shadow-[#F96167]/30 hover:bg-[#e0484e] hover:shadow-lg hover:shadow-[#F96167]/40 transition-all hover:scale-102 active:scale-98 cursor-pointer"
               @click="irAlPanel"
             >
-              <PhUserCircle class="w-4 h-4 text-[#F96167]" weight="bold" />
+              <PhUserCircle class="w-4 h-4 text-white" weight="bold" />
               <span>Mi panel</span>
+              <PhArrowRight
+                class="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5"
+                weight="bold"
+              />
             </button>
           </template>
 
@@ -180,15 +184,17 @@ onUnmounted(() => {
         <template v-else>
           <button
             type="button"
-            class="px-3 py-1.5 rounded-full bg-white text-[#202759] text-xs font-black shadow-xs sm:hidden"
+            class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F96167] text-white text-xs font-black shadow-xs shadow-[#F96167]/30 hover:bg-[#e0484e] transition-colors cursor-pointer sm:hidden"
             @click="irAlPanel"
           >
-            Mi panel
+            <PhUserCircle class="w-3.5 h-3.5 text-white" weight="bold" />
+            <span>Mi panel</span>
           </button>
         </template>
 
         <!-- Toggle Menú Móvil (< md) -->
         <button
+          v-if="!authStore.isAuthenticated"
           type="button"
           class="p-2 rounded-xl text-white hover:bg-white/10 transition-colors cursor-pointer md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F96167]"
           :aria-expanded="menuMovilAbierto"
@@ -203,7 +209,7 @@ onUnmounted(() => {
 
     <!-- Menú Desplegable (Mobile) -->
     <div
-      v-if="menuMovilAbierto"
+      v-if="menuMovilAbierto && !authStore.isAuthenticated"
       id="menu-movil-desplegable"
       role="region"
       aria-label="Navegación móvil"
@@ -222,33 +228,21 @@ onUnmounted(() => {
       </nav>
 
       <div class="pt-3 border-t border-white/10 flex flex-col gap-2.5">
-        <template v-if="authStore.isAuthenticated">
-          <button
-            type="button"
-            class="w-full py-2.5 rounded-full bg-white text-[#202759] font-black text-sm flex items-center justify-center gap-2 shadow-md hover:bg-slate-100 cursor-pointer"
-            @click="irAlPanel"
-          >
-            <PhUserCircle class="w-4 h-4 text-[#F96167]" weight="bold" />
-            <span>Ir a mi panel</span>
-          </button>
-        </template>
-        <template v-else>
-          <button
-            type="button"
-            class="w-full py-2.5 rounded-full border border-white/30 text-white font-semibold text-sm hover:bg-white/10 transition-colors cursor-pointer"
-            @click="irALogin"
-          >
-            Iniciar sesión
-          </button>
-          <button
-            type="button"
-            class="w-full py-2.5 rounded-full bg-[#F96167] text-white font-black text-sm flex items-center justify-center gap-2 shadow-md shadow-[#F96167]/30 hover:bg-[#e0484e] cursor-pointer"
-            @click="irARegistro"
-          >
-            <span>Crear cuenta / Registrarme</span>
-            <PhArrowRight class="w-4 h-4" weight="bold" />
-          </button>
-        </template>
+        <button
+          type="button"
+          class="w-full py-2.5 rounded-full border border-white/30 text-white font-semibold text-sm hover:bg-white/10 transition-colors cursor-pointer"
+          @click="irALogin"
+        >
+          Iniciar sesión
+        </button>
+        <button
+          type="button"
+          class="w-full py-2.5 rounded-full bg-[#F96167] text-white font-black text-sm flex items-center justify-center gap-2 shadow-md shadow-[#F96167]/30 hover:bg-[#e0484e] cursor-pointer"
+          @click="irARegistro"
+        >
+          <span>Crear cuenta / Registrarme</span>
+          <PhArrowRight class="w-4 h-4" weight="bold" />
+        </button>
       </div>
     </div>
   </header>
