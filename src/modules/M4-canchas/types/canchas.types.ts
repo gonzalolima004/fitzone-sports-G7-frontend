@@ -110,6 +110,9 @@ export interface CotizacionTurnoResponse {
   monto_recargo_pico: number
   precio_final: number
   es_socio: boolean
+  aplica_descuento_socio?: boolean
+  motivo_sin_descuento?:
+    'SIN_MEMBRESIA' | 'OTRA_CIUDAD' | 'ROL_EXTERNO' | string | null
 }
 
 export interface CrearReservaCanchaDto {
