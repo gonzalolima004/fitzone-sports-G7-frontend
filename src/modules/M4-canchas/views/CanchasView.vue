@@ -421,7 +421,7 @@ onUnmounted(() => {
               v-if="esSocio"
               class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-wider"
             >
-              Socio (-15%)
+              Socio
             </span>
           </div>
 
