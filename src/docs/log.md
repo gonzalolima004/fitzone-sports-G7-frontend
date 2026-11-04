@@ -908,6 +908,27 @@
 
 ---
 
+#### 04/11/2026
+#### Marcos Caraballo | Rol: Desarrollador Frontend
+- **Actividades**:
+  - Conexión del cálculo y desglose de tarifas de reservas con el endpoint `GET /canchas/cotizar` del backend en `reservas.service.ts`.
+  - Extensión de la interfaz de respuesta `CotizacionTurnoResponse` en `canchas.types.ts` para soportar las validaciones de descuento (`aplica_descuento_socio` y `motivo_sin_descuento`).
+  - Actualización de `ConfirmarReserva.vue` integrando un loader de tipo Skeleton mientras se espera la cotización oficial del servidor.
+  - Implementación de feedback visual en el modal de reserva notificando al socio cuando no aplica el descuento (por membresía inactiva o por pertenecer la sede a una ciudad distinta a la de su afiliación).
+  - Ajuste en `ConfirmarReserva.vue` para persistir correctamente descuentos en 0% mediante coalescencia nula (`?? 0`), evitando sobrescrituras involuntarias al guardar en caché local.
+  - Ajuste del indicador de socio en `CanchasView.vue` para reflejar la cotización dinámica sin fijar un porcentaje previo de descuento.
+- **Decisiones**:
+  - Delegar la lógica de negocio completa del descuento (rol, membresía activa y validación de misma ciudad entre sede de usuario y sede de cancha) en el backend a través de `GET /canchas/cotizar`, manteniendo al cliente libre de cálculos redundantes o peticiones adicionales.
+  - Implementar un estado Skeleton en `ConfirmarReserva.vue` para mejorar la experiencia de usuario y evitar saltos visuales durante la verificación de cotización.
+  - Proporcionar mensajes informativos claros y contextuales en el modal de confirmación en lugar de ocultar silenciosamente el descuento de socio.
+- **Dificultades**:
+  - Manejo de casos de borde en los que el usuario posee rol de socio pero su sede de afiliación es de otra ciudad o su membresía está inactiva, requiriendo adaptar los estados y textos explicativos sin alterar el flujo habitual de reserva.
+- **Commits:**
+- `feat(M4): interfaz y tipo para endpoint cotizar`
+- `docs(log): actualizacion de bitacora`
+
+---
+
 #### 26/10/2026
 
 #### Matías Sillen | Rol: Desarrollador Frontend
