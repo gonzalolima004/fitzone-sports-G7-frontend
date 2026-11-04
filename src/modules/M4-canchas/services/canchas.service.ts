@@ -1,5 +1,6 @@
 import http from '@/common/api/http'
 import { supabase } from '@/common/utils/supabase'
+import { useSedeStore, type HorarioOperativo } from '@/store/sede'
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import type {
   Cancha,
@@ -14,6 +15,9 @@ import type {
   ActualizarCanchaTipoDto,
   FiltrosMantenimiento,
   ActualizarMantenimientoDto,
+  DisponibilidadSedeMap,
+  CanchaDisponibilidadBackendDto,
+  GrillaDisponibilidadBackendResponse,
 } from '@/modules/M4-canchas/types/canchas.types'
 
 ///NOTA: Capaz es mejor que el estado lo traiga como string directamente
@@ -434,7 +438,10 @@ function generarSlotsParaCancha(
   fecha: string,
   esSocio: boolean = true
 ): TurnoSlot[] {
-  const horario = calcularHorarioOperativo(idSede, fecha)
+  const sedeStore = useSedeStore()
+  const key = `${idSede}_${fecha}`
+  const horario =
+    sedeStore.horariosCache[key] || calcularHorarioOperativo(idSede, fecha)
   if (!horario.abierto) {
     return []
   }
@@ -475,20 +482,16 @@ function generarSlotsParaCancha(
 
 export const canchasService = {
   /**
-   * Consulta el horario operativo de una sede para una fecha específica
+   * Consulta el horario operativo de una sede para una fecha específica,
+   * delegando en el sedeStore para unificar la fuente de datos y el uso de su caché central.
    */
   async getHorarioOperativo(
     idSede: number,
     fecha: string
-  ): Promise<HorarioOperativoDia> {
+  ): Promise<HorarioOperativo> {
+    const sedeStore = useSedeStore()
     try {
-      const response = await http.get<HorarioOperativoDia>(
-        `/sedes/${idSede}/horario-operativo`,
-        {
-          params: { fecha },
-        }
-      )
-      return response.data
+      return await sedeStore.obtenerHorarioOperativo(idSede, fecha)
     } catch {
       return calcularHorarioOperativo(idSede, fecha)
     }
@@ -760,75 +763,85 @@ export const canchasService = {
   },
 
   /**
-   * Consulta la disponibilidad en lote para todas las canchas de una sede (Opción A).
-   * Intenta consumir el endpoint optimizado GET /canchas/disponibilidad?sedeId=...&fecha=...
-   * Si el backend aún no cuenta con este endpoint (404), conmuta automáticamente
-   * y sin errores a la Opción B (consultar cada cancha con /canchas/:id/disponibilidad).
+   * Consulta la disponibilidad en lote para las canchas de una sede (Opción A).
+   * Consume el endpoint optimizado GET /canchas/disponibilidad sin fallbacks ni datos simulados.
    */
   async getDisponibilidadPorSede(
     idSede: number,
     fecha: string,
-    canchas: Cancha[],
-    esSocio: boolean = true
-  ): Promise<Record<number, TurnoSlot[]>> {
-    try {
-      const response = await http.get('/canchas/disponibilidad', {
-        params: { sedeId: idSede, fecha },
-      })
-      if (Array.isArray(response.data) && response.data.length > 0) {
-        const mapa: Record<number, TurnoSlot[]> = {}
-        for (const item of response.data) {
-          const id = item.id_cancha
-          const costo = Number(item.costo_base) || 8000
-          const rawSlots = Array.isArray(item.slots) ? item.slots : []
-          mapa[id] = rawSlots.map(
-            (s: {
-              hora_inicio?: string
-              horaInicio?: string
-              hora_fin?: string
-              horaFin?: string
-              estado: TurnoSlot['estado']
-              es_horario_pico?: boolean
-              precio_estimado?: number
-            }) => {
-              const horaInicio = s.hora_inicio || s.horaInicio || '08:00'
-              const horaFin = s.hora_fin || s.horaFin || '09:00'
-              const { esPico, precio } = calcularPrecioSlot(
-                costo,
-                horaInicio,
-                esSocio
-              )
-              return {
-                hora_inicio: horaInicio,
-                hora_fin: horaFin,
-                estado: s.estado,
-                es_horario_pico: s.es_horario_pico ?? esPico,
-                precio_estimado: s.precio_estimado ?? precio,
-              }
-            }
-          )
+    canchas?: Cancha[],
+    esSocio: boolean = true,
+    tipoId?: number
+  ): Promise<DisponibilidadSedeMap> {
+    const response = await http.get<
+      CanchaDisponibilidadBackendDto[] | GrillaDisponibilidadBackendResponse
+    >('/canchas/disponibilidad', {
+      params: {
+        sedeId: idSede,
+        fecha,
+        ...(tipoId ? { tipoId } : {}),
+      },
+    })
+
+    // Normalizar la respuesta: soporta tanto array directo como objeto { horario, canchas }
+    let itemsCanchas: CanchaDisponibilidadBackendDto[] = []
+
+    if (Array.isArray(response.data)) {
+      itemsCanchas = response.data
+    } else if (response.data && Array.isArray(response.data.canchas)) {
+      itemsCanchas = response.data.canchas
+      if (response.data.horario) {
+        const sedeStore = useSedeStore()
+        const key = `${idSede}_${fecha}`
+        if (!sedeStore.horariosCache[key]) {
+          sedeStore.horariosCache[key] = response.data.horario
         }
-        return mapa
       }
-    } catch {
-      // Si la Opción A no está implementada en backend (404), conmutamos a la Opción B
     }
 
-    // Fallback elegante a Opción B (unitaria por cancha)
-    const mapa: Record<number, TurnoSlot[]> = {}
-    await Promise.all(
-      canchas.map(async (cancha) => {
-        const res = await canchasService.getDisponibilidad(
-          cancha.id_cancha,
-          fecha,
-          Number(cancha.costo_base),
-          esSocio,
-          cancha.nombre,
-          cancha.id_sede
+    const mapa: DisponibilidadSedeMap = {}
+
+    for (const item of itemsCanchas) {
+      if (!item || typeof item.id_cancha !== 'number') {
+        continue
+      }
+
+      const id = item.id_cancha
+      // Si item.costo_base viene del backend lo usamos; si no, buscamos en la lista de canchas provista
+      const canchaReferencia = canchas?.find((c) => c.id_cancha === id)
+      const costo = Number(item.costo_base ?? canchaReferencia?.costo_base ?? 0)
+
+      const rawSlots = Array.isArray(item.slots) ? item.slots : []
+      const slotsProcesados: TurnoSlot[] = []
+
+      for (const s of rawSlots) {
+        const horaInicio = s.hora_inicio ?? s.horaInicio
+        const horaFin = s.hora_fin ?? s.horaFin
+
+        // Si el slot no contiene horarios reales válidos del backend, se descarta
+        if (!horaInicio || !horaFin) {
+          continue
+        }
+
+        const { esPico, precio } = calcularPrecioSlot(
+          costo,
+          horaInicio,
+          esSocio
         )
-        mapa[cancha.id_cancha] = res.slots
-      })
-    )
+
+        slotsProcesados.push({
+          hora_inicio: horaInicio,
+          hora_fin: horaFin,
+          estado: s.estado,
+          es_horario_pico: s.es_horario_pico ?? esPico,
+          precio_estimado: s.precio_estimado ?? precio,
+          id_reserva: s.id_reserva,
+        })
+      }
+
+      mapa[id] = slotsProcesados
+    }
+
     return mapa
   },
 

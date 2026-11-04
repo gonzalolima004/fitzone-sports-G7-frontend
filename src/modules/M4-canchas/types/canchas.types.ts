@@ -181,12 +181,37 @@ export interface CalendarioSede {
   motivo?: string
 }
 
-export interface HorarioOperativoDia {
-  abierto: boolean
-  hora_apertura: string
-  hora_cierre: string
-  motivo_cierre?: string
-  es_horario_especial?: boolean
+import type { HorarioOperativo } from '@/store/sede'
+
+export type { HorarioOperativo }
+
+export interface HorarioOperativoDia extends HorarioOperativo {
   no_programado?: boolean
   es_pasado?: boolean
 }
+
+export interface SlotBackendDto {
+  horaInicio?: string
+  hora_inicio?: string
+  horaFin?: string
+  hora_fin?: string
+  estado: SlotEstado
+  es_horario_pico?: boolean
+  precio_estimado?: number
+  id_reserva?: number
+}
+
+export interface CanchaDisponibilidadBackendDto {
+  id_cancha: number
+  nombre_cancha?: string
+  costo_base?: number | string
+  slots?: SlotBackendDto[]
+}
+
+export interface GrillaDisponibilidadBackendResponse {
+  horario?: HorarioOperativo | HorarioOperativoDia
+  canchas?: CanchaDisponibilidadBackendDto[]
+}
+
+// Diccionario de slots indexado por id_cancha
+export type DisponibilidadSedeMap = Record<number, TurnoSlot[]>

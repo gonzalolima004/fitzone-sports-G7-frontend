@@ -19,6 +19,14 @@ export interface Sede {
   id_ciudad?: number
 }
 
+export interface HorarioOperativo {
+  abierto: boolean
+  hora_apertura: string
+  hora_cierre: string
+  motivo_cierre?: string
+  es_horario_especial?: boolean
+}
+
 export const useSedeStore = defineStore('sede', () => {
   const sedes = ref<Sede[]>([])
   const ciudades = ref<Ciudad[]>([])
@@ -37,6 +45,9 @@ export const useSedeStore = defineStore('sede', () => {
   // para que las vistas limpien datos anteriores y recarguen información
   const versionContexto = ref(0)
 
+  // Caché en memoria para horarios operativos indexado por "idSede_YYYY-MM-DD"
+  const horariosCache = ref<Record<string, HorarioOperativo>>({})
+
   // Sede seleccionada activa
   const sedeSeleccionada = computed<Sede | null>(() => {
     if (sedes.value.length === 0) return null
@@ -46,6 +57,10 @@ export const useSedeStore = defineStore('sede', () => {
       null
     )
   })
+
+  // Control de peticiones concurrentes en curso para evitar llamadas redundantes
+  let peticionSedesEnCurso: Promise<void> | null = null
+  const peticionesHorarioEnCurso = new Map<string, Promise<HorarioOperativo>>()
 
   // Consultar sedes activas desde la API del backend
   async function cargarSedes() {
@@ -120,6 +135,37 @@ export const useSedeStore = defineStore('sede', () => {
     }
   }
 
+  // Consulta o devuelve desde memoria el horario operativo de una sede
+  async function obtenerHorarioOperativo(
+    idSede: number,
+    fechaStr: string
+  ): Promise<HorarioOperativo> {
+    const key = `${idSede}_${fechaStr}`
+    if (horariosCache.value[key]) {
+      return horariosCache.value[key]
+    }
+    if (peticionesHorarioEnCurso.has(key)) {
+      return peticionesHorarioEnCurso.get(key)!
+    }
+
+    const promesa = (async () => {
+      try {
+        const { data } = await http.get<HorarioOperativo>(
+          `/sedes/${idSede}/horario-operativo`,
+          { params: { fecha: fechaStr } }
+        )
+
+        horariosCache.value[key] = data
+        return data
+      } finally {
+        peticionesHorarioEnCurso.delete(key)
+      }
+    })()
+
+    peticionesHorarioEnCurso.set(key, promesa)
+    return promesa
+  }
+
   return {
     sedes,
     ciudades,
@@ -128,8 +174,10 @@ export const useSedeStore = defineStore('sede', () => {
     cargando,
     error,
     versionContexto,
+    horariosCache,
     cargarSedes,
     cargarCiudades,
     seleccionarSede,
+    obtenerHorarioOperativo,
   }
 })

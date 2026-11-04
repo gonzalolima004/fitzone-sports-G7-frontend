@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useSedeStore } from '@/store/sede'
+import { useSedeStore, type HorarioOperativo } from '@/store/sede'
 import { useAuthStore } from '@/store/auth'
 import canchasService from '@/modules/M4-canchas/services/canchas.service'
 import GrillaTurnos from '@/modules/M4-canchas/components/GrillaTurnos.vue'
@@ -15,7 +15,6 @@ import type {
   TurnoSlot,
   TurnoSeleccionado,
   ReservaCanchaResponse,
-  HorarioOperativoDia,
 } from '@/modules/M4-canchas/types/canchas.types'
 import { useRouter } from 'vue-router'
 
@@ -40,11 +39,18 @@ const deporteSeleccionadoId = ref<number>(1) // 1: Pádel por defecto
 
 // Estados reactivos de datos
 const cargando = ref(false)
+const inicializado = ref(false)
 const tiposCancha = ref<CanchaTipo[]>([])
 const todasLasCanchasSede = ref<Cancha[]>([])
 const disponibilidadMap = ref<Record<number, TurnoSlot[]>>({})
 const turnoSeleccionado = ref<TurnoSeleccionado | null>(null)
-const horarioOperativo = ref<HorarioOperativoDia | null>(null)
+
+// Horario operativo obtenido reactivamente desde la caché centralizada de sedeStore
+const horarioOperativo = computed<HorarioOperativo | null>(() => {
+  if (!sedeStore.sedeSeleccionada || !fechaSeleccionada.value) return null
+  const key = `${sedeStore.sedeSeleccionada.id_sede}_${fechaSeleccionada.value}`
+  return sedeStore.horariosCache[key] ?? null
+})
 
 // Modal de pre-confirmación de reserva
 const modalConfirmarAbierto = ref(false)
@@ -61,14 +67,21 @@ const unsubscribeFns: Array<() => void> = []
 
 /**
  * Consulta la disponibilidad de todas las canchas filtradas
- * consumiendo GET /canchas/:id/disponibilidad
+ * sincronizando el horario operativo desde sedeStore
  */
 async function cargarDisponibilidad() {
   if (sedeStore.sedeSeleccionada) {
-    horarioOperativo.value = await canchasService.getHorarioOperativo(
-      sedeStore.sedeSeleccionada.id_sede,
-      fechaSeleccionada.value
-    )
+    try {
+      await sedeStore.obtenerHorarioOperativo(
+        sedeStore.sedeSeleccionada.id_sede,
+        fechaSeleccionada.value
+      )
+    } catch (error) {
+      console.error(
+        '[CanchasView] Error al cargar horario operativo desde sedeStore:',
+        error
+      )
+    }
   }
 
   if (
@@ -87,7 +100,8 @@ async function cargarDisponibilidad() {
       sedeStore.sedeSeleccionada!.id_sede,
       fechaSeleccionada.value,
       canchasFiltradas.value,
-      esSocio.value
+      esSocio.value,
+      deporteSeleccionadoId.value
     )
   } catch (error) {
     console.error('[CanchasView] Error al cargar disponibilidad:', error)
@@ -102,26 +116,34 @@ async function cargarDisponibilidad() {
  */
 async function inicializarDatos() {
   try {
-    tiposCancha.value = await canchasService.getTiposCancha()
+    // 1. Cargar catálogo de disciplinas y asegurar sedes en paralelo
+    const [, tipos] = await Promise.all([
+      sedeStore.sedes.length === 0
+        ? sedeStore.cargarSedes()
+        : Promise.resolve(),
+      canchasService.getTiposCancha(),
+    ])
+
+    tiposCancha.value = tipos
     if (
-      tiposCancha.value.length > 0 &&
-      !tiposCancha.value.some(
-        (t) => t.id_cancha_tipo === deporteSeleccionadoId.value
-      )
+      tipos.length > 0 &&
+      !tipos.some((t) => t.id_cancha_tipo === deporteSeleccionadoId.value)
     ) {
-      deporteSeleccionadoId.value = tiposCancha.value[0].id_cancha_tipo
+      deporteSeleccionadoId.value = tipos[0].id_cancha_tipo
     }
 
+    // 2. Con la sede activa y filtros listos, cargar canchas y disponibilidad una sola vez
     if (sedeStore.sedeSeleccionada) {
       todasLasCanchasSede.value = await canchasService.getCanchasPorSede(
         sedeStore.sedeSeleccionada.id_sede
       )
       await cargarDisponibilidad()
-      //suscribirRealtime()
     }
   } catch (error) {
     console.error('[CanchasView] Error al inicializar datos:', error)
     toast.error('Error al consultar canchas de la sede.')
+  } finally {
+    inicializado.value = true
   }
 }
 
@@ -191,29 +213,25 @@ function formatoMoneda(valor: number): string {
   }).format(valor)
 }
 
-// Reactividad a cambios en la sede activa
+// Reactividad a cambios en la sede activa (solo cuando el usuario cambia manualmente tras la inicialización)
 watch(
-  () => sedeStore.sedeSeleccionada,
-  async () => {
-    if (sedeStore.sedeSeleccionada) {
-      todasLasCanchasSede.value = await canchasService.getCanchasPorSede(
-        sedeStore.sedeSeleccionada.id_sede
-      )
-      await cargarDisponibilidad()
-      //suscribirRealtime()
-      toast.info(`Cargando canchas de ${sedeStore.sedeSeleccionada.nombre}`)
-    }
+  () => sedeStore.sedeSeleccionada?.id_sede,
+  async (nuevoId, anteriorId) => {
+    if (!inicializado.value || !nuevoId || nuevoId === anteriorId) return
+
+    todasLasCanchasSede.value = await canchasService.getCanchasPorSede(nuevoId)
+    await cargarDisponibilidad()
+    toast.info(`Cargando canchas de ${sedeStore.sedeSeleccionada?.nombre}`)
   }
 )
 
-// Reactividad a cambios de fecha o deporte, deporte o estado de socio
-watch([fechaSeleccionada, esSocio], async () => {
+// Reactividad a cambios de fecha o deporte, deporte o estado de socio (solo tras inicialización)
+watch([fechaSeleccionada, esSocio, deporteSeleccionadoId], async () => {
+  if (!inicializado.value) return
   await cargarDisponibilidad()
-  //suscribirRealtime()
 })
 
 onMounted(() => {
-  //sedeStore.cargarSedes()
   inicializarDatos()
 })
 
