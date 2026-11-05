@@ -10,6 +10,7 @@ const props = defineProps<{
   hasActivePlan?: boolean
   isPopular?: boolean
   isLoading?: boolean
+  disabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -157,6 +158,7 @@ const features = computed(() => {
       class="w-full"
       :variant="isCurrent ? 'primary' : isPopular ? 'secondary' : 'outline'"
       :loading="isLoading"
+      :disabled="disabled"
       @click="emit('subscribe', plan)"
     >
       {{ buttonText }}
