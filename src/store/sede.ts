@@ -37,10 +37,6 @@ export const useSedeStore = defineStore('sede', () => {
   const cargando = ref(false)
   const error = ref<string | null>(null)
 
-  // Promesas en curso para evitar peticiones concurrentes duplicadas
-  let promesaCarga: Promise<void> | null = null
-  let promesaCargaCiudades: Promise<void> | null = null
-
   // Contador de versión de contexto: cambia cada vez que el usuario cambia de sede
   // para que las vistas limpien datos anteriores y recarguen información
   const versionContexto = ref(0)
@@ -60,18 +56,17 @@ export const useSedeStore = defineStore('sede', () => {
 
   // Control de peticiones concurrentes en curso para evitar llamadas redundantes
   let peticionSedesEnCurso: Promise<void> | null = null
+  let peticionCiudadesEnCurso: Promise<void> | null = null
   const peticionesHorarioEnCurso = new Map<string, Promise<HorarioOperativo>>()
 
   // Consultar sedes activas desde la API del backend
-  async function cargarSedes() {
-    if (promesaCarga) {
-      return promesaCarga
-    }
+  async function cargarSedes(forzar = false) {
+    if (!forzar && sedes.value.length > 0) return
+    if (peticionSedesEnCurso) return peticionSedesEnCurso
 
-    cargando.value = true
-    error.value = null
-
-    promesaCarga = (async () => {
+    peticionSedesEnCurso = (async () => {
+      cargando.value = true
+      error.value = null
       try {
         const respuesta = await http.get<Sede[]>('/sedes')
         sedes.value = Array.isArray(respuesta.data) ? respuesta.data : []
@@ -99,31 +94,30 @@ export const useSedeStore = defineStore('sede', () => {
         console.error('[useSedeStore]:', error.value)
       } finally {
         cargando.value = false
-        promesaCarga = null
+        peticionSedesEnCurso = null
       }
     })()
 
-    return promesaCarga
+    return peticionSedesEnCurso
   }
 
   // Consultar ciudades activas desde la API del backend
-  async function cargarCiudades() {
-    if (promesaCargaCiudades) {
-      return promesaCargaCiudades
-    }
+  async function cargarCiudades(forzar = false) {
+    if (!forzar && ciudades.value.length > 0) return
+    if (peticionCiudadesEnCurso) return peticionCiudadesEnCurso
 
-    promesaCargaCiudades = (async () => {
+    peticionCiudadesEnCurso = (async () => {
       try {
         const respuesta = await http.get<Ciudad[]>('/ciudades')
         ciudades.value = Array.isArray(respuesta.data) ? respuesta.data : []
       } catch (err: unknown) {
         console.error('[useSedeStore]: Error al cargar ciudades', err)
       } finally {
-        promesaCargaCiudades = null
+        peticionCiudadesEnCurso = null
       }
     })()
 
-    return promesaCargaCiudades
+    return peticionCiudadesEnCurso
   }
 
   // Cambiar la sede activa y actualizar contexto
