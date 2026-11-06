@@ -984,6 +984,7 @@
 - `feat(M4): obtencion correcta del horario en cache`
 - `feat(M4): test de disponibilidad horario`
 - `docs(log): actualizacion de bitacora`
+- `style: uso de prettier para el formato`
 
 ---
 

@@ -64,7 +64,6 @@ const canchasFiltradas = computed(() => {
   )
 })
 
-
 /**
  * Consulta la disponibilidad de todas las canchas filtradas.
  * Consume de forma óptima la respuesta de GET /canchas/disponibilidad (que unifica

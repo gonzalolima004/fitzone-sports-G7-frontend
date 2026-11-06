@@ -31,7 +31,8 @@ describe('M4-canchas: Suscripción Realtime y Manejo de Concurrencia', () => {
     on: ReturnType<typeof vi.fn>
     subscribe: ReturnType<typeof vi.fn>
   }
-  let broadcastCallback: ((res: { payload: TurnoReservadoPayload }) => void) | null = null
+  let broadcastCallback:
+    ((res: { payload: TurnoReservadoPayload }) => void) | null = null
 
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -48,8 +49,12 @@ describe('M4-canchas: Suscripción Realtime y Manejo de Concurrencia', () => {
       subscribe: vi.fn().mockReturnThis(),
     }
 
-    vi.spyOn(supabase, 'channel').mockReturnValue(mockChannel as unknown as ReturnType<typeof supabase.channel>)
-    vi.spyOn(supabase, 'removeChannel').mockImplementation(() => Promise.resolve('ok'))
+    vi.spyOn(supabase, 'channel').mockReturnValue(
+      mockChannel as unknown as ReturnType<typeof supabase.channel>
+    )
+    vi.spyOn(supabase, 'removeChannel').mockImplementation(() =>
+      Promise.resolve('ok')
+    )
   })
 
   describe('canchasService.suscribirTurnoReservado', () => {
@@ -192,9 +197,13 @@ describe('M4-canchas: Suscripción Realtime y Manejo de Concurrencia', () => {
           turnoSeleccionado.hora_inicio === payload.hora_inicio
         ) {
           if (modalAbierto) {
-            toast.warning('El turno que estabas por confirmar fue ocupado por otro usuario.')
+            toast.warning(
+              'El turno que estabas por confirmar fue ocupado por otro usuario.'
+            )
           } else {
-            toast.warning('El turno que tenías seleccionado acaba de ser reservado por otro usuario.')
+            toast.warning(
+              'El turno que tenías seleccionado acaba de ser reservado por otro usuario.'
+            )
           }
           turnoSeleccionado = null
         }
@@ -234,9 +243,13 @@ describe('M4-canchas: Suscripción Realtime y Manejo de Concurrencia', () => {
         ) {
           if (modalAbierto) {
             modalAbierto = false
-            toast.warning('El turno que estabas por confirmar fue ocupado por otro usuario.')
+            toast.warning(
+              'El turno que estabas por confirmar fue ocupado por otro usuario.'
+            )
           } else {
-            toast.warning('El turno que tenías seleccionado acaba de ser reservado por otro usuario.')
+            toast.warning(
+              'El turno que tenías seleccionado acaba de ser reservado por otro usuario.'
+            )
           }
           turnoSeleccionado = null
         }
@@ -250,4 +263,3 @@ describe('M4-canchas: Suscripción Realtime y Manejo de Concurrencia', () => {
     })
   })
 })
-
