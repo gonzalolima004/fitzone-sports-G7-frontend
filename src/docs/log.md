@@ -949,6 +949,25 @@
 
 ---
 
+#### 06/11/2026
+#### Marcos Caraballo | Rol: Desarrollador Frontend
+- **Actividades**:
+  - Eliminación definitiva de cálculos estáticos y funciones de mock de feriados (`calcularHorarioOperativo` y `generarSlotsParaCancha`) en `canchas.service.ts`.
+  - Integración de `getDisponibilidadPorSede` con la respuesta unificada del backend, sincronizando el horario operativo en la caché de `useSedeStore` sin peticiones redundantes.
+  - Incorporación de indicadores visuales en `CanchasView.vue` y `GrillaTurnos.vue` para reflejar el estado de horario especial (`es_horario_especial`) y el motivo de cierre oficial (`motivo_cierre`).
+  - Creación de tests unitarios en `canchas-disponibilidad-horario.spec.ts` validando el renderizado de estados cerrados/especiales y la ausencia de slots inventados ante fallos.
+- **Decisiones**:
+  - Establecer el backend (`CalendarioSede`, `Calendario`, `SedeHorario`) como la única fuente de verdad para determinar feriados y horarios de sedes.
+  - Centralizar y reutilizar la caché de horarios en Pinia aprovechando el payload unificado de disponibilidad para optimizar el consumo de red.
+- **Dificultades**: Ninguna
+- **Commits:**
+- `feat(M4): Eliminacion de fallabacks viejos de prueba`
+- `feat(M4): obtencion correcta del horario en cache`
+- `feat(M4): test de disponibilidad horario`
+- `docs(log): actualizacion de bitacora`
+
+---
+
 #### 26/10/2026
 
 #### Matías Sillen | Rol: Desarrollador Frontend
