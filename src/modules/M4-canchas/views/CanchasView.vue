@@ -66,29 +66,36 @@ const canchasFiltradas = computed(() => {
 const unsubscribeFns: Array<() => void> = []
 
 /**
- * Consulta la disponibilidad de todas las canchas filtradas
- * sincronizando el horario operativo desde sedeStore
+ * Consulta la disponibilidad de todas las canchas filtradas.
+ * Consume de forma óptima la respuesta de GET /canchas/disponibilidad (que unifica
+ * horario operativo y slots) o la caché central de sedeStore sin disparar peticiones redundantes.
  */
 async function cargarDisponibilidad() {
-  if (sedeStore.sedeSeleccionada) {
-    try {
-      await sedeStore.obtenerHorarioOperativo(
-        sedeStore.sedeSeleccionada.id_sede,
-        fechaSeleccionada.value
-      )
-    } catch (error) {
-      console.error(
-        '[CanchasView] Error al cargar horario operativo desde sedeStore:',
-        error
-      )
-    }
+  if (!sedeStore.sedeSeleccionada) return
+
+  const idSede = sedeStore.sedeSeleccionada.id_sede
+  const fecha = fechaSeleccionada.value
+  const key = `${idSede}_${fecha}`
+
+  // 1. Si en caché ya consta que la sede está cerrada, no se consulta disponibilidad de turnos
+  if (sedeStore.horariosCache[key] && !sedeStore.horariosCache[key].abierto) {
+    disponibilidadMap.value = {}
+    return
   }
 
-  if (
-    canchasFiltradas.value.length === 0 ||
-    (horarioOperativo.value && !horarioOperativo.value.abierto)
-  ) {
+  // 2. Si no hay canchas configuradas para este deporte, aseguramos únicamente el horario operativo
+  if (canchasFiltradas.value.length === 0) {
     disponibilidadMap.value = {}
+    if (!sedeStore.horariosCache[key]) {
+      try {
+        await sedeStore.obtenerHorarioOperativo(idSede, fecha)
+      } catch (error) {
+        console.error(
+          '[CanchasView] Error al cargar horario operativo desde sedeStore:',
+          error
+        )
+      }
+    }
     return
   }
 
@@ -97,12 +104,17 @@ async function cargarDisponibilidad() {
 
   try {
     disponibilidadMap.value = await canchasService.getDisponibilidadPorSede(
-      sedeStore.sedeSeleccionada!.id_sede,
-      fechaSeleccionada.value,
+      idSede,
+      fecha,
       canchasFiltradas.value,
       esSocio.value,
       deporteSeleccionadoId.value
     )
+
+    // Si la respuesta del backend no trajo el horario operativo, lo consultamos vía sedeStore
+    if (!sedeStore.horariosCache[key]) {
+      await sedeStore.obtenerHorarioOperativo(idSede, fecha)
+    }
   } catch (error) {
     console.error('[CanchasView] Error al cargar disponibilidad:', error)
     toast.error('No se pudo cargar la disponibilidad de canchas.')
@@ -291,15 +303,38 @@ onUnmounted(() => {
         <span class="text-slate-300">|</span>
 
         <!-- Horario del día según SedeHorario / Calendario -->
-        <div v-if="horarioOperativo" class="flex items-center gap-1">
-          <span
-            v-if="horarioOperativo.abierto"
-            class="text-emerald-700 font-semibold font-mono tabular-nums"
-          >
-            Horario: {{ horarioOperativo.hora_apertura }} a
-            {{ horarioOperativo.hora_cierre }} hs
-          </span>
-          <span v-else class="text-[#F96167] font-bold"> Sede Cerrada </span>
+        <div
+          v-if="horarioOperativo"
+          class="flex items-center gap-1.5 flex-wrap"
+        >
+          <template v-if="horarioOperativo.abierto">
+            <span
+              :class="[
+                'font-semibold font-mono tabular-nums text-xs',
+                horarioOperativo.es_horario_especial
+                  ? 'text-amber-800'
+                  : 'text-emerald-700',
+              ]"
+            >
+              Horario: {{ horarioOperativo.hora_apertura }} a
+              {{ horarioOperativo.hora_cierre }} hs
+            </span>
+            <span
+              v-if="horarioOperativo.es_horario_especial"
+              class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300"
+            >
+              Horario Especial / Feriado
+            </span>
+          </template>
+          <div v-else class="flex items-center gap-1.5">
+            <span class="text-[#F96167] font-bold"> Sede Cerrada </span>
+            <span
+              v-if="horarioOperativo.motivo_cierre"
+              class="text-xs text-slate-500 font-normal"
+            >
+              ({{ horarioOperativo.motivo_cierre }})
+            </span>
+          </div>
         </div>
       </div>
     </div>
