@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useSedeStore, type HorarioOperativo } from '@/store/sede'
 import { useAuthStore } from '@/store/auth'
 import canchasService from '@/modules/M4-canchas/services/canchas.service'
+import { useCanchasRealtime } from '@/modules/M4-canchas/composables/useCanchasRealtime'
 import GrillaTurnos from '@/modules/M4-canchas/components/GrillaTurnos.vue'
 import ConfirmarReserva from '@/modules/M4-canchas/components/ConfirmarReserva.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
@@ -15,6 +16,7 @@ import type {
   TurnoSlot,
   TurnoSeleccionado,
   ReservaCanchaResponse,
+  TurnoReservadoPayload,
 } from '@/modules/M4-canchas/types/canchas.types'
 import { useRouter } from 'vue-router'
 
@@ -62,8 +64,6 @@ const canchasFiltradas = computed(() => {
   )
 })
 
-// Desuscriptores de Supabase Realtime
-const unsubscribeFns: Array<() => void> = []
 
 /**
  * Consulta la disponibilidad de todas las canchas filtradas.
@@ -163,37 +163,56 @@ async function inicializarDatos() {
 }
 
 /**
- * Configura la suscripción a Supabase Realtime para la sede y canchas visibles
+ * Procesa en tiempo real el evento 'turno_reservado' emitido vía Supabase Broadcast
  */
-/*
-function suscribirRealtime() {
-  unsubscribeFns.forEach((fn) => fn())
-  unsubscribeFns.length = 0
+function handleTurnoReservado(payload: TurnoReservadoPayload) {
+  // Caso 1 (Fecha ajena): Si el payload no coincide con la fecha seleccionada en pantalla, ignorar mutación
+  if (payload.fecha !== fechaSeleccionada.value) {
+    return
+  }
 
-  canchasFiltradas.value.forEach((cancha) => {
-    const unsub = canchasService.suscribirCambiosDisponibilidad(
-      cancha.id_cancha,
-      () => {
-        toast.info(`Actualización en vivo en ${cancha.nombre}`)
-        canchasService
-          .getDisponibilidad(
-            cancha.id_cancha,
-            fechaSeleccionada.value,
-            Number(cancha.costo_base),
-            esSocio.value
-          )
-          .then((res) => {
-            disponibilidadMap.value = {
-              ...disponibilidadMap.value,
-              [cancha.id_cancha]: res.slots,
-            }
-          })
-      }
+  // Caso 2 (Actualización de Grilla): Marcar el slot específico como 'RESERVADO' reactivamente
+  const slots = disponibilidadMap.value[payload.id_cancha]
+  if (slots && Array.isArray(slots)) {
+    const slotEncontrado = slots.find(
+      (s) => s.hora_inicio === payload.hora_inicio
     )
-    unsubscribeFns.push(unsub)
-  })
+    if (slotEncontrado) {
+      slotEncontrado.estado = 'RESERVADO'
+      disponibilidadMap.value = { ...disponibilidadMap.value }
+    }
+  }
+
+  // Verificar si coincide con el turno que el usuario tiene marcado actualmente
+  const turno = turnoSeleccionado.value
+  const esMismoTurno =
+    turno !== null &&
+    turno.cancha.id_cancha === payload.id_cancha &&
+    turno.fecha === payload.fecha &&
+    turno.slot.hora_inicio === payload.hora_inicio
+
+  if (esMismoTurno) {
+    // Caso 4 (Modal de confirmación abierto): Forzar cierre de modal y notificar advertencia
+    if (modalConfirmarAbierto.value) {
+      modalConfirmarAbierto.value = false
+      turnoSeleccionado.value = null
+      toast.warning(
+        'El turno que estabas por confirmar fue ocupado por otro usuario.'
+      )
+      return
+    }
+
+    // Caso 3 (Slot seleccionado): Deseleccionar turno inmediatamente y alertar
+    turnoSeleccionado.value = null
+    toast.warning(
+      'El turno que tenías seleccionado acaba de ser reservado por otro usuario.'
+    )
+  }
 }
-*/
+
+// Suscripción reactiva a Supabase Broadcast en el canal canchas:sede:${idSede}
+useCanchasRealtime(() => sedeStore.idSedeSeleccionada, handleTurnoReservado)
+
 function handleSeleccionarTurno(payload: { cancha: Cancha; slot: TurnoSlot }) {
   turnoSeleccionado.value = {
     cancha: payload.cancha,
@@ -215,9 +234,24 @@ function handleReservaConfirmada(reserva: ReservaCanchaResponse) {
   })
 }
 
-function handleConflictoDisponibilidad(mensaje: string) {
-  console.warn('[CanchasView] Conflicto en turno:', mensaje)
-  cargarDisponibilidad()
+function handleConflictoDisponibilidad(mensaje?: string) {
+  console.warn('[CanchasView] Conflicto 409 en turno:', mensaje)
+  modalConfirmarAbierto.value = false
+
+  if (turnoSeleccionado.value) {
+    const { cancha, slot, fecha } = turnoSeleccionado.value
+    if (fecha === fechaSeleccionada.value) {
+      const slots = disponibilidadMap.value[cancha.id_cancha]
+      const slotEnGrilla = slots?.find(
+        (s) => s.hora_inicio === slot.hora_inicio
+      )
+      if (slotEnGrilla) {
+        slotEnGrilla.estado = 'RESERVADO'
+        disponibilidadMap.value = { ...disponibilidadMap.value }
+      }
+    }
+    turnoSeleccionado.value = null
+  }
 }
 
 function formatoMoneda(valor: number): string {
@@ -248,10 +282,6 @@ watch([fechaSeleccionada, esSocio, deporteSeleccionadoId], async () => {
 
 onMounted(() => {
   inicializarDatos()
-})
-
-onUnmounted(() => {
-  unsubscribeFns.forEach((fn) => fn())
 })
 </script>
 
