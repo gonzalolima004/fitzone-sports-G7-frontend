@@ -55,7 +55,11 @@ const franjasHorarias = computed(() => {
     return Array.from(horasSet).sort()
   }
 
-  if (props.horarioOperativo && props.horarioOperativo.abierto) {
+  if (
+    props.horarioOperativo &&
+    (props.horarioOperativo.abierto ||
+      props.horarioOperativo.es_horario_especial)
+  ) {
     const inicio = parseInt(
       props.horarioOperativo.hora_apertura.split(':')[0],
       10
@@ -191,7 +195,11 @@ function formatoMoneda(valor: number): string {
 
     <!-- Estado de Sede Cerrada o Fecha No Programada en Calendario -->
     <div
-      v-else-if="horarioOperativo && !horarioOperativo.abierto"
+      v-else-if="
+        horarioOperativo &&
+        !horarioOperativo.abierto &&
+        !horarioOperativo.es_horario_especial
+      "
       class="p-12 text-center flex flex-col items-center justify-center gap-3"
     >
       <div

@@ -364,16 +364,20 @@ export const canchasService = {
     } else if (response.data && typeof response.data === 'object') {
       const dataObj = response.data as GrillaDisponibilidadBackendResponse
       if (dataObj.horario) {
-        sedeStore.horariosCache[key] = dataObj.horario
+        sedeStore.guardarHorarioEnCache(idSede, fecha, dataObj.horario)
       }
       if (Array.isArray(dataObj.canchas)) {
         itemsCanchas = dataObj.canchas
       }
     }
 
-    // Si la sede está cerrada según el backend (Calendario / SedeHorario), no se generan turnos
+    // Si la sede está cerrada según el backend (Calendario / SedeHorario) y no tiene horario especial, no se generan turnos
     const horarioActual = sedeStore.horariosCache[key]
-    if (horarioActual && !horarioActual.abierto) {
+    if (
+      horarioActual &&
+      !horarioActual.abierto &&
+      !horarioActual.es_horario_especial
+    ) {
       return {}
     }
 
