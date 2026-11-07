@@ -988,6 +988,20 @@
 
 ---
 
+#### 07/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Full Stack
+- **Actividades**:
+  - Ajuste en `DetalleReservaView.vue` para tomar el costo base y calcular el recargo por horario pico directamente desde el objeto `cancha` de la reserva.
+  - Simplificación y limpieza de etiquetas y textos visuales en el desglose de tarifas.
+- **Decisiones**:
+  - Utilizar temporalmente los datos directos de `reserva.cancha` para mostrar tarifas más precisas en la interfaz a la espera de la actualización definitiva del backend.
+- **Dificultades**: Ninguna
+- **Commits:**
+- `fix(M4): simplificar desglose de tarifas en detalle de reserva`
+- `docs(log): actualizacion de bitacora`
+
+---
+
 #### 26/10/2026
 
 #### Matías Sillen | Rol: Desarrollador Frontend
