@@ -2,7 +2,13 @@
 import { ref, watch, computed } from 'vue'
 import BaseModal from '@/common/components/BaseModal.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
+import { toast } from '@/common/utils/toast'
 import { obtenerFechaHoyLocal } from '@/common/utils/date'
+import { validarConEsquema } from '@/common/utils/validation'
+import {
+  crearMantenimientoSchema,
+  actualizarMantenimientoSchema,
+} from '../schemas/mantenimiento.schema'
 import type {
   Cancha,
   CrearMantenimientoDto,
@@ -51,6 +57,7 @@ const form = ref<{
 })
 
 const errorValidacion = ref<string | null>(null)
+const erroresCampos = ref<Record<string, string>>({})
 
 const esEdicion = computed(() => !!props.mantenimiento)
 
@@ -69,6 +76,7 @@ watch(selectedSedeId, (nuevaSede) => {
     )
     if (canchaActual && canchaActual.id_sede !== Number(nuevaSede)) {
       selectedCanchaId.value = ''
+      limpiarErrorCampo('id_cancha')
     }
   }
 })
@@ -78,12 +86,41 @@ function normalizarParaDatetimeLocal(fechaStr?: string): string {
   return fechaStr.replace(' ', 'T').slice(0, 16)
 }
 
+function limpiarErrorCampo(campo: string) {
+  if (erroresCampos.value[campo]) {
+    delete erroresCampos.value[campo]
+  }
+}
+
+function validarCampoIndividual(
+  campo: 'id_cancha' | 'fecha_inicio' | 'fecha_fin' | 'motivo'
+) {
+  const idCanchaFinal =
+    props.cancha?.id_cancha || Number(selectedCanchaId.value)
+  const payload = {
+    id_cancha: idCanchaFinal,
+    fecha_inicio: form.value.fecha_inicio,
+    fecha_fin: form.value.fecha_fin,
+    motivo: form.value.motivo,
+  }
+  const resultado = esEdicion.value
+    ? validarConEsquema(actualizarMantenimientoSchema, payload)
+    : validarConEsquema(crearMantenimientoSchema, payload)
+
+  if (resultado.errores[campo]) {
+    erroresCampos.value[campo] = resultado.errores[campo]
+  } else {
+    limpiarErrorCampo(campo)
+  }
+}
+
 // Inicializar fechas al abrir modal
 watch(
   () => props.modelValue,
   (abierto) => {
     if (abierto) {
       errorValidacion.value = null
+      erroresCampos.value = {}
 
       if (props.mantenimiento) {
         selectedCanchaId.value = props.mantenimiento.id_cancha
@@ -119,43 +156,46 @@ watch(
   }
 )
 
-const formularioValido = computed(() => {
-  const tieneCancha = props.cancha ? true : selectedCanchaId.value !== ''
-  return (
-    tieneCancha &&
-    form.value.fecha_inicio !== '' &&
-    form.value.fecha_fin !== '' &&
-    form.value.fecha_fin > form.value.fecha_inicio
-  )
-})
-
 function cerrar() {
   emit('update:modelValue', false)
 }
 
 function handleGuardar() {
-  if (!formularioValido.value) {
-    if (!props.cancha && selectedCanchaId.value === '') {
-      errorValidacion.value = 'Debes seleccionar una cancha.'
-      return
-    }
+  const idCanchaFinal =
+    props.cancha?.id_cancha || Number(selectedCanchaId.value)
+
+  const payload = {
+    id_cancha: idCanchaFinal,
+    fecha_inicio: form.value.fecha_inicio,
+    fecha_fin: form.value.fecha_fin,
+    motivo: form.value.motivo,
+  }
+
+  const resultado = esEdicion.value
+    ? validarConEsquema(actualizarMantenimientoSchema, payload)
+    : validarConEsquema(crearMantenimientoSchema, payload)
+
+  if (!resultado.valido || !resultado.datos) {
+    erroresCampos.value = resultado.errores
     errorValidacion.value =
-      'La fecha de fin debe ser posterior a la fecha de inicio.'
+      resultado.primerError || 'Revisá los datos ingresados del mantenimiento.'
+    if (resultado.primerError) {
+      toast.warning(resultado.primerError)
+    }
     return
   }
 
+  erroresCampos.value = {}
   errorValidacion.value = null
+
   const dto: CrearMantenimientoDto = {
-    fecha_inicio: form.value.fecha_inicio,
-    fecha_fin: form.value.fecha_fin,
-    motivo: form.value.motivo.trim() || undefined,
+    fecha_inicio: resultado.datos.fecha_inicio ?? form.value.fecha_inicio,
+    fecha_fin: resultado.datos.fecha_fin ?? form.value.fecha_fin,
+    motivo: resultado.datos.motivo || undefined,
   }
 
-  const idCanchaFinal =
-    props.cancha?.id_cancha || Number(selectedCanchaId.value)
   const idMantenimiento = props.mantenimiento?.id_cancha_mantenimiento
-
-  emit('guardar', dto, idMantenimiento, idCanchaFinal)
+  emit('guardar', dto, idMantenimiento, resultado.datos.id_cancha)
 }
 </script>
 
@@ -174,7 +214,7 @@ function handleGuardar() {
     @update:model-value="emit('update:modelValue', $event)"
   >
     <form class="space-y-4" @submit.prevent="handleGuardar">
-      <!-- Error de Validación -->
+      <!-- Error de Validación General -->
       <div
         v-if="errorValidacion"
         class="p-3 text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl"
@@ -218,8 +258,13 @@ function handleGuardar() {
           <select
             v-model="selectedCanchaId"
             :disabled="esEdicion"
-            required
-            class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#202759]/20 focus:border-[#202759] transition-all text-slate-700 disabled:opacity-60 disabled:cursor-not-allowed"
+            class="w-full px-3 py-2 text-sm bg-slate-50 border rounded-xl focus:bg-white focus:outline-none focus:ring-2 transition-all text-slate-700 disabled:opacity-60 disabled:cursor-not-allowed"
+            :class="[
+              erroresCampos.id_cancha
+                ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20'
+                : 'border-slate-200 focus:border-[#202759] focus:ring-[#202759]/20',
+            ]"
+            @change="validarCampoIndividual('id_cancha')"
           >
             <option value="" disabled>Seleccionar cancha...</option>
             <option
@@ -230,6 +275,12 @@ function handleGuardar() {
               {{ c.nombre }}
             </option>
           </select>
+          <span
+            v-if="erroresCampos.id_cancha"
+            class="text-[11px] text-rose-600 font-medium"
+          >
+            {{ erroresCampos.id_cancha }}
+          </span>
         </div>
       </template>
 
@@ -241,9 +292,21 @@ function handleGuardar() {
         <input
           v-model="form.fecha_inicio"
           type="datetime-local"
-          required
-          class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#202759]/20 focus:border-[#202759] transition-all font-mono"
+          class="w-full px-3 py-2 text-sm bg-slate-50 border rounded-xl focus:bg-white focus:outline-none focus:ring-2 transition-all font-mono"
+          :class="[
+            erroresCampos.fecha_inicio
+              ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20'
+              : 'border-slate-200 focus:border-[#202759] focus:ring-[#202759]/20',
+          ]"
+          @input="limpiarErrorCampo('fecha_inicio')"
+          @blur="validarCampoIndividual('fecha_inicio')"
         />
+        <span
+          v-if="erroresCampos.fecha_inicio"
+          class="text-[11px] text-rose-600 font-medium"
+        >
+          {{ erroresCampos.fecha_inicio }}
+        </span>
       </div>
 
       <!-- Fecha y hora de fin -->
@@ -254,9 +317,21 @@ function handleGuardar() {
         <input
           v-model="form.fecha_fin"
           type="datetime-local"
-          required
-          class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#202759]/20 focus:border-[#202759] transition-all font-mono"
+          class="w-full px-3 py-2 text-sm bg-slate-50 border rounded-xl focus:bg-white focus:outline-none focus:ring-2 transition-all font-mono"
+          :class="[
+            erroresCampos.fecha_fin
+              ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20'
+              : 'border-slate-200 focus:border-[#202759] focus:ring-[#202759]/20',
+          ]"
+          @input="limpiarErrorCampo('fecha_fin')"
+          @blur="validarCampoIndividual('fecha_fin')"
         />
+        <span
+          v-if="erroresCampos.fecha_fin"
+          class="text-[11px] text-rose-600 font-medium"
+        >
+          {{ erroresCampos.fecha_fin }}
+        </span>
       </div>
 
       <!-- Motivo o descripción -->
@@ -268,8 +343,21 @@ function handleGuardar() {
           v-model="form.motivo"
           rows="3"
           placeholder="Ej: Pintura de líneas, cambio de luminarias LED o tensado de red..."
-          class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#202759]/20 focus:border-[#202759] transition-all resize-none"
+          class="w-full px-3 py-2 text-sm bg-slate-50 border rounded-xl focus:bg-white focus:outline-none focus:ring-2 transition-all resize-none"
+          :class="[
+            erroresCampos.motivo
+              ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20'
+              : 'border-slate-200 focus:border-[#202759] focus:ring-[#202759]/20',
+          ]"
+          @input="limpiarErrorCampo('motivo')"
+          @blur="validarCampoIndividual('motivo')"
         ></textarea>
+        <span
+          v-if="erroresCampos.motivo"
+          class="text-[11px] text-rose-600 font-medium"
+        >
+          {{ erroresCampos.motivo }}
+        </span>
       </div>
     </form>
 
@@ -281,7 +369,7 @@ function handleGuardar() {
       <BaseButton
         variant="secondary"
         :loading="guardando"
-        :disabled="!formularioValido"
+        :disabled="guardando"
         @click="handleGuardar"
       >
         {{ esEdicion ? 'Guardar Cambios' : 'Confirmar Mantenimiento' }}
