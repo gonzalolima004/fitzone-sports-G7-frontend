@@ -488,7 +488,11 @@ onMounted(cargarDetalleReserva)
                 }}%):</span
               >
               <span class="font-mono tabular-nums">
-                -{{ formatoMoneda(reserva.monto_descuento || 1200) }}
+                -{{ formatoMoneda(
+                    reserva.cancha?.costo_base
+                      ? reserva.cancha?.costo_base * (reserva.descuento_porcentaje/100)
+                      : 1200
+                  )}}
               </span>
             </div>
 
