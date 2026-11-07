@@ -1018,6 +1018,24 @@
 
 ---
 
+#### 07/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Full Stack
+- **Actividades**:
+  - Implementación de utilería genérica `validarConEsquema` y definición de esquemas Zod (`cancha.schema.ts`, `cancha-tipo.schema.ts`, `mantenimiento.schema.ts`) con sanitización alfanumérica contra caracteres especiales, límites decimales y validación cruzada de fechas.
+  - Integración de esquemas en `CanchaModal.vue`, `GestionTiposModal.vue`, `MantenimientoModal.vue` y `GerenciaCanchasView.vue`, bloqueando peticiones HTTP inválidas y mostrando feedback visual junto a toasts de advertencia (`toast.warning`).
+  - Creación de tests unitarios en `canchas-schemas-validation.spec.ts` verificando el bloqueo de strings inseguros, límites de longitud y reglas de negocio.
+- **Decisiones**:
+  - Proveer retroalimentación clara mediante avisos en amarillo (`toast.warning`) y marcado de inputs con error.
+- **Dificultades**: Ninguna
+- **Commits:**
+- `fix(M4): corregir calculo en detalle de reserva`
+- `feat(M4): utils de validacion y schemas Zod en M4`
+- `feat(M4): integrar validacion zod y alertas`
+- `feat(M4): tests unitarios para esquemas Zod`
+- `docs(log): actualizacion de bitacora`
+
+---
+
 #### 26/10/2026
 
 #### Matías Sillen | Rol: Desarrollador Frontend
