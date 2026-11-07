@@ -448,22 +448,15 @@ onMounted(cargarDetalleReserva)
           <h2
             class="text-xs font-extrabold uppercase tracking-wider text-[#202759] m-0"
           >
-            Detalle de Tarifas Informadas por el Servidor
+            Detalle de Tarifas
           </h2>
 
           <div class="space-y-2 pt-1">
             <!-- Costo Base -->
             <div class="flex justify-between text-slate-600">
-              <span>Tarifa base por hora de cancha:</span>
+              <span>Costo base por hora de la cancha:</span>
               <span class="font-mono tabular-nums font-semibold">
-                {{
-                  formatoMoneda(
-                    reserva.costo_base ||
-                      (reserva.precio_congelado
-                        ? Math.round(reserva.precio_congelado * 0.9)
-                        : 15000)
-                  )
-                }}
+                {{ formatoMoneda(reserva.cancha?.costo_base) }}
               </span>
             </div>
 
@@ -474,7 +467,13 @@ onMounted(cargarDetalleReserva)
             >
               <span>Recargo horario pico (19 a 21 hs):</span>
               <span class="font-mono tabular-nums">
-                +{{ formatoMoneda(reserva.monto_recargo_pico || 1600) }}
+                +{{
+                  formatoMoneda(
+                    reserva.cancha?.costo_base
+                      ? reserva.cancha?.costo_base * 0.2
+                      : 1600
+                  )
+                }}
               </span>
             </div>
 
@@ -499,9 +498,6 @@ onMounted(cargarDetalleReserva)
             >
               <div>
                 <span class="text-[#202759] block">Total Congelado:</span>
-                <span class="text-[11px] font-normal text-slate-400">
-                  Garantizado por el sistema para esta reserva
-                </span>
               </div>
               <span
                 class="text-2xl font-black font-mono text-[#202759] tabular-nums"
