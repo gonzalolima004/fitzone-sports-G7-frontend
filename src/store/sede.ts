@@ -129,6 +129,22 @@ export const useSedeStore = defineStore('sede', () => {
     }
   }
 
+  // Guarda o actualiza un horario en caché fusionando para no perder banderas como es_horario_especial
+  function guardarHorarioEnCache(
+    idSede: number,
+    fechaStr: string,
+    nuevo: HorarioOperativo
+  ) {
+    const key = `${idSede}_${fechaStr}`
+    const actual = horariosCache.value[key]
+    horariosCache.value[key] = {
+      ...actual,
+      ...nuevo,
+      es_horario_especial:
+        nuevo.es_horario_especial ?? actual?.es_horario_especial,
+    }
+  }
+
   // Consulta o devuelve desde memoria el horario operativo de una sede
   async function obtenerHorarioOperativo(
     idSede: number,
@@ -148,7 +164,6 @@ export const useSedeStore = defineStore('sede', () => {
           `/sedes/${idSede}/horario-operativo`,
           { params: { fecha: fechaStr } }
         )
-
         horariosCache.value[key] = data
         return data
       } finally {
@@ -173,5 +188,6 @@ export const useSedeStore = defineStore('sede', () => {
     cargarCiudades,
     seleccionarSede,
     obtenerHorarioOperativo,
+    guardarHorarioEnCache,
   }
 })
