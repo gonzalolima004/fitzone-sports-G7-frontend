@@ -87,7 +87,7 @@ function cerrar() {
 /**
  * Confirmar reserva transaccional
  */
-async function handleConfirmar() {
+async function confirmarReserva() {
   if (!props.turno) return
 
   // Validación para no permitir confirmar en el pasado (respetando zona horaria local)
@@ -161,30 +161,37 @@ async function handleConfirmar() {
     emit('reservaConfirmada', reserva)
     cerrar()
   } catch (err: unknown) {
-    // Manejo de conflictos de disponibilidad y concurrencia
+    // Manejo de conflictos de disponibilidad y concurrencia (HTTP 409)
     let mensajeError =
-      'El turno seleccionado ya fue reservado por otro usuario.'
+      'La cancha ya fue reservada en este horario por otro usuario.'
+    let esConflicto409 = false
 
     if (typeof err === 'object' && err !== null && 'response' in err) {
       const response = (
         err as { response?: { status?: number; data?: { message?: string } } }
       ).response
-      if (response?.status === 409 || response?.data?.message) {
-        mensajeError = response.data?.message || mensajeError
+      if (response?.status === 409) {
+        esConflicto409 = true
       }
-    } else {
-      // Simulación en entorno desconectado para comprobar el flujo de conflicto
-      mensajeError =
-        'Conflicto de concurrencia: este turno acaba de ser tomado.'
+      if (response?.data?.message) {
+        mensajeError = response.data.message
+      }
     }
 
-    errorConflicto.value = mensajeError
-    toast.error(mensajeError)
-    emit('conflictoDisponibilidad', mensajeError)
+    if (esConflicto409) {
+      cerrar()
+      toast.error(mensajeError)
+      emit('conflictoDisponibilidad', mensajeError)
+    } else {
+      errorConflicto.value = mensajeError
+      toast.error(mensajeError)
+    }
   } finally {
     confirmando.value = false
   }
 }
+
+const handleConfirmar = confirmarReserva
 </script>
 
 <template>

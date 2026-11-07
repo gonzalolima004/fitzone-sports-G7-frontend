@@ -17,6 +17,7 @@ import type {
   DisponibilidadSedeMap,
   CanchaDisponibilidadBackendDto,
   GrillaDisponibilidadBackendResponse,
+  TurnoReservadoPayload,
 } from '@/modules/M4-canchas/types/canchas.types'
 
 ///NOTA: Capaz es mejor que el estado lo traiga como string directamente
@@ -425,6 +426,34 @@ export const canchasService = {
     }
 
     return mapa
+  },
+
+  /**
+   * Suscribe en tiempo real al canal Supabase Broadcast de la sede actual (`canchas:sede:${idSede}`)
+   * Escuchando el evento `turno_reservado` emitido por el backend cuando otro usuario reserva un turno.
+   * Retorna una función para cancelar la suscripción y desasociar el canal limpiamente.
+   */
+  suscribirTurnoReservado(
+    idSede: number,
+    onTurnoReservado: (payload: TurnoReservadoPayload) => void
+  ): () => void {
+    const channelName = `canchas:sede:${idSede}`
+    const channel = supabase
+      .channel(channelName)
+      .on<TurnoReservadoPayload>(
+        'broadcast',
+        { event: 'turno_reservado' },
+        (res) => {
+          if (res?.payload) {
+            onTurnoReservado(res.payload)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   },
 
   /**

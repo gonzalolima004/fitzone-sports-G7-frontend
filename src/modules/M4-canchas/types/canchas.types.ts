@@ -218,3 +218,11 @@ export interface GrillaDisponibilidadBackendResponse {
 
 // Diccionario de slots indexado por id_cancha
 export type DisponibilidadSedeMap = Record<number, TurnoSlot[]>
+
+// Payload del evento Broadcast de Supabase 'turno_reservado' en canal canchas:sede:${idSede}
+export interface TurnoReservadoPayload {
+  id_cancha: number
+  fecha: string
+  hora_inicio: string
+  hora_fin: string
+}

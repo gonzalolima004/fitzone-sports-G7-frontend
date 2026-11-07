@@ -925,7 +925,7 @@
 ---
 
 #### 03/11/2026
-#### Marcos Caraballo | Rol: Desarrollador Frontend
+#### Marcos Caraballo | Rol: TL - Desarrollador Frontend
 - **Actividades**:
   - Centralización del horario operativo de sedes en `useSedeStore` mediante `obtenerHorarioOperativo` y caché reactiva en memoria (`horariosCache`), evitando estados locales duplicados en vistas.
   - Optimización de carga inicial y eliminación de peticiones redundantes en `CanchasView.vue` controlando la ejecución de los `watch()` mediante un flag de inicialización (`inicializado`).
@@ -945,7 +945,7 @@
 ---
 
 #### 04/11/2026
-#### Marcos Caraballo | Rol: Desarrollador Frontend
+#### Marcos Caraballo | Rol: TL - Desarrollador Frontend
 - **Actividades**:
   - Conexión del cálculo y desglose de tarifas de reservas con el endpoint `GET /canchas/cotizar` del backend en `reservas.service.ts`.
   - Extensión de la interfaz de respuesta `CotizacionTurnoResponse` en `canchas.types.ts` para soportar las validaciones de descuento (`aplica_descuento_socio` y `motivo_sin_descuento`).
@@ -966,7 +966,26 @@
 ---
 
 #### 06/11/2026
-#### Marcos Caraballo | Rol: Desarrollador Frontend
+#### Marcos Caraballo | Rol: TL - Desarrollador Frontend
+- **Actividades**:
+  - Suscripción en tiempo real vía Supabase Broadcast (`canchas:sede:${idSede}`) para escuchar eventos `turno_reservado`.
+  - Creación del composable `useCanchasRealtime` con gestión reactiva ante cambio de sedes y desuscripción automática al desmontar.
+  - Procesamiento reactivo en `CanchasView`: actualización de slots en la grilla, deselección y cierre forzado del modal ante reservas concurrentes con Toasts de advertencia.
+  - Manejo de colisión HTTP 409 en `ConfirmarReserva` para forzar cierre, marcar slot reservado y notificar conflicto.
+  - Suite de tests unitarios en `canchas-realtime-concurrencia.spec.ts`.
+- **Decisiones**:
+  - Encapsular el ciclo de vida de los canales realtime en un composable desacoplado de la vista.
+- **Dificultades**: Ninguna
+- **Commits:**
+- `feat(M4): nuevo tipo para el canal realtime`
+- `feat(M4): implementar supabase realtime en canchas`
+- `feat(M4): test de canchas realtime para concurrencia`
+- `docs(log): actualizacion de bitacora`
+
+---
+
+#### 06/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Frontend
 - **Actividades**:
   - Eliminación definitiva de cálculos estáticos y funciones de mock de feriados (`calcularHorarioOperativo` y `generarSlotsParaCancha`) en `canchas.service.ts`.
   - Integración de `getDisponibilidadPorSede` con la respuesta unificada del backend, sincronizando el horario operativo en la caché de `useSedeStore` sin peticiones redundantes.
@@ -980,6 +999,21 @@
 - `feat(M4): Eliminacion de fallabacks viejos de prueba`
 - `feat(M4): obtencion correcta del horario en cache`
 - `feat(M4): test de disponibilidad horario`
+- `docs(log): actualizacion de bitacora`
+- `style: uso de prettier para el formato`
+
+---
+
+#### 07/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Full Stack
+- **Actividades**:
+  - Ajuste en `DetalleReservaView.vue` para tomar el costo base y calcular el recargo por horario pico directamente desde el objeto `cancha` de la reserva.
+  - Simplificación y limpieza de etiquetas y textos visuales en el desglose de tarifas.
+- **Decisiones**:
+  - Utilizar temporalmente los datos directos de `reserva.cancha` para mostrar tarifas más precisas en la interfaz a la espera de la actualización definitiva del backend.
+- **Dificultades**: Ninguna
+- **Commits:**
+- `fix(M4): simplificar desglose de tarifas en detalle de reserva`
 - `docs(log): actualizacion de bitacora`
 
 ---
