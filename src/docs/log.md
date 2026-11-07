@@ -210,6 +210,22 @@
 
 ----
 
+#### 07/11/2026
+#### Gonzalo Lima | Rol: Desarrollador Frontend
+
+- **Actividades**:
+  - Descarga segura de comprobantes: se actualizó la vista del historial de pagos para que la descarga de facturas en PDF viaje protegida con la cuenta del usuario, garantizando la privacidad de su información.
+  - Botón para suspender membresía: se agregó el botón "Suspender membresía" con una ventana de confirmación clara. Al suspenderla, se muestra un aviso indicando hasta qué día siguen activos los beneficios y se desactivan los botones de compra para no pagar dos veces.
+- **Decisiones**:
+  - Descargar los comprobantes mediante la sesión activa del usuario para que nadie externo pueda abrirlos.
+  - Desactivar la contratación de planes mientras la membresía suspendida siga vigente para evitar cobros dobles accidentales.
+- **Dificultades**: Ninguna.
+- **Commits**:
+  - `feat(pagos): descargar comprobantes mediante peticion autenticada en historial de pagos`
+  - `feat(membresia): añadir botón para suspender membresía y badge informativos`
+
+----
+
 #### 03/10/2026 - 05/10/2026
 #### Matías Sillen | Rol: Desarrollador Frontend
 
