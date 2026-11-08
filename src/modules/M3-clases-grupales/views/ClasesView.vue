@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
+import { useRouter, RouterLink } from 'vue-router'
 import {
   PhBicycle,
   PhPlug,
@@ -11,6 +12,9 @@ import {
   PhDoor,
   PhPlus,
   PhTrash,
+  PhMedal,
+  PhWarningCircle,
+  PhArrowRight,
 } from '@phosphor-icons/vue'
 import { useSedeStore } from '@/store/sede'
 import axios from 'axios'
@@ -31,16 +35,95 @@ import {
   obtenerEstadoVentanaReserva,
   type DiaAgendaItem,
 } from '@/common/utils/date-formatter'
-import ClaseCard, { type ClaseCardProps } from '../components/ClaseCard.vue'
+import ClaseCard, {
+  type ClaseCardProps,
+  type MotivoInhabilitacion,
+} from '../components/ClaseCard.vue'
 import ModalClaseForm from '../components/ModalClaseForm.vue'
 import BaseModal from '@/common/components/BaseModal.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import { toast } from '@/common/utils/toast'
 import { useAuthStore } from '@/store/auth'
 import { supabase } from '@/common/utils/supabase'
+import {
+  membresiasService,
+  type EstadoMembresia,
+} from '@/modules/M1-usuarios/services/membresias.service'
 
+const router = useRouter()
 const sedeStore = useSedeStore()
 const authStore = useAuthStore()
+
+// Rol y estado de membresía del usuario para reglas de inscripción
+const rolUsuario = computed<string>(
+  () => authStore.rol || authStore.usuario?.rol || 'socio'
+)
+const esExterno = computed(() => rolUsuario.value === 'externo')
+const esSocio = computed(() => rolUsuario.value === 'socio')
+
+const estadoMembresia = ref<EstadoMembresia | null>(null)
+const verificandoMembresia = ref(false)
+
+const estaEnMora = computed(
+  () =>
+    esSocio.value &&
+    (estadoMembresia.value?.enMora === true ||
+      estadoMembresia.value?.estado === 'VENCIDA')
+)
+
+const esMembresiaSuspendida = computed(
+  () => esSocio.value && estadoMembresia.value?.estado === 'SUSPENDIDA'
+)
+
+const sinMembresia = computed(
+  () =>
+    esSocio.value &&
+    Boolean(
+      estadoMembresia.value &&
+      !estadoMembresia.value.esSocioActivo &&
+      !estaEnMora.value &&
+      !esMembresiaSuspendida.value
+    )
+)
+
+const usuarioInhabilitado = computed(
+  () =>
+    esExterno.value ||
+    estaEnMora.value ||
+    esMembresiaSuspendida.value ||
+    sinMembresia.value
+)
+
+const motivoInhabilitacion = computed<MotivoInhabilitacion>(() => {
+  if (esExterno.value) return 'EXTERNO'
+  if (estaEnMora.value) return 'MORA'
+  if (esMembresiaSuspendida.value) return 'SUSPENDIDA'
+  if (sinMembresia.value) return 'SIN_MEMBRESIA'
+  return null
+})
+
+async function cargarEstadoMembresia() {
+  if (
+    !authStore.isAuthenticated ||
+    !authStore.usuario?.id ||
+    rolUsuario.value !== 'socio'
+  ) {
+    return
+  }
+  verificandoMembresia.value = true
+  try {
+    const res = (await membresiasService.verificarEstado(
+      authStore.usuario.id
+    )) as EstadoMembresia
+    estadoMembresia.value = res
+  } catch (e) {
+    if (import.meta.env.MODE !== 'test') {
+      console.warn('No se pudo verificar el estado de membresía:', e)
+    }
+  } finally {
+    verificandoMembresia.value = false
+  }
+}
 
 // Fecha seleccionada actual (YYYY-MM-DD en hora local)
 const fechaSeleccionada = ref<string>(obtenerFechaLocalISO())
@@ -229,6 +312,7 @@ onMounted(() => {
   if (sedeStore.idSedeSeleccionada) {
     cargarClases()
   }
+  cargarEstadoMembresia()
   setupRealtimeNotifications()
 })
 
@@ -275,12 +359,12 @@ async function cargarClases() {
         sedeStore.idSedeSeleccionada,
         fechaSeleccionada.value
       ),
-      authStore.isAuthenticated
+      authStore.isAuthenticated && esSocio.value
         ? clasesService
             .obtenerMisReservas(fechaSeleccionada.value)
             .catch(() => [])
         : Promise.resolve([]),
-      authStore.isAuthenticated
+      authStore.isAuthenticated && esSocio.value
         ? clasesService
             .obtenerMisInscripciones(fechaSeleccionada.value)
             .catch(() => [])
@@ -351,6 +435,35 @@ const reservando = ref(false)
 const errorReserva = ref<string | null>(null)
 
 function handleReservar(idClase: number) {
+  if (esExterno.value) {
+    toast.warning(
+      'La reserva de clases grupales es exclusiva para socios. Adquiere una membresía para comenzar.'
+    )
+    router.push('/membresia')
+    return
+  }
+  if (estaEnMora.value) {
+    toast.warning(
+      'Tu membresía se encuentra vencida. Regulariza tus cuotas para poder reservar clases grupales.'
+    )
+    router.push('/membresia')
+    return
+  }
+  if (esMembresiaSuspendida.value) {
+    toast.warning(
+      'Tu membresía está suspendida. No puedes realizar reservas de clases grupales.'
+    )
+    router.push('/membresia')
+    return
+  }
+  if (sinMembresia.value) {
+    toast.warning(
+      'No dispones de una membresía activa vigente. Adquiere un plan para reservar.'
+    )
+    router.push('/membresia')
+    return
+  }
+
   const clase = clasesAgendadas.value.find((c) => c.id === idClase)
   if (clase) {
     const ventana = obtenerEstadoVentanaReserva(clase.fecha_inicio)
@@ -386,9 +499,15 @@ async function confirmarReserva() {
     modalReservaVisible.value = false
   } catch (err: unknown) {
     if (axios.isAxiosError(err)) {
-      errorReserva.value =
-        err.response?.data?.message ||
-        'Ocurrió un error al intentar reservar la clase.'
+      if (err.response?.status === 403) {
+        errorReserva.value =
+          err.response?.data?.message ||
+          'Acceso restringido: tu membresía no está activa o registras cuotas vencidas.'
+      } else {
+        errorReserva.value =
+          err.response?.data?.message ||
+          'Ocurrió un error al intentar reservar la clase.'
+      }
     } else {
       errorReserva.value = 'Ocurrió un error inesperado.'
     }
@@ -413,6 +532,35 @@ const esperando = ref(false)
 const errorEspera = ref<string | null>(null)
 
 function handleListaEspera(idClase: number) {
+  if (esExterno.value) {
+    toast.warning(
+      'La lista de espera es exclusiva para socios. Adquiere una membresía para anotarte.'
+    )
+    router.push('/membresia')
+    return
+  }
+  if (estaEnMora.value) {
+    toast.warning(
+      'Tu membresía se encuentra vencida. Regulariza tus pagos para anotarte en lista de espera.'
+    )
+    router.push('/membresia')
+    return
+  }
+  if (esMembresiaSuspendida.value) {
+    toast.warning(
+      'Tu membresía está suspendida. No puedes anotarte en listas de espera.'
+    )
+    router.push('/membresia')
+    return
+  }
+  if (sinMembresia.value) {
+    toast.warning(
+      'No dispones de una membresía activa vigente para anotarte en lista de espera.'
+    )
+    router.push('/membresia')
+    return
+  }
+
   const clase = clasesAgendadas.value.find((c) => c.id === idClase)
   if (clase) {
     const ventana = obtenerEstadoVentanaReserva(clase.fecha_inicio)
@@ -451,8 +599,14 @@ async function confirmarListaEspera() {
     modalEsperaVisible.value = false
   } catch (err: unknown) {
     if (axios.isAxiosError(err)) {
-      errorEspera.value =
-        err.response?.data?.message || 'Error al anotarse en lista de espera.'
+      if (err.response?.status === 403) {
+        errorEspera.value =
+          err.response?.data?.message ||
+          'Acceso restringido: no puedes inscribirte en lista de espera sin membresía activa o con cuotas impagas.'
+      } else {
+        errorEspera.value =
+          err.response?.data?.message || 'Error al anotarse en lista de espera.'
+      }
     } else {
       errorEspera.value = 'Ocurrió un error inesperado al anotarse.'
     }
@@ -628,6 +782,94 @@ async function confirmarEliminacion() {
           <span>Nueva Clase</span>
         </button>
       </div>
+    </div>
+
+    <!-- Banner Informativo de Membresía / Clientes Externos -->
+    <div
+      v-if="usuarioInhabilitado"
+      class="mb-8 rounded-3xl p-5 border transition-all animate-fade-in flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm"
+      :class="[
+        esExterno
+          ? 'bg-blue-50/90 border-blue-200 text-blue-950'
+          : estaEnMora
+            ? 'bg-amber-50/90 border-amber-200 text-amber-950'
+            : esMembresiaSuspendida
+              ? 'bg-rose-50/90 border-rose-200 text-rose-950'
+              : 'bg-slate-50 border-slate-200 text-slate-800',
+      ]"
+    >
+      <div class="flex items-start gap-3.5">
+        <div
+          class="p-2.5 rounded-2xl shrink-0 mt-0.5"
+          :class="[
+            esExterno
+              ? 'bg-blue-100 text-blue-600'
+              : estaEnMora
+                ? 'bg-amber-100 text-amber-600'
+                : esMembresiaSuspendida
+                  ? 'bg-rose-100 text-rose-600'
+                  : 'bg-slate-200 text-slate-700',
+          ]"
+        >
+          <PhMedal
+            v-if="esExterno || sinMembresia"
+            :size="26"
+            weight="duotone"
+          />
+          <PhWarningCircle v-else :size="26" weight="duotone" />
+        </div>
+        <div>
+          <h3 class="font-extrabold text-base sm:text-lg leading-tight">
+            {{
+              esExterno
+                ? 'Acceso de solo lectura para Clientes Externos'
+                : estaEnMora
+                  ? 'Membresía Vencida / Cuota Pendiente'
+                  : esMembresiaSuspendida
+                    ? 'Membresía Suspendida'
+                    : 'Sin Membresía Activa'
+            }}
+          </h3>
+          <p class="text-xs sm:text-sm mt-1 opacity-90 leading-relaxed">
+            {{
+              esExterno
+                ? 'Podés consultar la agenda de clases grupales y sus cupos en tiempo real. Para inscribirte y reservar tu lugar, necesitás ser socio con una membresía activa.'
+                : estaEnMora
+                  ? 'Presentas pagos o cuotas pendientes en tu suscripción. Regulariza tu situación para volver a reservar clases grupales o inscribirte en listas de espera.'
+                  : esMembresiaSuspendida
+                    ? 'Tu membresía se encuentra suspendida temporalmente. No podrás reservar clases grupales hasta regularizarla.'
+                    : 'No tienes una membresía activa vigente asignada a tu cuenta. Adquiere un plan para poder reservar tus clases grupales favoritas.'
+            }}
+          </p>
+        </div>
+      </div>
+
+      <RouterLink
+        to="/membresia"
+        class="shrink-0 inline-flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all shadow-sm active:scale-95 cursor-pointer"
+        :class="[
+          esExterno
+            ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200'
+            : estaEnMora
+              ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-amber-200'
+              : esMembresiaSuspendida
+                ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-200'
+                : 'bg-[#202759] hover:bg-[#161b3d] text-white',
+        ]"
+      >
+        <span>
+          {{
+            esExterno
+              ? 'Ver Planes de Membresía'
+              : estaEnMora
+                ? 'Regularizar Membresía'
+                : esMembresiaSuspendida
+                  ? 'Gestionar Membresía'
+                  : 'Adquirir Membresía'
+          }}
+        </span>
+        <PhArrowRight :size="16" weight="bold" />
+      </RouterLink>
     </div>
 
     <!-- Calendario y Navegación de Agenda -->
@@ -836,6 +1078,7 @@ async function confirmarEliminacion() {
         :key="clase.id"
         :clase="clase"
         :es-admin-o-gerente="esAdminOGerente"
+        :motivo-inhabilitacion="motivoInhabilitacion"
         @reservar="handleReservar"
         @lista-espera="handleListaEspera"
         @cancelar="handleCancelar"
@@ -907,6 +1150,19 @@ async function confirmarEliminacion() {
         >
           Anotarme en lista de espera para esta clase →
         </button>
+        <RouterLink
+          v-if="
+            errorReserva.toLowerCase().includes('membresía') ||
+            errorReserva.toLowerCase().includes('mora') ||
+            errorReserva.toLowerCase().includes('cuota') ||
+            errorReserva.toLowerCase().includes('socio') ||
+            errorReserva.toLowerCase().includes('restringido')
+          "
+          to="/membresia"
+          class="self-start text-xs font-bold text-rose-700 underline hover:text-rose-900 cursor-pointer pt-1"
+        >
+          Ir a Membresías para regularizar situación →
+        </RouterLink>
       </div>
 
       <template #actions>
@@ -982,14 +1238,29 @@ async function confirmarEliminacion() {
 
       <div
         v-if="errorEspera"
-        class="bg-rose-50 text-rose-700 p-3 rounded-lg text-sm border border-rose-200 mt-2 mb-4 flex gap-2 items-start"
+        class="bg-rose-50 text-rose-700 p-3 rounded-lg text-sm border border-rose-200 mt-2 mb-4 flex flex-col gap-2"
       >
-        <PhWarning
-          :size="20"
-          weight="fill"
-          class="shrink-0 text-rose-500 mt-0.5"
-        />
-        <p class="font-medium">{{ errorEspera }}</p>
+        <div class="flex gap-2 items-start">
+          <PhWarning
+            :size="20"
+            weight="fill"
+            class="shrink-0 text-rose-500 mt-0.5"
+          />
+          <p class="font-medium">{{ errorEspera }}</p>
+        </div>
+        <RouterLink
+          v-if="
+            errorEspera.toLowerCase().includes('membresía') ||
+            errorEspera.toLowerCase().includes('mora') ||
+            errorEspera.toLowerCase().includes('cuota') ||
+            errorEspera.toLowerCase().includes('socio') ||
+            errorEspera.toLowerCase().includes('restringido')
+          "
+          to="/membresia"
+          class="self-start text-xs font-bold text-rose-700 underline hover:text-rose-900 cursor-pointer pt-1"
+        >
+          Ir a Membresías para regularizar situación →
+        </RouterLink>
       </div>
 
       <template #actions>

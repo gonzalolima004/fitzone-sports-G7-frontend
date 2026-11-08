@@ -1130,3 +1130,26 @@
 - `feat(M2): correciones para agregar la opcion de ingresar por DNI`
 - `feat(M2): adicion de acceso en barra lateral`
 - `actualizacion index`
+
+---
+
+#### 08/11/2026
+#### Joaquín Ribarola | Rol: Desarrollador Frontend
+
+- **Tarea:** E16-T1: Visualización de agenda para clientes externos y restricciones de reserva por estado de membresía.
+- **Actividades:**
+  - **Enrutamiento y RBAC:** Incorporación del rol `'externo'` en `meta.roles` para la ruta `/clases` en `src/router/index.ts`, permitiendo el acceso directo a la agenda sin rebotes de guardias hacia el login o canchas.
+  - **Navegación lateral en `Sidebar.vue`:** Habilitación del acceso a "Clases Grupales" en la sección de Operaciones para usuarios con rol `externo`.
+  - **Integración con servicio de membresías:** Invocación de `membresiasService.verificarEstado` en `ClasesView.vue` para auditar reactivamente el estado del socio (`esSocioActivo`, `enMora`, `estado`), determinando si se encuentra habilitado para reservar.
+  - **Banner informativo contextual de estado:** Implementación en `ClasesView.vue` de avisos superiores adaptativos para clientes externos, socios en mora, con membresía suspendida o sin membresía activa, explicando claramente la inhabilitación y proveyendo un botón de redirección directa a la vista de Membresías (`/membresia`).
+  - **Blindaje de acciones en `ClaseCard.vue`:** Incorporación de la propiedad `motivoInhabilitacion` para reemplazar los botones de reserva y lista de espera por accesos contextuales hacia `/membresia` ("Exclusivo Socios · Ver Planes", "Cuota Pendiente · Regularizar", "Membresía Suspendida · Gestionar").
+  - **Guardias defensivas en reservas y lista de espera:** Restricción en `handleReservar` y `handleListaEspera` que bloquea la apertura de modales a usuarios no autorizados o con mora/suspensión, informando mediante `toast.warning` y redirigiendo a `/membresia`. Soporte ante respuestas HTTP 403 del backend incorporando enlace de regularización.
+  - **Optimización de consultas:** Condicionamiento de las peticiones a `obtenerMisReservas` y `obtenerMisInscripciones` exclusivamente para socios autenticados, evitando llamadas fallidas (403) para externos.
+  - **Cobertura de pruebas:** Creación de la suite `src/__tests__/clases-restricciones-membresia.spec.ts` con 9 pruebas unitarias certificando navegación, banners, reemplazo de botones en tarjetas y reservas de socios activos al día.
+- **Decisiones:**
+  - Mantener la agenda pública y visible para clientes externos pero inhabilitar la inscripción a nivel visual (tarjeta) y de lógica (handlers), canalizando a los usuarios hacia la adquisición de membresías.
+  - No consultar los endpoints de reservas personales si el rol no es socio para no generar peticiones innecesarias que son rechazadas por los guards del backend.
+- **Dificultades:** Ninguna.
+- **Verificación:** 14 suites y 90 pruebas aprobadas al 100%. Typecheck (`vue-tsc -b`), linter (`eslint .`), formateo (`prettier`) y build de producción (`vite build`) exitosos sin errores ni advertencias.
+- **Commits:**
+  - `feat(clases): permitir visualizacion a clientes externos y restringir reservas por estado de membresia`
