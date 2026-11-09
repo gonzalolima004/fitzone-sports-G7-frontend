@@ -12,6 +12,7 @@ import {
   PhTrash,
   PhMedal,
   PhWarningCircle,
+  PhMapPin,
 } from '@phosphor-icons/vue'
 
 import {
@@ -46,7 +47,12 @@ export interface ClaseCardProps {
 }
 
 export type MotivoInhabilitacion =
-  'EXTERNO' | 'MORA' | 'SUSPENDIDA' | 'SIN_MEMBRESIA' | null
+  | 'EXTERNO'
+  | 'MORA'
+  | 'SUSPENDIDA'
+  | 'SIN_MEMBRESIA'
+  | 'CIUDAD_DIFERENTE'
+  | null
 
 const props = withDefaults(
   defineProps<{
@@ -315,6 +321,16 @@ const estadoVentana = computed(() => {
       <PhMedal :size="18" weight="bold" />
       Requiere Membresía &middot; Adquirir
     </RouterLink>
+
+    <button
+      v-else-if="motivoInhabilitacion === 'CIUDAD_DIFERENTE'"
+      class="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed flex items-center justify-center gap-2 shadow-xs"
+      disabled
+      title="Las reservas de clases grupales están permitidas únicamente en sedes de tu misma ciudad"
+    >
+      <PhMapPin :size="18" weight="bold" class="text-amber-500" />
+      Sede en otra ciudad
+    </button>
 
     <!-- 6. Si está disponible para reservar dentro de la ventana de 48 hs -->
     <button

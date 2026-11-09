@@ -15,6 +15,12 @@ export interface Usuario {
   apellido?: string
   email?: string
   rol?: RolUsuario
+  id_sede?: number
+  sede?: {
+    id_sede: number
+    nombre?: string
+    id_ciudad?: number
+  }
 }
 
 export const useAuthStore = defineStore('auth', () => {

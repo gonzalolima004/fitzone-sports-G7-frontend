@@ -280,8 +280,12 @@ router.beforeEach(async (to, _from, next) => {
           ).toLowerCase() as RolUsuario
           authStore.setPerfilInterno({
             id: u.id_usuario,
+            nombre: u.nombre,
+            apellido: u.apellido,
             email: u.email,
             rol: rolBackend,
+            id_sede: u.id_sede,
+            sede: u.sede,
           })
         }
       } catch (error) {
