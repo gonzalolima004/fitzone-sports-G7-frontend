@@ -9,6 +9,7 @@ export interface Sede {
   direccion?: string
   telefono?: string
   activo?: boolean
+  id_ciudad?: number
 }
 
 export const useSedeStore = defineStore('sede', () => {
