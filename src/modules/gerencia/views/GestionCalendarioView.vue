@@ -1,15 +1,26 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import axios from 'axios'
 import {
   PhArrowsClockwise,
   PhCaretLeft,
   PhCaretRight,
+  PhPencilSimple,
+  PhPlus,
+  PhTrash,
 } from '@phosphor-icons/vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import BaseSkeleton from '@/common/components/BaseSkeleton.vue'
 import { useSedeStore } from '@/store/sede'
-import { obtenerFechaLocalISO } from '@/common/utils/date-formatter'
+import { toast } from '@/common/utils/toast'
+import {
+  formatearFechaDDMMAAAA,
+  obtenerFechaLocalISO,
+} from '@/common/utils/date-formatter'
 import EncabezadoGerencia from '../components/EncabezadoGerencia.vue'
+import FeriadoFormModal from '../components/FeriadoFormModal.vue'
+import ExcepcionSedeFormModal from '../components/ExcepcionSedeFormModal.vue'
+import ConfirmarEliminacionModal from '../components/ConfirmarEliminacionModal.vue'
 import { calendarioService } from '../services/calendario.service'
 import { obtenerMensajeDeError } from '../utils/errores'
 import {
@@ -24,7 +35,12 @@ import {
   rangoDelMes,
   semanasDelMes,
 } from '../utils/calendario'
-import type { ExcepcionSede, FechaCalendario } from '../types/gerencia.types'
+import type {
+  ExcepcionSede,
+  ExcepcionSedePayload,
+  FechaCalendario,
+  FechaCalendarioPayload,
+} from '../types/gerencia.types'
 
 type EventoDelMes =
   | { tipo: 'feriado'; fecha: string; feriado: FechaCalendario }
@@ -184,6 +200,246 @@ function irAMes(nuevoAnio: number, nuevoMes: number) {
   void cargarMes()
 }
 
+/** Lleva el calendario al mes de la fecha, la selecciona y recarga. */
+function irAFecha(fecha: string) {
+  const [nuevoAnio, nuevoMes] = fecha.split('-').map(Number)
+  anio.value = nuevoAnio
+  mes.value = nuevoMes
+  diaSeleccionado.value = fecha
+  return cargarMes()
+}
+
+/**
+ * Saca del caché del store los horarios operativos de las fechas tocadas,
+ * para que canchas y clases los vuelvan a pedir con los cambios.
+ */
+function olvidarHorarios(fechasTocadas: string[], soloSede?: number) {
+  for (const clave of Object.keys(sedeStore.horariosCache)) {
+    const [sede, fecha] = clave.split('_')
+    if (
+      fechasTocadas.includes(fecha) &&
+      (soloSede === undefined || Number(sede) === soloSede)
+    ) {
+      Reflect.deleteProperty(sedeStore.horariosCache, clave)
+    }
+  }
+}
+
+const esConflicto = (error: unknown) =>
+  axios.isAxiosError(error) && error.response?.status === 409
+
+// ---- Feriados y fechas del calendario general ----
+
+const formularioFeriadoAbierto = ref(false)
+const feriadoEnEdicion = ref<FechaCalendario | null>(null)
+const fechaParaAlta = ref('')
+const guardandoFeriado = ref(false)
+const errorFeriado = ref('')
+
+function abrirAltaFeriado(fecha = diaSeleccionado.value) {
+  feriadoEnEdicion.value = null
+  fechaParaAlta.value = fecha
+  errorFeriado.value = ''
+  formularioFeriadoAbierto.value = true
+}
+
+function abrirEdicionFeriado(feriado: FechaCalendario) {
+  feriadoEnEdicion.value = feriado
+  errorFeriado.value = ''
+  formularioFeriadoAbierto.value = true
+}
+
+/**
+ * Crea la fecha en el calendario general. Si ya existe como día común (el
+ * backend la agrega al cargar la excepción de una sede), la actualiza. Si ya
+ * es un feriado o tiene nombre, devuelve un aviso para que se edite.
+ */
+async function crearFeriado(
+  datos: FechaCalendarioPayload
+): Promise<string | null> {
+  let existente = fechas.value.find((fecha) => fecha.fecha === datos.fecha)
+  if (!existente) {
+    try {
+      await calendarioService.crearFecha(datos)
+      return null
+    } catch (error: unknown) {
+      if (!esConflicto(error)) throw error
+      const encontradas = await calendarioService.listarFechas(
+        datos.fecha,
+        datos.fecha
+      )
+      existente = encontradas[0]
+      if (!existente) throw error
+    }
+  }
+
+  if (esFechaDestacada(existente)) {
+    return `El ${formatearFechaDDMMAAAA(datos.fecha)} ya está en el calendario (${existente.descripcion ?? describirTipoFecha(existente)}). Editá esa fecha en lugar de cargarla de nuevo.`
+  }
+  await calendarioService.actualizarFecha(existente.id_calendario, datos)
+  return null
+}
+
+async function guardarFeriado(datos: FechaCalendarioPayload) {
+  const anterior = feriadoEnEdicion.value
+  guardandoFeriado.value = true
+  errorFeriado.value = ''
+  try {
+    if (anterior) {
+      await calendarioService.actualizarFecha(anterior.id_calendario, datos)
+    } else {
+      const aviso = await crearFeriado(datos)
+      if (aviso) {
+        errorFeriado.value = aviso
+        return
+      }
+    }
+    toast.success(
+      anterior
+        ? `Fecha del ${formatearFechaDDMMAAAA(datos.fecha)} actualizada.`
+        : `${datos.descripcion} agregado al calendario.`
+    )
+    formularioFeriadoAbierto.value = false
+    olvidarHorarios([datos.fecha, ...(anterior ? [anterior.fecha] : [])])
+    await irAFecha(datos.fecha)
+  } catch (error: unknown) {
+    errorFeriado.value = obtenerMensajeDeError(
+      error,
+      'No se pudo guardar la fecha. Intentá nuevamente.'
+    )
+  } finally {
+    guardandoFeriado.value = false
+  }
+}
+
+// ---- Excepciones de la sede ----
+
+const formularioExcepcionAbierto = ref(false)
+const excepcionEnEdicion = ref<ExcepcionSede | null>(null)
+const guardandoExcepcion = ref(false)
+const errorExcepcion = ref('')
+
+function abrirAltaExcepcion(fecha = diaSeleccionado.value) {
+  excepcionEnEdicion.value = null
+  fechaParaAlta.value = fecha
+  errorExcepcion.value = ''
+  formularioExcepcionAbierto.value = true
+}
+
+function abrirEdicionExcepcion(excepcion: ExcepcionSede) {
+  excepcionEnEdicion.value = excepcion
+  errorExcepcion.value = ''
+  formularioExcepcionAbierto.value = true
+}
+
+async function guardarExcepcion(datos: ExcepcionSedePayload) {
+  const sede = idSede.value
+  if (sede === null) return
+
+  const anterior = excepcionEnEdicion.value
+  guardandoExcepcion.value = true
+  errorExcepcion.value = ''
+  try {
+    if (anterior) {
+      // Si la fecha no cambió no se envía: el backend se ahorra una consulta.
+      await calendarioService.actualizarExcepcion(
+        sede,
+        anterior.id_calendario_sede,
+        anterior.fecha === datos.fecha ? { ...datos, fecha: undefined } : datos
+      )
+    } else {
+      await calendarioService.crearExcepcion(sede, datos)
+    }
+    toast.success(
+      anterior
+        ? `Excepción de ${nombreSede.value} actualizada.`
+        : `Excepción cargada para ${nombreSede.value} el ${formatearFechaDDMMAAAA(datos.fecha)}.`
+    )
+    formularioExcepcionAbierto.value = false
+    olvidarHorarios([datos.fecha, ...(anterior ? [anterior.fecha] : [])], sede)
+    await irAFecha(datos.fecha)
+  } catch (error: unknown) {
+    errorExcepcion.value = obtenerMensajeDeError(
+      error,
+      'No se pudo guardar la excepción. Intentá nuevamente.'
+    )
+  } finally {
+    guardandoExcepcion.value = false
+  }
+}
+
+// ---- Bajas ----
+
+const confirmacionAbierta = ref(false)
+const eventoParaEliminar = ref<EventoDelMes | null>(null)
+const eliminando = ref(false)
+const errorEliminacion = ref('')
+
+function pedirEliminacion(evento: EventoDelMes) {
+  eventoParaEliminar.value = evento
+  errorEliminacion.value = ''
+  confirmacionAbierta.value = true
+}
+
+/**
+ * Borra la fecha del calendario general. Si alguna sede tiene una excepción
+ * ese día, el backend no la deja borrar (409): entonces se le quita la marca
+ * de feriado y queda como día común, sin tocar esas excepciones. Devuelve
+ * true en ese caso.
+ */
+async function quitarFeriado(feriado: FechaCalendario): Promise<boolean> {
+  try {
+    await calendarioService.eliminarFecha(feriado.id_calendario)
+    return false
+  } catch (error: unknown) {
+    if (!esConflicto(error)) throw error
+    await calendarioService.actualizarFecha(feriado.id_calendario, {
+      descripcion: null,
+      es_feriado: false,
+      es_dia_habil: true,
+    })
+    return true
+  }
+}
+
+async function confirmarEliminacion() {
+  const evento = eventoParaEliminar.value
+  if (!evento) return
+
+  eliminando.value = true
+  errorEliminacion.value = ''
+  try {
+    if (evento.tipo === 'feriado') {
+      const nombre = evento.feriado.descripcion || 'La fecha'
+      const conservaExcepciones = await quitarFeriado(evento.feriado)
+      toast.success(
+        conservaExcepciones
+          ? `${nombre} se quitó del calendario. Las excepciones de las sedes para ese día se mantienen.`
+          : `${nombre} se quitó del calendario.`
+      )
+      olvidarHorarios([evento.fecha])
+    } else {
+      await calendarioService.eliminarExcepcion(
+        evento.excepcion.id_sede,
+        evento.excepcion.id_calendario_sede
+      )
+      toast.success(
+        `Excepción de ${nombreSede.value} del ${formatearFechaDDMMAAAA(evento.fecha)} eliminada.`
+      )
+      olvidarHorarios([evento.fecha], evento.excepcion.id_sede)
+    }
+    confirmacionAbierta.value = false
+    await cargarMes()
+  } catch (error: unknown) {
+    errorEliminacion.value = obtenerMensajeDeError(
+      error,
+      'No se pudo eliminar. Intentá nuevamente.'
+    )
+  } finally {
+    eliminando.value = false
+  }
+}
+
 let listo = false
 watch(idSede, () => {
   if (listo) void cargarMes()
@@ -207,18 +463,38 @@ onMounted(async () => {
         <BaseButton
           variant="outline"
           size="sm"
-          :disabled="cargando"
+          title="Actualizar calendario"
+          :loading="cargando"
           @click="cargarMes"
         >
-          <PhArrowsClockwise :size="16" />
+          <template #icon>
+            <PhArrowsClockwise :size="15" />
+          </template>
           Actualizar
+        </BaseButton>
+        <BaseButton variant="outline" size="sm" @click="abrirAltaFeriado()">
+          <template #icon>
+            <PhPlus :size="15" weight="bold" />
+          </template>
+          Nuevo feriado
+        </BaseButton>
+        <BaseButton
+          variant="secondary"
+          size="sm"
+          :disabled="idSede === null"
+          @click="abrirAltaExcepcion()"
+        >
+          <template #icon>
+            <PhPlus :size="15" weight="bold" />
+          </template>
+          Nueva excepción
         </BaseButton>
       </template>
     </EncabezadoGerencia>
 
     <section
       aria-label="Mes y sede"
-      class="p-4 bg-white rounded-2xl border border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+      class="p-4 bg-white rounded-2xl border border-slate-200 flex flex-wrap items-center justify-between gap-x-4 gap-y-3"
     >
       <div class="flex items-center gap-2">
         <button
@@ -253,7 +529,7 @@ onMounted(async () => {
         </BaseButton>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 grow sm:grow-0">
         <label
           for="sede-calendario"
           class="text-xs font-bold text-[#202759] whitespace-nowrap"
@@ -264,7 +540,7 @@ onMounted(async () => {
           id="sede-calendario"
           v-model="sedeElegida"
           :disabled="sedeStore.sedes.length === 0"
-          class="w-full md:w-56 px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:border-[#202759] focus:ring-[#202759]/15 disabled:bg-slate-100"
+          class="w-full sm:w-56 px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:border-[#202759] focus:ring-[#202759]/15 disabled:bg-slate-100"
         >
           <option value="" disabled>
             {{ sedeStore.cargando ? 'Cargando sedes...' : 'Sin sedes' }}
@@ -362,6 +638,10 @@ onMounted(async () => {
                 <span
                   v-if="celda.feriado"
                   data-testid="marca-feriado"
+                  :title="
+                    celda.feriado.descripcion ||
+                    describirTipoFecha(celda.feriado)
+                  "
                   class="hidden sm:block w-full truncate px-1.5 py-0.5 rounded-md bg-[#F96167]/15 text-[#B23A44] text-[11px] font-semibold"
                 >
                   {{
@@ -372,6 +652,7 @@ onMounted(async () => {
                 <span
                   v-if="celda.excepcion"
                   data-testid="marca-excepcion"
+                  :title="describirExcepcion(celda.excepcion)"
                   class="hidden sm:block w-full truncate px-1.5 py-0.5 rounded-md text-[11px] font-semibold"
                   :class="
                     celda.excepcion.cerrado
@@ -445,6 +726,36 @@ onMounted(async () => {
           <p class="text-xs text-slate-500 m-0">
             {{ feriadoDelDia.es_dia_habil ? 'Día hábil' : 'Día no hábil' }}
           </p>
+          <div class="flex gap-2 pt-1">
+            <BaseButton
+              variant="outline"
+              size="sm"
+              :aria-label="`Editar ${feriadoDelDia.descripcion || 'fecha'} del ${formatoCorto(feriadoDelDia.fecha)}`"
+              @click="abrirEdicionFeriado(feriadoDelDia)"
+            >
+              <template #icon>
+                <PhPencilSimple :size="15" />
+              </template>
+              Editar
+            </BaseButton>
+            <BaseButton
+              variant="danger-outline"
+              size="sm"
+              :aria-label="`Quitar ${feriadoDelDia.descripcion || 'fecha'} del ${formatoCorto(feriadoDelDia.fecha)}`"
+              @click="
+                pedirEliminacion({
+                  tipo: 'feriado',
+                  fecha: feriadoDelDia.fecha,
+                  feriado: feriadoDelDia,
+                })
+              "
+            >
+              <template #icon>
+                <PhTrash :size="15" />
+              </template>
+              Quitar
+            </BaseButton>
+          </div>
         </article>
 
         <article
@@ -465,6 +776,36 @@ onMounted(async () => {
           <p v-if="excepcionDelDia.motivo" class="text-xs text-slate-500 m-0">
             {{ excepcionDelDia.motivo }}
           </p>
+          <div class="flex gap-2 pt-1">
+            <BaseButton
+              variant="outline"
+              size="sm"
+              :aria-label="`Editar excepción de ${nombreSede} del ${formatoCorto(excepcionDelDia.fecha)}`"
+              @click="abrirEdicionExcepcion(excepcionDelDia)"
+            >
+              <template #icon>
+                <PhPencilSimple :size="15" />
+              </template>
+              Editar
+            </BaseButton>
+            <BaseButton
+              variant="danger-outline"
+              size="sm"
+              :aria-label="`Eliminar excepción de ${nombreSede} del ${formatoCorto(excepcionDelDia.fecha)}`"
+              @click="
+                pedirEliminacion({
+                  tipo: 'excepcion',
+                  fecha: excepcionDelDia.fecha,
+                  excepcion: excepcionDelDia,
+                })
+              "
+            >
+              <template #icon>
+                <PhTrash :size="15" />
+              </template>
+              Eliminar
+            </BaseButton>
+          </div>
         </article>
 
         <p
@@ -475,6 +816,31 @@ onMounted(async () => {
             nombreSede ? ` para ${nombreSede}` : ''
           }}: la sede abre con su horario semanal.
         </p>
+
+        <div class="flex flex-col gap-2 pt-1">
+          <BaseButton
+            v-if="!feriadoDelDia"
+            variant="outline"
+            size="sm"
+            @click="abrirAltaFeriado(diaSeleccionado)"
+          >
+            <template #icon>
+              <PhPlus :size="15" />
+            </template>
+            Agregar feriado este día
+          </BaseButton>
+          <BaseButton
+            v-if="!excepcionDelDia && idSede !== null"
+            variant="outline"
+            size="sm"
+            @click="abrirAltaExcepcion(diaSeleccionado)"
+          >
+            <template #icon>
+              <PhPlus :size="15" />
+            </template>
+            Agregar excepción para {{ nombreSede }}
+          </BaseButton>
+        </div>
       </aside>
     </div>
 
@@ -550,8 +916,88 @@ onMounted(async () => {
               }}
             </p>
           </div>
+
+          <div class="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              class="w-8 h-8 rounded-lg text-slate-500 hover:text-[#202759] hover:bg-slate-100 flex items-center justify-center cursor-pointer"
+              :aria-label="
+                evento.tipo === 'feriado'
+                  ? `Editar ${evento.feriado.descripcion || 'fecha'} del ${formatoCorto(evento.fecha)}`
+                  : `Editar excepción de ${nombreSede} del ${formatoCorto(evento.fecha)}`
+              "
+              @click="
+                evento.tipo === 'feriado'
+                  ? abrirEdicionFeriado(evento.feriado)
+                  : abrirEdicionExcepcion(evento.excepcion)
+              "
+            >
+              <PhPencilSimple :size="16" />
+            </button>
+            <button
+              type="button"
+              class="w-8 h-8 rounded-lg text-slate-500 hover:text-rose-700 hover:bg-rose-50 flex items-center justify-center cursor-pointer"
+              :aria-label="
+                evento.tipo === 'feriado'
+                  ? `Quitar ${evento.feriado.descripcion || 'fecha'} del ${formatoCorto(evento.fecha)}`
+                  : `Eliminar excepción de ${nombreSede} del ${formatoCorto(evento.fecha)}`
+              "
+              @click="pedirEliminacion(evento)"
+            >
+              <PhTrash :size="16" />
+            </button>
+          </div>
         </li>
       </ul>
     </section>
+
+    <FeriadoFormModal
+      v-model="formularioFeriadoAbierto"
+      :fecha="feriadoEnEdicion"
+      :fecha-inicial="fechaParaAlta"
+      :guardando="guardandoFeriado"
+      :error-servidor="errorFeriado"
+      @guardar="guardarFeriado"
+    />
+
+    <ExcepcionSedeFormModal
+      v-model="formularioExcepcionAbierto"
+      :excepcion="excepcionEnEdicion"
+      :nombre-sede="nombreSede"
+      :fecha-inicial="fechaParaAlta"
+      :guardando="guardandoExcepcion"
+      :error-servidor="errorExcepcion"
+      @guardar="guardarExcepcion"
+    />
+
+    <ConfirmarEliminacionModal
+      v-model="confirmacionAbierta"
+      :titulo="
+        eventoParaEliminar?.tipo === 'feriado'
+          ? 'Quitar fecha del calendario'
+          : 'Eliminar excepción'
+      "
+      :texto-confirmar="
+        eventoParaEliminar?.tipo === 'feriado' ? 'Sí, quitar' : 'Sí, eliminar'
+      "
+      :procesando="eliminando"
+      :error="errorEliminacion"
+      @confirmar="confirmarEliminacion"
+    >
+      <template v-if="eventoParaEliminar?.tipo === 'feriado'">
+        Se quita
+        <strong>{{
+          eventoParaEliminar.feriado.descripcion || 'la fecha'
+        }}</strong>
+        ({{ formatearFechaDDMMAAAA(eventoParaEliminar.fecha) }}) del calendario
+        de todas las sedes. Las excepciones que tenga alguna sede ese día se
+        mantienen.
+      </template>
+      <template v-else-if="eventoParaEliminar?.tipo === 'excepcion'">
+        {{ nombreSede }} vuelve a su horario semanal el
+        <strong>{{ formatearFechaDDMMAAAA(eventoParaEliminar.fecha) }}</strong
+        >.
+      </template>
+    </ConfirmarEliminacionModal>
   </div>
 </template>

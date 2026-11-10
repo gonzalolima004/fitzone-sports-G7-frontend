@@ -71,7 +71,7 @@ export const calendarioService = {
   async actualizarExcepcion(
     idSede: number,
     idExcepcion: number,
-    datos: ExcepcionSedePayload
+    datos: Partial<ExcepcionSedePayload>
   ): Promise<ExcepcionSede> {
     const { data } = await http.patch<ExcepcionSede>(
       `/sedes/${idSede}/calendario/${idExcepcion}`,
