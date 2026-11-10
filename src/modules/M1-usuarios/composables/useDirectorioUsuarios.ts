@@ -123,7 +123,7 @@ export function useDirectorioUsuarios() {
   }
 
   const abrirModalEdicion = (usuario: UsuarioResponse) => {
-    const rolActualId = usuario.roles?.[0]?.id_rol ?? 1
+    const rolActualId = usuario.roles?.[0]?.id_rol
     usuarioEnEdicion.value = {
       ...usuario,
       rol_seleccionado: rolActualId,
