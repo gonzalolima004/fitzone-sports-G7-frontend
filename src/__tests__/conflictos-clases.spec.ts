@@ -30,6 +30,7 @@ vi.mock('@/modules/M3-clases-grupales/services/clases.service', () => ({
     obtenerClasesPorSede: mocks.agenda,
     obtenerMisReservas: vi.fn().mockResolvedValue([]),
     obtenerMisInscripciones: vi.fn().mockResolvedValue([]),
+    obtenerHorarioOperativoSede: vi.fn().mockResolvedValue(null),
   },
 }))
 
@@ -57,6 +58,7 @@ describe('Contrato de lista de espera conservado al resolver el conflicto', () =
     expect(mocks.success).toHaveBeenCalledOnce()
     expect(mocks.agenda).toHaveBeenCalledOnce()
     wrapper.unmount()
-    expect(mocks.removeChannel).toHaveBeenCalledOnce()
+    // Ahora hay dos canales Realtime (vacantes + cupos en vivo), ambos se limpian al desmontar
+    expect(mocks.removeChannel).toHaveBeenCalledTimes(2)
   })
 })

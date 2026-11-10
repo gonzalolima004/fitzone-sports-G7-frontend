@@ -1156,3 +1156,32 @@
 - **Commits:**
   - `feat(clases): permitir visualizacion a clientes externos y restringir reservas por estado de membresia`
   - `feat(clases): restringir reservas e inscripciones a sedes de la misma ciudad del socio`
+
+---
+
+#### 10/11/2026
+#### Joaquín Ribarola | Rol: Desarrollador Frontend
+
+- **Tarea:** E16-T2: Cupos en Tiempo Real, Notificación de Vacantes y Ajustes de Vista Gerente.
+- **Actividades:**
+  - **Realtime cupos en la agenda (`ClasesView.vue`):** Incorporación de un segundo canal Supabase Realtime (`cupos-agenda-realtime`) suscripto a `postgres_changes` sobre la tabla `clase_reserva` (`event: '*'`). Cada INSERT, UPDATE o DELETE en reservas dispara `cargarClases(true)` debounceado a 150ms en segundo plano, actualizando los cupos disponibles en vivo en la agenda sin parpadeos de skeleton.
+  - **Limpieza de canales en `onUnmounted`:** Ambos canales (`vacantesSubscription` y `cuposSubscription`) junto al timer de debounce (`timerCupos`) se limpian y desregistran al desmontar la vista, previniendo memory leaks y suscripciones huérfanas.
+  - **Mensaje de vacante con ventana de 4 horas:** El toast de notificación cuando se libera un lugar en lista de espera fue actualizado para informar explícitamente al socio que tiene 4 horas para aprovechar la vacante confirmada, alineándolo con la regla de negocio establecida por el backend.
+  - **Corrección del campo `descripcion` en el formulario del gerente:** Se identificó que `ClaseCardProps` no incluía el campo `descripcion`, por lo que el modal de edición siempre recibía `undefined`. Se agregó `descripcion?: string | null` a la interfaz en `ClaseCard.vue` y se incluyó `descripcion: clase.descripcion || null` en el mapeo de `clasesAgendadas` en `ClasesView.vue`, reparando la carga y el guardado correcto de la descripción al editar una clase sin pérdida de datos.
+  - **Validación del horario operativo de la sede (`ModalClaseForm.vue`):** Se importó `HorarioOperativoSedeResponse` y se agregó lógica para consultar `obtenerHorarioOperativoSede` al abrir el modal (tanto en modo creación como edición) y cada vez que cambia la fecha puntual. En `guardarClase()`, antes de enviar, se valida que `horario_inicio >= hora_apertura` y `horario_fin <= hora_cierre`; si no se cumple, se bloquea el guardado con un mensaje claro. Además, se muestra un banner informativo verde con el rango horario permitido por la sede.
+  - **Clarificación del tipo de clase (`ModalClaseForm.vue`):** Se incorporaron botones interactivos con íconos para disciplinas principales (Spinning, Yoga Vinyasa, CrossFit) que sincronizan automáticamente el nombre de la clase y seleccionan la disciplina adecuada.
+  - **Unificación estética del botón "Reservar Clase" (`ClaseCard.vue`):** Se estandarizó el botón de reserva para que mantenga un color uniforme institucional (`bg-[#202759] hover:bg-[#161b3d] text-white`) en todas las disciplinas, eliminando la discrepancia donde unas aparecían en rojo y otras en gris oscuro.
+  - **Optimización de carga y reservas (`ClasesView.vue`):**
+    - Descarte de respuestas desfasadas por condiciones de carrera (`idCargaActual`) al conmutar rápidamente entre fechas del calendario o sedes.
+    - Actualización optimista inmediata en memoria de cupos (`cupos_disponibles`, `cupos_ocupados`), estado de reservas e inscripciones en lista de espera al reservar o cancelar, permitiendo un feedback instantáneo en la UI antes de la reconciliación silenciosa con el servidor.
+    - Carga de clases silenciosa (`cargarClases(silencioso = true)`) tras operaciones y eventos en tiempo real, evitando mostrar esqueletos de carga si la grilla ya cuenta con datos.
+    - Reutilización de cache y deduplicación de llamadas para horarios operativos a través del store de sedes.
+  - **`cursor-pointer` en todos los botones:** Configuración global en `src/style.css` asegurando `cursor: pointer` para todos los elementos `<button>` y `[role="button"]`, y `cursor: not-allowed` en botones deshabilitados, complementado con clases explícitas en componentes clave.
+  - **Suite de pruebas unitarias (`src/__tests__/clases-criterios-e16-t2.spec.ts`):** Creación de 9 pruebas unitarias automatizadas certificando el cumplimiento riguroso de cada uno de los 5 criterios de aceptación de la tarea y la homogeneidad cromática de los botones.
+  - **Actualización de test de regresión (`conflictos-clases.spec.ts`):** Adaptado para certificar los 2 canales activos de Supabase Realtime y la limpieza controlada de suscripciones al desmontar.
+- **Decisiones:**
+  - Unificar el botón "Reservar Clase" en el color primario de marca (`#202759`) en lugar de colores variantes por disciplina, brindando consistencia visual y evitando confusiones con estados de alerta o peligro (rojo).
+  - Adoptar actualizaciones optimistas en memoria para reservas y cancelaciones junto a recarga silenciosa en segundo plano, mejorando drásticamente la percepción de velocidad en la experiencia del usuario.
+  - Consultar y cachear el horario operativo mediante `sedeStore` para evitar peticiones HTTP redundantes.
+- **Dificultades:** Ninguna.
+- **Verificación:** 15 suites y 101 pruebas aprobadas al 100%. Pipeline de validación completo exitoso: formateo (`npm run format`), linter (`npm run lint`), tipado (`npm run typecheck`), compilación de producción (`npm run build`) y tests (`npm run test`) con 0 errores y 0 advertencias.
