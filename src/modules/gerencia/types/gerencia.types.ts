@@ -125,3 +125,47 @@ export interface FilaMembresiaSocio {
   socio: UsuarioGestion
   membresia: MembresiaSocio | null
 }
+
+/** Fecha del calendario general tal como la devuelve GET /calendario. */
+export interface FechaCalendario {
+  id_calendario: number
+  /** Formato YYYY-MM-DD. */
+  fecha: string
+  descripcion: string | null
+  es_feriado: boolean
+  es_dia_habil: boolean
+}
+
+/** Datos que acepta POST /calendario y PATCH /calendario/:id. */
+export interface FechaCalendarioPayload {
+  fecha: string
+  descripcion: string | null
+  es_feriado: boolean
+  es_dia_habil: boolean
+}
+
+/** Excepción de una sede tal como la devuelve GET /sedes/:idSede/calendario. */
+export interface ExcepcionSede {
+  id_calendario_sede: number
+  id_sede: number
+  id_calendario: number
+  /** Formato YYYY-MM-DD. */
+  fecha: string
+  cerrado: boolean
+  hora_apertura: string | null
+  hora_cierre: string | null
+  motivo: string | null
+  calendario: FechaCalendario
+}
+
+/**
+ * Datos que acepta POST y PATCH de /sedes/:idSede/calendario. Si `cerrado` es
+ * true la sede cierra todo el día; si no, abre en el horario indicado.
+ */
+export interface ExcepcionSedePayload {
+  fecha: string
+  cerrado: boolean
+  hora_apertura?: string
+  hora_cierre?: string
+  motivo: string | null
+}
