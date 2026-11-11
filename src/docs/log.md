@@ -1036,6 +1036,26 @@
 
 ---
 
+#### 10/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Full Stack
+- **Actividades**:
+  - Limpieza de código muerto legacy y eliminación del fallback de `localStorage` en lectura de reservas para no enmascarar errores de red.
+  - Creación de `canchas-horarios.utils.ts` para cálculos temporales (`calcularEsSlotPasado`, `generarFranjasHorarias`) y formato monetario, reemplazando duplicaciones en `GrillaTurnos.vue` y `ConfirmarReserva.vue`.
+  - Implementación del patrón Adapter (`canchas.adapter.ts`) para normalizar slots crudos del backend (`camelCase`/`snake_case`) a `TurnoSlot`.
+  - Modularización de `canchas.service.ts` separando en `mantenimientos.service.ts` y `canchas-tipos.service.ts` bajo una fachada retrocompatible.
+- **Decisiones**:
+  - Mantener retrocompatibilidad mediante el patrón Facade en `canchasService` para no alterar imports en componentes existentes.
+- **Dificultades**: Ninguna
+- **Commits:**
+  - `refactor(canchas): remover fallback`
+  - `refactor(canchas): utils de horarios y formato`
+  - `refactor(canchas): patron adapter para normalizar slots del backend`
+  - `refactor(canchas): patron fachada para dividir canchas service`
+  - `style: formato con prettier`
+  - `docs(log): actualizacion de bitacora`
+
+---
+
 #### 26/10/2026
 
 #### Matías Sillen | Rol: Desarrollador Frontend
