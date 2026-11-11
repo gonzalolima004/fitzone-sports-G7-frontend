@@ -211,9 +211,10 @@ describe('CanchasView.vue - Manejo de Colisiones Concurrentes y Concurrencia 409
     expect(toast.error).toHaveBeenCalledWith(mensajeServidor)
 
     // c) El slot involucrado en la grilla debe actualizarse a estado RESERVADO
-    const mapaDisponibilidad = grilla.props(
-      'disponibilidadMap'
-    ) as Record<number, TurnoSlot[]>
+    const mapaDisponibilidad = grilla.props('disponibilidadMap') as Record<
+      number,
+      TurnoSlot[]
+    >
     expect(mapaDisponibilidad[1][0].estado).toBe('RESERVADO')
 
     // En el DOM de la grilla ahora se muestra como "Ocupado"
@@ -259,9 +260,10 @@ describe('CanchasView.vue - Manejo de Colisiones Concurrentes y Concurrencia 409
     )
 
     // El slot en la grilla debe reflejar el estado ocupado
-    const mapaDisponibilidad = grilla.props(
-      'disponibilidadMap'
-    ) as Record<number, TurnoSlot[]>
+    const mapaDisponibilidad = grilla.props('disponibilidadMap') as Record<
+      number,
+      TurnoSlot[]
+    >
     expect(mapaDisponibilidad[1][0].estado).toBe('RESERVADO')
   })
 })
