@@ -57,7 +57,7 @@ const todasLasSecciones: NavSection[] = [
         nombre: 'Clases Grupales',
         ruta: '/clases',
         icono: 'calendar',
-        roles: ['socio', 'recepcionista', 'gerente'],
+        roles: ['socio', 'externo', 'recepcionista', 'gerente'],
       },
       {
         nombre: 'Canchas',

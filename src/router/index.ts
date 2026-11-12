@@ -88,7 +88,7 @@ const routes: RouteRecordRaw[] = [
           import('../modules/M3-clases-grupales/views/ClasesView.vue'),
         meta: {
           requiresAuth: true,
-          roles: ['socio', 'recepcionista', 'gerente'],
+          roles: ['socio', 'externo', 'recepcionista', 'gerente'],
         },
       },
       {

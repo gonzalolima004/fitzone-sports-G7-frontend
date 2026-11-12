@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { RouterLink } from 'vue-router'
 import {
   PhFire,
   PhBell,
@@ -9,6 +10,8 @@ import {
   PhClock,
   PhPencilSimple,
   PhTrash,
+  PhMedal,
+  PhWarningCircle,
 } from '@phosphor-icons/vue'
 
 import {
@@ -42,13 +45,18 @@ export interface ClaseCardProps {
   fechaSeleccionada?: string
 }
 
+export type MotivoInhabilitacion =
+  'EXTERNO' | 'MORA' | 'SUSPENDIDA' | 'SIN_MEMBRESIA' | null
+
 const props = withDefaults(
   defineProps<{
     clase: ClaseCardProps
     esAdminOGerente?: boolean
+    motivoInhabilitacion?: MotivoInhabilitacion
   }>(),
   {
     esAdminOGerente: false,
+    motivoInhabilitacion: null,
   }
 )
 
@@ -267,10 +275,51 @@ const estadoVentana = computed(() => {
       Abre 48 hs antes
     </button>
 
-    <!-- 5. Si está disponible para reservar dentro de la ventana de 48 hs -->
+    <!-- 5. Inhabilitación por falta de membresía activa / mora / externo -->
+    <RouterLink
+      v-else-if="motivoInhabilitacion === 'EXTERNO'"
+      to="/membresia"
+      class="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-all flex items-center justify-center gap-2 shadow-sm"
+      title="Exclusivo para socios. Clic para ver planes de membresía."
+    >
+      <PhMedal :size="18" weight="bold" />
+      Exclusivo Socios &middot; Ver Planes
+    </RouterLink>
+
+    <RouterLink
+      v-else-if="motivoInhabilitacion === 'MORA'"
+      to="/membresia"
+      class="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition-all flex items-center justify-center gap-2 shadow-sm"
+      title="Membresía vencida o cuota impaga. Clic para regularizar."
+    >
+      <PhWarningCircle :size="18" weight="bold" class="text-amber-600" />
+      Cuota Pendiente &middot; Regularizar
+    </RouterLink>
+
+    <RouterLink
+      v-else-if="motivoInhabilitacion === 'SUSPENDIDA'"
+      to="/membresia"
+      class="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition-all flex items-center justify-center gap-2 shadow-sm"
+      title="Membresía suspendida. Clic para gestionar."
+    >
+      <PhWarningCircle :size="18" weight="bold" class="text-rose-500" />
+      Membresía Suspendida &middot; Gestionar
+    </RouterLink>
+
+    <RouterLink
+      v-else-if="motivoInhabilitacion === 'SIN_MEMBRESIA'"
+      to="/membresia"
+      class="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition-all flex items-center justify-center gap-2 shadow-sm"
+      title="Requiere membresía activa. Clic para adquirir."
+    >
+      <PhMedal :size="18" weight="bold" />
+      Requiere Membresía &middot; Adquirir
+    </RouterLink>
+
+    <!-- 6. Si está disponible para reservar dentro de la ventana de 48 hs -->
     <button
       v-else-if="!estaCompleto"
-      class="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition-all active:scale-95 text-white shadow-md"
+      class="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition-all active:scale-95 text-white shadow-md cursor-pointer"
       :class="
         clase.tipo.includes('CROSSFIT') || clase.tipo.includes('FUNCIONAL')
           ? 'bg-slate-800 hover:bg-slate-700 shadow-slate-200'
@@ -281,10 +330,10 @@ const estadoVentana = computed(() => {
       Reservar Lugar
     </button>
 
-    <!-- 6. Si está completo pero dentro de la ventana de 48 hs para lista de espera -->
+    <!-- 7. Si está completo pero dentro de la ventana de 48 hs para lista de espera -->
     <button
       v-else
-      class="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition-all active:scale-95 bg-rose-50 text-rose-600 hover:bg-rose-100 border-2 border-rose-200 flex items-center justify-center gap-2"
+      class="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition-all active:scale-95 bg-rose-50 text-rose-600 hover:bg-rose-100 border-2 border-rose-200 flex items-center justify-center gap-2 cursor-pointer"
       @click="emit('lista-espera', clase.id)"
     >
       <PhBell :size="18" weight="bold" />
