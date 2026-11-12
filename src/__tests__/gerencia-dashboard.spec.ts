@@ -324,7 +324,7 @@ describe('Dashboard del gerente', () => {
     expect(sur).toContain('bg-amber-50')
   })
 
-  it('ofrece accesos a sedes, planes, membresías, canchas y reportes', async () => {
+  it('ofrece accesos a sedes, calendario, planes, membresías, canchas y reportes', async () => {
     servidor()
     const wrapper = await montar()
 
@@ -336,6 +336,7 @@ describe('Dashboard del gerente', () => {
 
     expect(destinos).toEqual([
       '/gerencia/sedes',
+      '/gerencia/calendario',
       '/gerencia/planes',
       '/gerencia/membresias',
       '/gerencia/canchas',

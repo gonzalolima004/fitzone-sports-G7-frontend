@@ -154,6 +154,29 @@ export const pagosService = {
     const baseURL = (import.meta.env.VITE_API_URL as string) || ''
     return `${baseURL}/pagos/${id}/comprobante`
   },
+
+  /**
+   * Descarga el comprobante PDF con el token de sesión y lo abre en una pestaña nueva.
+   * Retorna false si el navegador bloqueó la ventana emergente.
+   */
+  async abrirComprobante(id: number): Promise<boolean> {
+    const win = window.open('', '_blank')
+    try {
+      const response = await apiClient.get<Blob>(`/pagos/${id}/comprobante`, {
+        responseType: 'blob',
+      })
+      const url = URL.createObjectURL(
+        new Blob([response.data], { type: 'application/pdf' })
+      )
+      if (!win) return false
+      win.location.href = url
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+      return true
+    } catch (error) {
+      win?.close()
+      throw error
+    }
+  },
 }
 
 export default pagosService

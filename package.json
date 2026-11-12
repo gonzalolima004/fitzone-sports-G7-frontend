@@ -20,6 +20,7 @@
     "html5-qrcode": "^2.3.8",
     "leaflet": "^1.9.4",
     "pinia": "^4.0.3",
+    "qrcode.vue": "^3.11.0",
     "socket.io-client": "^4.8.4",
     "vue": "^3.5.40",
     "vue-router": "^4.6.4",

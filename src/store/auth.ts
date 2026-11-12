@@ -6,11 +6,13 @@ import {
   type LoginPayload,
 } from '@/modules/M1-usuarios/services/auth.service'
 import type { Session } from '@supabase/supabase-js'
+import { accesosService } from '@/modules/M2-accesos/services/accesos.service'
+import http from '@/common/api/http'
 
 export type RolUsuario = 'socio' | 'externo' | 'recepcionista' | 'gerente'
 
 export interface Usuario {
-  id?: number
+  id: number
   nombre?: string
   apellido?: string
   email?: string
@@ -21,7 +23,48 @@ export interface Usuario {
     nombre?: string
     id_ciudad?: number
   }
+  estadoMembresia?: string
+  enMora?: boolean
+  dni?: string
+  id_ciudad?: number | string
 }
+
+export async function sincronizarColaOffline() {
+  const colaRaw = localStorage.getItem('fitzone_offline_queue')
+  if (!colaRaw) return
+
+  const cola = JSON.parse(colaRaw) as unknown[]
+  if (!Array.isArray(cola) || cola.length === 0) return
+
+  const pendientes: unknown[] = []
+  for (const item of cola) {
+    try {
+      const registro = item as {
+        tipo?: string
+        data?: { id_usuario?: number; id_sede?: number }
+        timestamp?: string
+      }
+
+      if (!registro.tipo || !registro.data || !registro.timestamp) continue
+
+      await http.post('/accesos/sincronizar-offline', {
+        id_usuario: registro.data.id_usuario,
+        id_sede: registro.data.id_sede,
+        tipo: registro.tipo,
+        timestamp: registro.timestamp,
+      })
+    } catch {
+      pendientes.push(item)
+    }
+  }
+
+  localStorage.setItem('fitzone_offline_queue', JSON.stringify(pendientes))
+}
+
+// Escuchar cuando el navegador recupera la red
+window.addEventListener('online', () => {
+  sincronizarColaOffline()
+})
 
 export const useAuthStore = defineStore('auth', () => {
   const session = ref<Session | null>(null)
@@ -38,10 +81,51 @@ export const useAuthStore = defineStore('auth', () => {
     )
   })
 
+  async function sincronizarPerfilSocio() {
+    try {
+      const userIdLocal = usuario.value?.id
+      if (userIdLocal) {
+        const perfilData = await accesosService.obtenerPerfilSocio(userIdLocal)
+
+        const listaMembresias = Array.isArray(perfilData.membresia)
+          ? perfilData.membresia
+          : perfilData.membresia
+            ? [perfilData.membresia]
+            : []
+
+        const membresiaActiva =
+          listaMembresias.find(
+            (m: unknown) =>
+              (m as { membresia_estado?: { descripcion?: string } })
+                ?.membresia_estado?.descripcion === 'Activa'
+          ) || listaMembresias[0]
+        const descripcionEstado = membresiaActiva ? 'Activa' : 'Inactiva'
+
+        setPerfilInterno({
+          id: Number(perfilData.socioId),
+          nombre: perfilData.nombre,
+          email: perfilData.email,
+          estadoMembresia: descripcionEstado,
+          dni: perfilData.dni,
+          id_ciudad: Number(perfilData.id_ciudad),
+        })
+      }
+    } catch (error) {
+      console.warn(
+        'No se pudo sincronizar el perfil del socio automáticamente:',
+        error
+      )
+    }
+  }
+
   async function initialize() {
     const { data } = await supabase.auth.getSession()
     session.value = data.session
     isInitialized.value = true
+
+    if (session.value) {
+      sincronizarPerfilSocio()
+    }
 
     supabase.auth.onAuthStateChange((_event, newSession) => {
       session.value = newSession
@@ -72,6 +156,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   function setPerfilInterno(perfil: Usuario) {
     usuario.value = perfil
+    localStorage.setItem('fitzone_user_perfil', JSON.stringify(perfil))
     if (perfil.rol) {
       localStorage.setItem('rol', perfil.rol)
     }

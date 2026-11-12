@@ -42,10 +42,24 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'inicio',
         name: 'home',
+
         component: () => import('../common/views/HomeView.vue'),
         meta: {
           requiresAuth: true,
           roles: ['socio', 'recepcionista', 'gerente'],
+        },
+        beforeEnter: (_to, _from, next) => {
+          const authStore = useAuthStore()
+
+          // Si el rol es recepcionista o gerente, redirigimos a la vista de recepción
+          if (
+            authStore.rol === 'recepcionista' ||
+            authStore.rol === 'gerente'
+          ) {
+            next({ name: 'recepcion' })
+          } else {
+            next() // Los socios continúan hacia HomeView.vue
+          }
         },
       },
       {
@@ -64,7 +78,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../modules/M2-accesos/views/AforoView.vue'),
         meta: {
           requiresAuth: true,
-          roles: ['recepcionista', 'gerente'],
+          roles: ['gerente'],
         },
       },
       {
@@ -166,6 +180,12 @@ const routes: RouteRecordRaw[] = [
             name: 'gerencia-membresias',
             component: () =>
               import('../modules/gerencia/views/GestionMembresiasView.vue'),
+          },
+          {
+            path: 'calendario',
+            name: 'gerencia-calendario',
+            component: () =>
+              import('../modules/gerencia/views/GestionCalendarioView.vue'),
           },
           {
             path: 'reportes',
