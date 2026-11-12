@@ -11,7 +11,7 @@ const FAQ_ITEMS: FaqItem[] = [
   {
     pregunta: '¿Puedo alquilar una cancha sin pagar una cuota mensual?',
     respuesta:
-      '¡Sí, claro! Podés alquilar turnos de pádel, fútbol o tenis pagando únicamente el valor del turno que jugás, sin matrícula ni cuotas obligatorias. Y si tenés una membresía activa, tenés un 15% de descuento en el alquiler.',
+      '¡Sí, claro! Podés alquilar turnos de pádel o fútbol pagando únicamente el valor del turno que jugás, sin matrícula ni cuotas obligatorias. Y si tenés una membresía activa, tenés un 15% de descuento en el alquiler.',
   },
   {
     pregunta: '¿Qué diferencia hay entre el Plan Mensual, Trimestral y Anual?',

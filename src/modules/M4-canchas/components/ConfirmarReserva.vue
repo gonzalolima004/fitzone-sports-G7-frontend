@@ -87,7 +87,7 @@ function cerrar() {
 /**
  * Confirmar reserva transaccional
  */
-async function handleConfirmar() {
+async function confirmarReserva() {
   if (!props.turno) return
 
   // Validación para no permitir confirmar en el pasado (respetando zona horaria local)
@@ -149,8 +149,8 @@ async function handleConfirmar() {
       tipo_cancha: props.turno.cancha.cancha_tipo?.descripcion || 'Pádel',
       nombre_sede: props.nombreSede,
       costo_base: cotizacion.value?.costo_base || props.turno.cancha.costo_base,
-      descuento_porcentaje: cotizacion.value?.descuento_porcentaje || 15,
-      monto_descuento: cotizacion.value?.monto_descuento || 0,
+      descuento_porcentaje: cotizacion.value?.descuento_porcentaje ?? 0,
+      monto_descuento: cotizacion.value?.monto_descuento ?? 0,
       es_horario_pico:
         cotizacion.value?.es_horario_pico || props.turno.slot.es_horario_pico,
       monto_recargo_pico: cotizacion.value?.monto_recargo_pico || 0,
@@ -161,30 +161,37 @@ async function handleConfirmar() {
     emit('reservaConfirmada', reserva)
     cerrar()
   } catch (err: unknown) {
-    // Manejo de conflictos de disponibilidad y concurrencia
+    // Manejo de conflictos de disponibilidad y concurrencia (HTTP 409)
     let mensajeError =
-      'El turno seleccionado ya fue reservado por otro usuario.'
+      'La cancha ya fue reservada en este horario por otro usuario.'
+    let esConflicto409 = false
 
     if (typeof err === 'object' && err !== null && 'response' in err) {
       const response = (
         err as { response?: { status?: number; data?: { message?: string } } }
       ).response
-      if (response?.status === 409 || response?.data?.message) {
-        mensajeError = response.data?.message || mensajeError
+      if (response?.status === 409) {
+        esConflicto409 = true
       }
-    } else {
-      // Simulación en entorno desconectado para comprobar el flujo de conflicto
-      mensajeError =
-        'Conflicto de concurrencia: este turno acaba de ser tomado.'
+      if (response?.data?.message) {
+        mensajeError = response.data.message
+      }
     }
 
-    errorConflicto.value = mensajeError
-    toast.error(mensajeError)
-    emit('conflictoDisponibilidad', mensajeError)
+    if (esConflicto409) {
+      cerrar()
+      toast.error(mensajeError)
+      emit('conflictoDisponibilidad', mensajeError)
+    } else {
+      errorConflicto.value = mensajeError
+      toast.error(mensajeError)
+    }
   } finally {
     confirmando.value = false
   }
 }
+
+const handleConfirmar = confirmarReserva
 </script>
 
 <template>
@@ -236,30 +243,25 @@ async function handleConfirmar() {
           Desglose de Cotización
         </h4>
 
-        <div
-          v-if="cargandoCotizacion"
-          class="py-3 flex items-center justify-center gap-2 text-slate-400"
-        >
-          <svg
-            class="animate-spin h-4 w-4 text-[#202759]"
-            fill="none"
-            viewBox="0 0 24 24"
+        <!-- Skeleton loader mientras se obtiene cotización -->
+        <div v-if="cargandoCotizacion" class="py-3 space-y-2.5 animate-pulse">
+          <div class="flex justify-between items-center">
+            <div class="h-3 bg-slate-200 rounded w-1/3"></div>
+            <div class="h-3 bg-slate-200 rounded w-16"></div>
+          </div>
+          <div class="flex justify-between items-center">
+            <div class="h-3 bg-slate-200 rounded w-1/4"></div>
+            <div class="h-3 bg-slate-200 rounded w-12"></div>
+          </div>
+          <div
+            class="pt-2 border-t border-slate-200 flex justify-between items-center"
           >
-            <circle
-              class="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              stroke-width="4"
-            />
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            />
-          </svg>
-          <span>Calculando tarifa con reglas del servidor...</span>
+            <div class="h-4 bg-slate-200 rounded w-1/2"></div>
+            <div class="h-4 bg-slate-200 rounded w-20"></div>
+          </div>
+          <p class="text-[11px] text-slate-400 text-center pt-1">
+            Calculando tarifa oficial en servidor...
+          </p>
         </div>
 
         <template v-else-if="cotizacion">
@@ -284,6 +286,30 @@ async function handleConfirmar() {
             <span class="font-mono tabular-nums"
               >-{{ formatoMoneda(cotizacion.monto_descuento) }}</span
             >
+          </div>
+
+          <!-- Mensaje informativo si es socio pero no aplica el beneficio -->
+          <div
+            v-else-if="esSocio && cotizacion.motivo_sin_descuento"
+            class="p-2.5 rounded-lg bg-amber-50 border border-amber-200/80 text-amber-800 text-[11px] leading-relaxed flex items-start gap-2"
+          >
+            <span class="shrink-0 text-amber-600 font-bold">ℹ️</span>
+            <div>
+              <span v-if="cotizacion.motivo_sin_descuento === 'OTRA_CIUDAD'">
+                <strong>Tarifa estándar:</strong> El beneficio de socio aplica
+                únicamente en sedes pertenecientes a tu misma ciudad.
+              </span>
+              <span
+                v-else-if="cotizacion.motivo_sin_descuento === 'SIN_MEMBRESIA'"
+              >
+                <strong>Tarifa estándar:</strong> No posees una membresía activa
+                vigente a la fecha seleccionada.
+              </span>
+              <span v-else>
+                <strong>Tarifa estándar:</strong> No aplica descuento de socio
+                para esta reserva.
+              </span>
+            </div>
           </div>
 
           <!-- Recargo Horario Pico (19 a 21 hs) -->

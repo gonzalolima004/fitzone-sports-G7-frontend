@@ -190,6 +190,42 @@
 
 ----
 
+#### 04/11/2026
+#### Gonzalo Lima | Rol: Desarrollador Frontend
+
+- **Actividades**:
+  - Optimización de la Landing Page: centralización y deduplicación de peticiones en el store para evitar llamadas repetidas.
+  - Obtención dinámica de los tipos de cancha desde el backend,eliminando datos hardcodeados.
+  - Rediseño del botón "Mi panel" y ocultamiento del botón de menú hamburguesa en mobile cuando el usuario tiene sesión activa.
+  - Verificación de pago de membresías: reconciliación automática de pagos pendientes y sincronización inmediata del rol del usuario de `"externo"` a `"socio"` en `authStore` tras acreditarse el pago.
+- **Decisiones**:
+  - Reutilizar la promesa en vuelo dentro del store de Pinia para que múltiples componentes montados en simultáneo compartan una única petición HTTP.
+  - Refrescar el perfil local contra el backend al detectarse la membresía activa para actualizar los permisos del menú lateral sin obligar al usuario a reloguear.
+- **Dificultades**: En el entorno Sandbox de Mercado Pago sobre `localhost` no se muestra el botón de retorno automático al sitio, por lo que se resolvió verificando los pagos pendientes del usuario al ingresar a la vista de membresías.
+- **Commits**:
+  - `feat(landing): utilizar el store para una única llamada a la api de sedes y ciudades`
+  - `feat(landing): obtener los tipos de cancha dinámicamente desde el backend`
+  - `chore(landing): mejorar estética del botón "Mi panel"`
+  - `feat(membresias): acreditar pagos de membresia y promover rol externo a socio`
+
+----
+
+#### 07/11/2026
+#### Gonzalo Lima | Rol: Desarrollador Frontend
+
+- **Actividades**:
+  - Descarga segura de comprobantes: se actualizó la vista del historial de pagos para que la descarga de facturas en PDF viaje protegida con la cuenta del usuario, garantizando la privacidad de su información.
+  - Botón para suspender membresía: se agregó el botón "Suspender membresía" con una ventana de confirmación clara. Al suspenderla, se muestra un aviso indicando hasta qué día siguen activos los beneficios y se desactivan los botones de compra para no pagar dos veces.
+- **Decisiones**:
+  - Descargar los comprobantes mediante la sesión activa del usuario para que nadie externo pueda abrirlos.
+  - Desactivar la contratación de planes mientras la membresía suspendida siga vigente para evitar cobros dobles accidentales.
+- **Dificultades**: Ninguna.
+- **Commits**:
+  - `feat(pagos): descargar comprobantes mediante peticion autenticada en historial de pagos`
+  - `feat(membresia): añadir botón para suspender membresía y badge informativos`
+
+----
+
 #### 03/10/2026 - 05/10/2026
 #### Matías Sillen | Rol: Desarrollador Frontend
 
@@ -679,6 +715,27 @@
 
 ---
 
+#### 03/11/2026
+#### Marcos Caraballo | Rol: Desarrollador Frontend
+- **Actividades**:
+  - Centralización del horario operativo de sedes en `useSedeStore` mediante `obtenerHorarioOperativo` y caché reactiva en memoria (`horariosCache`), evitando estados locales duplicados en vistas.
+  - Optimización de carga inicial y eliminación de peticiones redundantes en `CanchasView.vue` controlando la ejecución de los `watch()` mediante un flag de inicialización (`inicializado`).
+  - Implementación de deduplicación de promesas en vuelo en `sede.ts` para llamadas concurrentes a `cargarSedes()` y `obtenerHorarioOperativo()`.
+  - Refactorización de `canchas.service.ts` para delegar consultas de horarios operativos a `sedeStore` y sincronizar respuestas por lote (`getDisponibilidadPorSede`) directamente en la caché del store.
+  - Adaptación tipográfica estricta en `canchas.types.ts` extendiendo `HorarioOperativo` de la tienda sin recurrir a `any`.
+- **Decisiones**:
+  - Manejar el horario operativo como propiedad computada en `CanchasView.vue` vinculada a `sedeStore.horariosCache`, garantizando una única fuente de verdad reactiva y evitando peticiones de red al revisitar fechas o sedes.
+  - Controlar las suscripciones reactivas en `CanchasView.vue` para que los observadores de filtros y sede no disparen llamadas en cascada durante el montaje inicial (`onMounted`).
+  - Utilizar un mapa de promesas activas en `useSedeStore` para deduplicar peticiones simultáneas idénticas antes de su resolución.
+- **Dificultades**:
+  - Disparo de múltiples solicitudes HTTP duplicadas al recargar la página en `/canchas` debido a la ejecución simultánea de `onMounted` (en `MainLayout` y `CanchasView`) y la activación anticipada de watchers al resolverse la sede por defecto.
+  - Las peticiones concurrentes a `obtenerHorarioOperativo` antes de que se completara el primer GET causaban fallos en la verificación de caché (`horariosCache.value[key] === undefined`), solucionado mediante caché de promesas en vuelo.
+- **Commits:**
+- `feat(M4): fix de reserva y optimizacion de requests`
+- `feat(pinia): evitar requests redundantes en store`
+
+---
+
 #### 22/10/2026
 #### Marcos Caraballo | Rol: Desarrollador Frontend
 - **Actividades**:
@@ -842,6 +899,9 @@
 - `feat(M1): vista de gerente directorio de usuarios`
 - `feat(M1): soporte para selección de roles en edición y configurar duración de toasts en validación Zod`
 - `docs(log): actualizacion de bitacora`
+
+---
+
 #### 24/10/2026
 #### Marcos Caraballo | Rol: Desarrollador Frontend
 - **Actividades**:
@@ -860,6 +920,100 @@
 - `feat(M4): CRUD de mantenimiento dentro de canchas`
 - `chore: agregar gestion de canchas a sidebar`
 - `chore: formato con prettier`
+- `docs(log): actualizacion de bitacora`
+
+---
+
+#### 03/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Frontend
+- **Actividades**:
+  - Centralización del horario operativo de sedes en `useSedeStore` mediante `obtenerHorarioOperativo` y caché reactiva en memoria (`horariosCache`), evitando estados locales duplicados en vistas.
+  - Optimización de carga inicial y eliminación de peticiones redundantes en `CanchasView.vue` controlando la ejecución de los `watch()` mediante un flag de inicialización (`inicializado`).
+  - Implementación de deduplicación de promesas en vuelo en `sede.ts` para llamadas concurrentes a `cargarSedes()` y `obtenerHorarioOperativo()`.
+  - Refactorización de `canchas.service.ts` para delegar consultas de horarios operativos a `sedeStore` y sincronizar respuestas por lote (`getDisponibilidadPorSede`) directamente en la caché del store.
+- **Decisiones**:
+  - Manejar el horario operativo como propiedad computada en `CanchasView.vue` vinculada a `sedeStore.horariosCache`, garantizando una única fuente de verdad reactiva y evitando peticiones de red al revisitar fechas o sedes.
+  - Controlar las suscripciones reactivas en `CanchasView.vue` para que los observadores de filtros y sede no disparen llamadas en cascada durante el montaje inicial (`onMounted`).
+  - Utilizar un mapa de promesas activas en `useSedeStore` para deduplicar peticiones simultáneas idénticas antes de su resolución.
+- **Dificultades**:
+  - Disparo de múltiples solicitudes HTTP duplicadas al recargar la página en `/canchas` debido a la ejecución simultánea de `onMounted` (en `MainLayout` y `CanchasView`) y la activación anticipada de watchers al resolverse la sede por defecto.
+- **Commits:**
+- `feat(M4): fix de reserva y optimizacion de requests`
+- `feat(pinia): evitar requests redundantes en store`
+- `docs(log): actualizacion de bitacora`
+
+---
+
+#### 04/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Frontend
+- **Actividades**:
+  - Conexión del cálculo y desglose de tarifas de reservas con el endpoint `GET /canchas/cotizar` del backend en `reservas.service.ts`.
+  - Extensión de la interfaz de respuesta `CotizacionTurnoResponse` en `canchas.types.ts` para soportar las validaciones de descuento (`aplica_descuento_socio` y `motivo_sin_descuento`).
+  - Actualización de `ConfirmarReserva.vue` integrando un loader de tipo Skeleton mientras se espera la cotización oficial del servidor.
+  - Implementación de feedback visual en el modal de reserva notificando al socio cuando no aplica el descuento (por membresía inactiva o por pertenecer la sede a una ciudad distinta a la de su afiliación).
+  - Ajuste en `ConfirmarReserva.vue` para persistir correctamente descuentos en 0% mediante coalescencia nula (`?? 0`), evitando sobrescrituras involuntarias al guardar en caché local.
+  - Ajuste del indicador de socio en `CanchasView.vue` para reflejar la cotización dinámica sin fijar un porcentaje previo de descuento.
+- **Decisiones**:
+  - Delegar la lógica de negocio completa del descuento (rol, membresía activa y validación de misma ciudad entre sede de usuario y sede de cancha) en el backend a través de `GET /canchas/cotizar`, manteniendo al cliente libre de cálculos redundantes o peticiones adicionales.
+  - Implementar un estado Skeleton en `ConfirmarReserva.vue` para mejorar la experiencia de usuario y evitar saltos visuales durante la verificación de cotización.
+  - Proporcionar mensajes informativos claros y contextuales en el modal de confirmación en lugar de ocultar silenciosamente el descuento de socio.
+- **Dificultades**:
+  - Manejo de casos de borde en los que el usuario posee rol de socio pero su sede de afiliación es de otra ciudad o su membresía está inactiva, requiriendo adaptar los estados y textos explicativos sin alterar el flujo habitual de reserva.
+- **Commits:**
+- `feat(M4): interfaz y tipo para endpoint cotizar`
+- `docs(log): actualizacion de bitacora`
+
+---
+
+#### 06/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Frontend
+- **Actividades**:
+  - Suscripción en tiempo real vía Supabase Broadcast (`canchas:sede:${idSede}`) para escuchar eventos `turno_reservado`.
+  - Creación del composable `useCanchasRealtime` con gestión reactiva ante cambio de sedes y desuscripción automática al desmontar.
+  - Procesamiento reactivo en `CanchasView`: actualización de slots en la grilla, deselección y cierre forzado del modal ante reservas concurrentes con Toasts de advertencia.
+  - Manejo de colisión HTTP 409 en `ConfirmarReserva` para forzar cierre, marcar slot reservado y notificar conflicto.
+  - Suite de tests unitarios en `canchas-realtime-concurrencia.spec.ts`.
+- **Decisiones**:
+  - Encapsular el ciclo de vida de los canales realtime en un composable desacoplado de la vista.
+- **Dificultades**: Ninguna
+- **Commits:**
+- `feat(M4): nuevo tipo para el canal realtime`
+- `feat(M4): implementar supabase realtime en canchas`
+- `feat(M4): test de canchas realtime para concurrencia`
+- `docs(log): actualizacion de bitacora`
+
+---
+
+#### 06/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Frontend
+- **Actividades**:
+  - Eliminación definitiva de cálculos estáticos y funciones de mock de feriados (`calcularHorarioOperativo` y `generarSlotsParaCancha`) en `canchas.service.ts`.
+  - Integración de `getDisponibilidadPorSede` con la respuesta unificada del backend, sincronizando el horario operativo en la caché de `useSedeStore` sin peticiones redundantes.
+  - Incorporación de indicadores visuales en `CanchasView.vue` y `GrillaTurnos.vue` para reflejar el estado de horario especial (`es_horario_especial`) y el motivo de cierre oficial (`motivo_cierre`).
+  - Creación de tests unitarios en `canchas-disponibilidad-horario.spec.ts` validando el renderizado de estados cerrados/especiales y la ausencia de slots inventados ante fallos.
+- **Decisiones**:
+  - Establecer el backend (`CalendarioSede`, `Calendario`, `SedeHorario`) como la única fuente de verdad para determinar feriados y horarios de sedes.
+  - Centralizar y reutilizar la caché de horarios en Pinia aprovechando el payload unificado de disponibilidad para optimizar el consumo de red.
+- **Dificultades**: Ninguna
+- **Commits:**
+- `feat(M4): Eliminacion de fallabacks viejos de prueba`
+- `feat(M4): obtencion correcta del horario en cache`
+- `feat(M4): test de disponibilidad horario`
+- `docs(log): actualizacion de bitacora`
+- `style: uso de prettier para el formato`
+
+---
+
+#### 07/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Full Stack
+- **Actividades**:
+  - Ajuste en `DetalleReservaView.vue` para tomar el costo base y calcular el recargo por horario pico directamente desde el objeto `cancha` de la reserva.
+  - Simplificación y limpieza de etiquetas y textos visuales en el desglose de tarifas.
+- **Decisiones**:
+  - Utilizar temporalmente los datos directos de `reserva.cancha` para mostrar tarifas más precisas en la interfaz a la espera de la actualización definitiva del backend.
+- **Dificultades**: Ninguna
+- **Commits:**
+- `fix(M4): simplificar desglose de tarifas en detalle de reserva`
 - `docs(log): actualizacion de bitacora`
 
 ---

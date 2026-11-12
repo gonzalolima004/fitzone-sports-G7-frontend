@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useAuthStore } from '@/store/auth'
+import { useAuthStore, type RolUsuario } from '@/store/auth'
 import { PhMedal, PhWarningCircle } from '@phosphor-icons/vue'
+import BaseButton from '@/common/components/BaseButton.vue'
+import BaseModal from '@/common/components/BaseModal.vue'
 
 import PlanCard from '../components/PlanCard.vue'
 import CheckoutModal from '../../M5-pagos/components/CheckoutModal.vue'
@@ -12,6 +14,7 @@ import {
   type EstadoMembresia,
   type MembresiaActiva,
 } from '../services/membresias.service'
+import { authService } from '../services/auth.service'
 import { pagosService } from '../../M5-pagos/services/pagos.service'
 import { toast } from '@/common/utils/toast'
 
@@ -22,11 +25,36 @@ const authStore = useAuthStore()
 const isLoading = ref(true)
 const isProcessingPayment = ref(false)
 const modalAbierto = ref(false)
+const modalSuspenderAbierto = ref(false)
+const isSuspendiendo = ref(false)
 
 const planes = ref<PlanMembresia[]>([])
 const miEstado = ref<EstadoMembresia | null>(null)
 const membresiaActiva = ref<MembresiaActiva | null>(null)
 const planSeleccionado = ref<PlanMembresia | null>(null)
+
+const sincronizarRolSocio = async () => {
+  if (authStore.rol !== 'externo') return
+  try {
+    const respuesta = await authService.verifyLocalProfile()
+    const u = respuesta?.user
+    if (u) {
+      const rolBackend = String(
+        u.rol ?? u.roles?.[0] ?? 'socio'
+      ).toLowerCase() as RolUsuario
+      authStore.setPerfilInterno({
+        id: u.id_usuario,
+        email: u.email,
+        rol: rolBackend,
+      })
+    }
+  } catch {
+    authStore.setPerfilInterno({
+      ...authStore.usuario,
+      rol: 'socio',
+    })
+  }
+}
 
 const fetchDatos = async () => {
   try {
@@ -50,6 +78,10 @@ const fetchDatos = async () => {
 
     miEstado.value = estadoData
     membresiaActiva.value = activaData
+
+    if (estadoData?.esSocioActivo || estadoData?.enMora || activaData) {
+      await sincronizarRolSocio()
+    }
   } catch {
     toast.error('Ocurrió un error al cargar la información de la membresía.')
   } finally {
@@ -58,7 +90,27 @@ const fetchDatos = async () => {
 }
 
 onMounted(async () => {
+  let habiaPagoPendienteLocal = false
+  try {
+    const rawStorage = localStorage.getItem('fitzone_pago_pendiente')
+    if (rawStorage) {
+      const data = JSON.parse(rawStorage)
+      if (data && typeof data.id_pago === 'number') {
+        habiaPagoPendienteLocal = true
+        await pagosService.obtenerPagoPorId(data.id_pago)
+      }
+    } else if (authStore.rol === 'externo') {
+      await pagosService.obtenerMisPagos().catch(() => null)
+    }
+  } catch {
+    // Continúa con la verificación normal de membresía
+  }
+
   await fetchDatos()
+
+  if (miEstado.value?.esSocioActivo && habiaPagoPendienteLocal) {
+    localStorage.removeItem('fitzone_pago_pendiente')
+  }
 
   if (route.query.status || route.query.payment_id) {
     router.replace({ path: route.path })
@@ -72,6 +124,8 @@ onMounted(async () => {
         'Tu pago está siendo procesado. Se actualizará en unos minutos.'
       )
     }
+  } else if (habiaPagoPendienteLocal && miEstado.value?.esSocioActivo) {
+    toast.success('¡Tu membresía ha sido activada exitosamente!')
   }
 })
 
@@ -113,6 +167,34 @@ const confirmarPago = async () => {
   } finally {
     isProcessingPayment.value = false
     modalAbierto.value = false
+  }
+}
+
+const fechaFinCiclo = computed(
+  () =>
+    membresiaActiva.value?.fecha_fin ??
+    miEstado.value?.fecha_vencimiento ??
+    miEstado.value?.fechaVencimiento ??
+    null
+)
+
+const puedeSuspender = computed(
+  () => Boolean(miEstado.value?.esSocioActivo) && !miEstado.value?.suspendida
+)
+
+const confirmarSuspension = async () => {
+  isSuspendiendo.value = true
+  try {
+    await membresiasService.suspenderMiMembresia()
+    modalSuspenderAbierto.value = false
+    toast.success(
+      `Tu membresía fue suspendida. Conservás tus beneficios hasta el ${formatFecha(fechaFinCiclo.value)}.`
+    )
+    await fetchDatos()
+  } catch {
+    toast.error('No se pudo suspender la membresía. Inténtalo nuevamente.')
+  } finally {
+    isSuspendiendo.value = false
   }
 }
 
@@ -158,6 +240,13 @@ const estadoConfig = computed(() => {
         : finStr !== '-'
           ? ` • Fin: ${finStr}`
           : ''
+
+    if (miEstado.value.suspendida) {
+      return {
+        class: 'bg-amber-100 text-amber-700 border-amber-200',
+        text: `${nombrePlan} • Suspendida: beneficios hasta ${finStr}`,
+      }
+    }
 
     return {
       class: 'bg-green-100 text-green-700 border-green-200',
@@ -219,8 +308,32 @@ const isPopularPlan = (plan: PlanMembresia) => plan.duracion_dias === 90
             >
               {{ estadoConfig.text }}
             </span>
+            <BaseButton
+              v-if="puedeSuspender"
+              variant="danger-outline"
+              size="sm"
+              @click="modalSuspenderAbierto = true"
+            >
+              Suspender membresía
+            </BaseButton>
           </div>
         </header>
+
+        <!-- Aviso de membresía suspendida -->
+        <div
+          v-if="miEstado?.suspendida"
+          class="bg-amber-50 border-l-4 border-amber-400 p-4 sm:p-5 rounded-r-xl shadow-sm mb-8 sm:mb-10"
+        >
+          <h3 class="text-amber-800 font-bold text-sm sm:text-base">
+            Membresía suspendida
+          </h3>
+          <p class="text-amber-700 text-xs sm:text-sm mt-1 leading-relaxed">
+            Mantenés todos tus beneficios de socio hasta el
+            <strong>{{ formatFecha(fechaFinCiclo) }}</strong
+            >. Después no se generará un nuevo cobro. Para volver a suscribirte
+            tenés que esperar a que finalice esta vigencia.
+          </p>
+        </div>
 
         <!-- Panel de Vencimiento / Mora -->
         <div
@@ -293,12 +406,44 @@ const isPopularPlan = (plan: PlanMembresia) => plan.duracion_dias === 90
               )
             "
             :is-popular="isPopularPlan(plan)"
+            :disabled="Boolean(miEstado?.suspendida)"
             :is-loading="
               isProcessingPayment && planSeleccionado?.id === plan.id
             "
             @subscribe="abrirCheckout"
           />
         </div>
+
+        <!-- Modal de confirmación de suspensión -->
+        <BaseModal
+          v-model="modalSuspenderAbierto"
+          title="Suspender membresía"
+          max-width="sm"
+        >
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Vas a conservar tus beneficios hasta el
+            <strong>{{ formatFecha(fechaFinCiclo) }}</strong
+            >. Luego no se generará un pago pendiente.
+            <strong>Esta acción no se puede deshacer</strong>: para volver a
+            suscribirte tendrás que esperar a que finalice la vigencia.
+          </p>
+          <template #actions>
+            <BaseButton
+              variant="outline"
+              :disabled="isSuspendiendo"
+              @click="modalSuspenderAbierto = false"
+            >
+              Cancelar
+            </BaseButton>
+            <BaseButton
+              variant="danger"
+              :loading="isSuspendiendo"
+              @click="confirmarSuspension"
+            >
+              Sí, suspender
+            </BaseButton>
+          </template>
+        </BaseModal>
 
         <!-- Modal de Checkout -->
         <CheckoutModal

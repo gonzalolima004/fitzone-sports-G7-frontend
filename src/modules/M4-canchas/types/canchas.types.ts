@@ -110,6 +110,9 @@ export interface CotizacionTurnoResponse {
   monto_recargo_pico: number
   precio_final: number
   es_socio: boolean
+  aplica_descuento_socio?: boolean
+  motivo_sin_descuento?:
+    'SIN_MEMBRESIA' | 'OTRA_CIUDAD' | 'ROL_EXTERNO' | string | null
 }
 
 export interface CrearReservaCanchaDto {
@@ -181,12 +184,45 @@ export interface CalendarioSede {
   motivo?: string
 }
 
-export interface HorarioOperativoDia {
-  abierto: boolean
-  hora_apertura: string
-  hora_cierre: string
-  motivo_cierre?: string
-  es_horario_especial?: boolean
+import type { HorarioOperativo } from '@/store/sede'
+
+export type { HorarioOperativo }
+
+export interface HorarioOperativoDia extends HorarioOperativo {
   no_programado?: boolean
   es_pasado?: boolean
+}
+
+export interface SlotBackendDto {
+  horaInicio?: string
+  hora_inicio?: string
+  horaFin?: string
+  hora_fin?: string
+  estado: SlotEstado
+  es_horario_pico?: boolean
+  precio_estimado?: number
+  id_reserva?: number
+}
+
+export interface CanchaDisponibilidadBackendDto {
+  id_cancha: number
+  nombre_cancha?: string
+  costo_base?: number | string
+  slots?: SlotBackendDto[]
+}
+
+export interface GrillaDisponibilidadBackendResponse {
+  horario?: HorarioOperativo | HorarioOperativoDia
+  canchas?: CanchaDisponibilidadBackendDto[]
+}
+
+// Diccionario de slots indexado por id_cancha
+export type DisponibilidadSedeMap = Record<number, TurnoSlot[]>
+
+// Payload del evento Broadcast de Supabase 'turno_reservado' en canal canchas:sede:${idSede}
+export interface TurnoReservadoPayload {
+  id_cancha: number
+  fecha: string
+  hora_inicio: string
+  hora_fin: string
 }

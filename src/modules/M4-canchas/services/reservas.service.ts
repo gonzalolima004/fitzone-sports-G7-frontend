@@ -16,7 +16,7 @@ export const reservasService = {
     idCancha: number,
     fecha: string,
     horaInicio: string,
-    costoBase: number,
+    costoBase?: number,
     esSocio: boolean = true
   ): Promise<CotizacionTurnoResponse> {
     try {
@@ -32,7 +32,7 @@ export const reservasService = {
       )
       return response.data
     } catch {
-      // Simulación de contingencia local que refleja la respuesta del Strategy del backend
+      // Simulación de contingencia local si el endpoint no responde
       const horaNum = parseInt(horaInicio.split(':')[0], 10)
       const esPico = horaNum >= 19 && horaNum < 21
       const base =
@@ -50,6 +50,8 @@ export const reservasService = {
         monto_recargo_pico: montoRecargoPico,
         precio_final: precioFinal,
         es_socio: esSocio,
+        aplica_descuento_socio: descuentoPorcentaje > 0,
+        motivo_sin_descuento: esSocio ? null : 'ROL_EXTERNO',
       }
     }
   },

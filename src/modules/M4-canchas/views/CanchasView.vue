@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useSedeStore } from '@/store/sede'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useSedeStore, type HorarioOperativo } from '@/store/sede'
 import { useAuthStore } from '@/store/auth'
 import canchasService from '@/modules/M4-canchas/services/canchas.service'
+import { useCanchasRealtime } from '@/modules/M4-canchas/composables/useCanchasRealtime'
 import GrillaTurnos from '@/modules/M4-canchas/components/GrillaTurnos.vue'
 import ConfirmarReserva from '@/modules/M4-canchas/components/ConfirmarReserva.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
@@ -15,7 +16,7 @@ import type {
   TurnoSlot,
   TurnoSeleccionado,
   ReservaCanchaResponse,
-  HorarioOperativoDia,
+  TurnoReservadoPayload,
 } from '@/modules/M4-canchas/types/canchas.types'
 import { useRouter } from 'vue-router'
 
@@ -40,11 +41,18 @@ const deporteSeleccionadoId = ref<number>(1) // 1: Pádel por defecto
 
 // Estados reactivos de datos
 const cargando = ref(false)
+const inicializado = ref(false)
 const tiposCancha = ref<CanchaTipo[]>([])
 const todasLasCanchasSede = ref<Cancha[]>([])
 const disponibilidadMap = ref<Record<number, TurnoSlot[]>>({})
 const turnoSeleccionado = ref<TurnoSeleccionado | null>(null)
-const horarioOperativo = ref<HorarioOperativoDia | null>(null)
+
+// Horario operativo obtenido reactivamente desde la caché centralizada de sedeStore
+const horarioOperativo = computed<HorarioOperativo | null>(() => {
+  if (!sedeStore.sedeSeleccionada || !fechaSeleccionada.value) return null
+  const key = `${sedeStore.sedeSeleccionada.id_sede}_${fechaSeleccionada.value}`
+  return sedeStore.horariosCache[key] ?? null
+})
 
 // Modal de pre-confirmación de reserva
 const modalConfirmarAbierto = ref(false)
@@ -56,25 +64,39 @@ const canchasFiltradas = computed(() => {
   )
 })
 
-// Desuscriptores de Supabase Realtime
-const unsubscribeFns: Array<() => void> = []
-
 /**
- * Consulta la disponibilidad de todas las canchas filtradas
- * consumiendo GET /canchas/:id/disponibilidad
+ * Consulta la disponibilidad de todas las canchas filtradas.
+ * Consume de forma óptima la respuesta de GET /canchas/disponibilidad (que unifica
+ * horario operativo y slots) o la caché central de sedeStore sin disparar peticiones redundantes.
  */
 async function cargarDisponibilidad() {
-  if (sedeStore.sedeSeleccionada) {
-    horarioOperativo.value = await canchasService.getHorarioOperativo(
-      sedeStore.sedeSeleccionada.id_sede,
-      fechaSeleccionada.value
-    )
+  if (!sedeStore.sedeSeleccionada) return
+
+  const idSede = sedeStore.sedeSeleccionada.id_sede
+  const fecha = fechaSeleccionada.value
+  const key = `${idSede}_${fecha}`
+
+  // 1. Asegurar el horario operativo desde sedeStore (usa su caché interna si ya existe)
+  if (!sedeStore.horariosCache[key]) {
+    try {
+      await sedeStore.obtenerHorarioOperativo(idSede, fecha)
+    } catch (error) {
+      console.error(
+        '[CanchasView] Error al cargar horario operativo desde sedeStore:',
+        error
+      )
+    }
   }
 
-  if (
-    canchasFiltradas.value.length === 0 ||
-    (horarioOperativo.value && !horarioOperativo.value.abierto)
-  ) {
+  // 2. Si la sede está cerrada y no tiene horario especial, no consultar turnos
+  const horario = sedeStore.horariosCache[key]
+  if (horario && !horario.abierto && !horario.es_horario_especial) {
+    disponibilidadMap.value = {}
+    return
+  }
+
+  // 3. Si no hay canchas configuradas para este deporte, limpiamos la grilla
+  if (canchasFiltradas.value.length === 0) {
     disponibilidadMap.value = {}
     return
   }
@@ -84,11 +106,17 @@ async function cargarDisponibilidad() {
 
   try {
     disponibilidadMap.value = await canchasService.getDisponibilidadPorSede(
-      sedeStore.sedeSeleccionada!.id_sede,
-      fechaSeleccionada.value,
+      idSede,
+      fecha,
       canchasFiltradas.value,
-      esSocio.value
+      esSocio.value,
+      deporteSeleccionadoId.value
     )
+
+    // Si la respuesta del backend no trajo el horario operativo, lo consultamos vía sedeStore
+    if (!sedeStore.horariosCache[key]) {
+      await sedeStore.obtenerHorarioOperativo(idSede, fecha)
+    }
   } catch (error) {
     console.error('[CanchasView] Error al cargar disponibilidad:', error)
     toast.error('No se pudo cargar la disponibilidad de canchas.')
@@ -102,61 +130,88 @@ async function cargarDisponibilidad() {
  */
 async function inicializarDatos() {
   try {
-    tiposCancha.value = await canchasService.getTiposCancha()
+    // 1. Cargar catálogo de disciplinas y asegurar sedes en paralelo
+    const [, tipos] = await Promise.all([
+      sedeStore.sedes.length === 0
+        ? sedeStore.cargarSedes()
+        : Promise.resolve(),
+      canchasService.getTiposCancha(),
+    ])
+
+    tiposCancha.value = tipos
     if (
-      tiposCancha.value.length > 0 &&
-      !tiposCancha.value.some(
-        (t) => t.id_cancha_tipo === deporteSeleccionadoId.value
-      )
+      tipos.length > 0 &&
+      !tipos.some((t) => t.id_cancha_tipo === deporteSeleccionadoId.value)
     ) {
-      deporteSeleccionadoId.value = tiposCancha.value[0].id_cancha_tipo
+      deporteSeleccionadoId.value = tipos[0].id_cancha_tipo
     }
 
+    // 2. Con la sede activa y filtros listos, cargar canchas y disponibilidad una sola vez
     if (sedeStore.sedeSeleccionada) {
       todasLasCanchasSede.value = await canchasService.getCanchasPorSede(
         sedeStore.sedeSeleccionada.id_sede
       )
       await cargarDisponibilidad()
-      //suscribirRealtime()
     }
   } catch (error) {
     console.error('[CanchasView] Error al inicializar datos:', error)
     toast.error('Error al consultar canchas de la sede.')
+  } finally {
+    inicializado.value = true
   }
 }
 
 /**
- * Configura la suscripción a Supabase Realtime para la sede y canchas visibles
+ * Procesa en tiempo real el evento 'turno_reservado' emitido vía Supabase Broadcast
  */
-/*
-function suscribirRealtime() {
-  unsubscribeFns.forEach((fn) => fn())
-  unsubscribeFns.length = 0
+function handleTurnoReservado(payload: TurnoReservadoPayload) {
+  // Caso 1 (Fecha ajena): Si el payload no coincide con la fecha seleccionada en pantalla, ignorar mutación
+  if (payload.fecha !== fechaSeleccionada.value) {
+    return
+  }
 
-  canchasFiltradas.value.forEach((cancha) => {
-    const unsub = canchasService.suscribirCambiosDisponibilidad(
-      cancha.id_cancha,
-      () => {
-        toast.info(`Actualización en vivo en ${cancha.nombre}`)
-        canchasService
-          .getDisponibilidad(
-            cancha.id_cancha,
-            fechaSeleccionada.value,
-            Number(cancha.costo_base),
-            esSocio.value
-          )
-          .then((res) => {
-            disponibilidadMap.value = {
-              ...disponibilidadMap.value,
-              [cancha.id_cancha]: res.slots,
-            }
-          })
-      }
+  // Caso 2 (Actualización de Grilla): Marcar el slot específico como 'RESERVADO' reactivamente
+  const slots = disponibilidadMap.value[payload.id_cancha]
+  if (slots && Array.isArray(slots)) {
+    const slotEncontrado = slots.find(
+      (s) => s.hora_inicio === payload.hora_inicio
     )
-    unsubscribeFns.push(unsub)
-  })
+    if (slotEncontrado) {
+      slotEncontrado.estado = 'RESERVADO'
+      disponibilidadMap.value = { ...disponibilidadMap.value }
+    }
+  }
+
+  // Verificar si coincide con el turno que el usuario tiene marcado actualmente
+  const turno = turnoSeleccionado.value
+  const esMismoTurno =
+    turno !== null &&
+    turno.cancha.id_cancha === payload.id_cancha &&
+    turno.fecha === payload.fecha &&
+    turno.slot.hora_inicio === payload.hora_inicio
+
+  if (esMismoTurno) {
+    // Caso 4 (Modal de confirmación abierto): Forzar cierre de modal y notificar advertencia
+    if (modalConfirmarAbierto.value) {
+      modalConfirmarAbierto.value = false
+      turnoSeleccionado.value = null
+      toast.warning(
+        'El turno que estabas por confirmar fue ocupado por otro usuario.'
+      )
+      return
+    }
+
+    // Caso 3 (Slot seleccionado): Deseleccionar turno inmediatamente y alertar
+    turnoSeleccionado.value = null
+    toast.warning(
+      'El turno que tenías seleccionado acaba de ser reservado por otro usuario.'
+    )
+  }
 }
-*/
+
+// Suscripción reactiva a Supabase Broadcast en el canal canchas:sede:${idSede}
+useCanchasRealtime(() => sedeStore.idSedeSeleccionada, handleTurnoReservado)
+
 function handleSeleccionarTurno(payload: { cancha: Cancha; slot: TurnoSlot }) {
   turnoSeleccionado.value = {
     cancha: payload.cancha,
@@ -178,9 +233,24 @@ function handleReservaConfirmada(reserva: ReservaCanchaResponse) {
   })
 }
 
-function handleConflictoDisponibilidad(mensaje: string) {
-  console.warn('[CanchasView] Conflicto en turno:', mensaje)
-  cargarDisponibilidad()
+function handleConflictoDisponibilidad(mensaje?: string) {
+  console.warn('[CanchasView] Conflicto 409 en turno:', mensaje)
+  modalConfirmarAbierto.value = false
+
+  if (turnoSeleccionado.value) {
+    const { cancha, slot, fecha } = turnoSeleccionado.value
+    if (fecha === fechaSeleccionada.value) {
+      const slots = disponibilidadMap.value[cancha.id_cancha]
+      const slotEnGrilla = slots?.find(
+        (s) => s.hora_inicio === slot.hora_inicio
+      )
+      if (slotEnGrilla) {
+        slotEnGrilla.estado = 'RESERVADO'
+        disponibilidadMap.value = { ...disponibilidadMap.value }
+      }
+    }
+    turnoSeleccionado.value = null
+  }
 }
 
 function formatoMoneda(valor: number): string {
@@ -191,34 +261,26 @@ function formatoMoneda(valor: number): string {
   }).format(valor)
 }
 
-// Reactividad a cambios en la sede activa
+// Reactividad a cambios en la sede activa (solo cuando el usuario cambia manualmente tras la inicialización)
 watch(
-  () => sedeStore.sedeSeleccionada,
-  async () => {
-    if (sedeStore.sedeSeleccionada) {
-      todasLasCanchasSede.value = await canchasService.getCanchasPorSede(
-        sedeStore.sedeSeleccionada.id_sede
-      )
-      await cargarDisponibilidad()
-      //suscribirRealtime()
-      toast.info(`Cargando canchas de ${sedeStore.sedeSeleccionada.nombre}`)
-    }
+  () => sedeStore.sedeSeleccionada?.id_sede,
+  async (nuevoId, anteriorId) => {
+    if (!inicializado.value || !nuevoId || nuevoId === anteriorId) return
+
+    todasLasCanchasSede.value = await canchasService.getCanchasPorSede(nuevoId)
+    await cargarDisponibilidad()
+    toast.info(`Cargando canchas de ${sedeStore.sedeSeleccionada?.nombre}`)
   }
 )
 
-// Reactividad a cambios de fecha o deporte, deporte o estado de socio
-watch([fechaSeleccionada, esSocio], async () => {
+// Reactividad a cambios de fecha o deporte, deporte o estado de socio (solo tras inicialización)
+watch([fechaSeleccionada, esSocio, deporteSeleccionadoId], async () => {
+  if (!inicializado.value) return
   await cargarDisponibilidad()
-  //suscribirRealtime()
 })
 
 onMounted(() => {
-  //sedeStore.cargarSedes()
   inicializarDatos()
-})
-
-onUnmounted(() => {
-  unsubscribeFns.forEach((fn) => fn())
 })
 </script>
 
@@ -233,8 +295,7 @@ onUnmounted(() => {
           Reserva de Canchas Deportivas
         </h1>
         <p class="text-sm text-slate-500 mt-1">
-          Consultá los horarios disponibles para Pádel y Fútbol 5 en tu sede
-          seleccionada.
+          Consultá los horarios disponibles en tu sede seleccionada.
         </p>
       </div>
 
@@ -273,15 +334,36 @@ onUnmounted(() => {
         <span class="text-slate-300">|</span>
 
         <!-- Horario del día según SedeHorario / Calendario -->
-        <div v-if="horarioOperativo" class="flex items-center gap-1">
-          <span
-            v-if="horarioOperativo.abierto"
-            class="text-emerald-700 font-semibold font-mono tabular-nums"
+        <div
+          v-if="horarioOperativo"
+          class="flex items-center gap-1.5 flex-wrap"
+        >
+          <template
+            v-if="
+              horarioOperativo.abierto || horarioOperativo.es_horario_especial
+            "
           >
-            Horario: {{ horarioOperativo.hora_apertura }} a
-            {{ horarioOperativo.hora_cierre }} hs
-          </span>
-          <span v-else class="text-[#F96167] font-bold"> Sede Cerrada </span>
+            <span
+              :class="[
+                'font-semibold font-mono tabular-nums text-xs',
+                horarioOperativo.es_horario_especial
+                  ? 'text-amber-800'
+                  : 'text-emerald-700',
+              ]"
+            >
+              Horario: {{ horarioOperativo.hora_apertura }} a
+              {{ horarioOperativo.hora_cierre }} hs
+            </span>
+            <span
+              v-if="horarioOperativo.es_horario_especial"
+              class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300"
+            >
+              Horario Especial / Feriado
+            </span>
+          </template>
+          <div v-else class="flex items-center gap-1.5">
+            <span class="text-[#F96167] font-bold"> Sede Cerrada </span>
+          </div>
         </div>
       </div>
     </div>
@@ -403,7 +485,7 @@ onUnmounted(() => {
               v-if="esSocio"
               class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-wider"
             >
-              Socio (-15%)
+              Socio
             </span>
           </div>
 
