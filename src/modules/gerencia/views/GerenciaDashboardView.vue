@@ -4,6 +4,7 @@ import { RouterLink } from 'vue-router'
 import {
   PhArrowRight,
   PhBuildings,
+  PhCalendarBlank,
   PhCalendarCheck,
   PhChartBar,
   PhChartLineUp,
@@ -74,6 +75,12 @@ const accesos = [
     descripcion: 'Alta, modificación y baja de sedes y ciudades.',
     ruta: '/gerencia/sedes',
     icono: PhBuildings,
+  },
+  {
+    titulo: 'Calendario de sedes',
+    descripcion: 'Feriados de la cadena y cierres u horarios especiales.',
+    ruta: '/gerencia/calendario',
+    icono: PhCalendarBlank,
   },
   {
     titulo: 'Planes de membresía',

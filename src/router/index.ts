@@ -182,6 +182,12 @@ const routes: RouteRecordRaw[] = [
               import('../modules/gerencia/views/GestionMembresiasView.vue'),
           },
           {
+            path: 'calendario',
+            name: 'gerencia-calendario',
+            component: () =>
+              import('../modules/gerencia/views/GestionCalendarioView.vue'),
+          },
+          {
             path: 'reportes',
             component: () =>
               import('../modules/M6-reportes/views/PanelGerenciaView.vue'),
