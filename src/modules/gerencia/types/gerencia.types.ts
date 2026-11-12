@@ -169,3 +169,26 @@ export interface ExcepcionSedePayload {
   hora_cierre?: string
   motivo: string | null
 }
+
+/** Horario semanal de una sede para un día, como lo devuelve GET /sedes/:idSede/horarios. */
+export interface HorarioSemanal {
+  id_sede_horario: number
+  id_sede: number
+  /** 0 domingo … 6 sábado. */
+  dia_semana: number
+  /** Formato HH:mm; 00:00 si la sede no abre ese día. */
+  hora_apertura: string
+  hora_cierre: string
+  abierto: boolean
+}
+
+/**
+ * Datos que acepta POST /sedes/:idSede/horarios. Si `abierto` es false la sede
+ * no abre ese día y no se envían horas.
+ */
+export interface HorarioSemanalPayload {
+  dia_semana: number
+  abierto: boolean
+  hora_apertura?: string
+  hora_cierre?: string
+}

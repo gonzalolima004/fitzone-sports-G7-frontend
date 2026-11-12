@@ -18,11 +18,13 @@ import {
   obtenerFechaLocalISO,
 } from '@/common/utils/date-formatter'
 import EncabezadoGerencia from '../components/EncabezadoGerencia.vue'
+import PestanasGerencia from '../components/PestanasGerencia.vue'
 import FeriadoFormModal from '../components/FeriadoFormModal.vue'
 import ExcepcionSedeFormModal from '../components/ExcepcionSedeFormModal.vue'
 import ConfirmarEliminacionModal from '../components/ConfirmarEliminacionModal.vue'
 import { calendarioService } from '../services/calendario.service'
 import { obtenerMensajeDeError } from '../utils/errores'
+import { PESTANAS_SEDES } from '../utils/navegacion'
 import {
   DIAS_SEMANA,
   MESES,
@@ -491,6 +493,11 @@ onMounted(async () => {
         </BaseButton>
       </template>
     </EncabezadoGerencia>
+
+    <PestanasGerencia
+      etiqueta="Secciones de sedes"
+      :pestanas="PESTANAS_SEDES"
+    />
 
     <section
       aria-label="Mes y sede"

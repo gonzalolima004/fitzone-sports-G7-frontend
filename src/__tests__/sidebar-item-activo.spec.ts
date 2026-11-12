@@ -38,7 +38,10 @@ describe('Sidebar: ítem activo del gerente', () => {
     expect(await itemsActivosEn('/gerencia/reportes/ocupacion')).toEqual([
       'Panel de gerencia',
     ])
-    expect(await itemsActivosEn('/gerencia/calendario')).toEqual([
+    expect(await itemsActivosEn('/gerencia/sedes/horarios')).toEqual([
+      'Panel de gerencia',
+    ])
+    expect(await itemsActivosEn('/gerencia/sedes/calendario')).toEqual([
       'Panel de gerencia',
     ])
   })
