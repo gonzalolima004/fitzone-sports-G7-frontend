@@ -1,7 +1,7 @@
 import { z } from 'zod'
+import { validarHorasDeApertura } from './horarios.schema'
 
 const FORMATO_FECHA = /^\d{4}-\d{2}-\d{2}$/
-const FORMATO_HORA = /^([01]\d|2[0-3]):[0-5]\d$/
 
 const esFechaReal = (valor: string) => {
   const fecha = new Date(`${valor}T00:00:00.000Z`)
@@ -50,35 +50,7 @@ export const excepcionSchema = z
       .max(255, 'El motivo admite hasta 255 caracteres.'),
   })
   .superRefine((datos, ctx) => {
-    if (datos.tipo !== 'horario') return
-
-    const aperturaValida = FORMATO_HORA.test(datos.hora_apertura)
-    const cierreValido = FORMATO_HORA.test(datos.hora_cierre)
-    if (!aperturaValida) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['hora_apertura'],
-        message: 'Indicá la hora de apertura.',
-      })
-    }
-    if (!cierreValido) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['hora_cierre'],
-        message: 'Indicá la hora de cierre.',
-      })
-    }
-    if (
-      aperturaValida &&
-      cierreValido &&
-      datos.hora_apertura >= datos.hora_cierre
-    ) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['hora_cierre'],
-        message: 'El cierre tiene que ser posterior a la apertura.',
-      })
-    }
+    if (datos.tipo === 'horario') validarHorasDeApertura(datos, ctx)
   })
 
 export type FeriadoValidado = z.infer<typeof feriadoSchema>

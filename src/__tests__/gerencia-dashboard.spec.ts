@@ -341,6 +341,7 @@ describe('Dashboard del gerente', () => {
     ).toEqual(['Sedes', 'Socios y membresías', 'Canchas', 'Reportes'])
     expect(destinos).toEqual([
       '/gerencia/sedes',
+      '/gerencia/sedes/horarios',
       '/gerencia/sedes/calendario',
       '/gerencia/planes',
       '/gerencia/membresias',

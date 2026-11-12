@@ -9,6 +9,7 @@ import {
   PhCalendarCheck,
   PhChartBar,
   PhChartLineUp,
+  PhClock,
   PhCourtBasketball,
   PhCurrencyDollar,
   PhIdentificationCard,
@@ -80,6 +81,12 @@ const gruposDeAccesos = [
         descripcion: 'Alta, modificación y baja de sedes y ciudades.',
         ruta: '/gerencia/sedes',
         icono: PhBuildings,
+      },
+      {
+        titulo: 'Horarios semanales',
+        descripcion: 'Apertura y cierre de cada día en cada sede.',
+        ruta: '/gerencia/sedes/horarios',
+        icono: PhClock,
       },
       {
         titulo: 'Calendario',

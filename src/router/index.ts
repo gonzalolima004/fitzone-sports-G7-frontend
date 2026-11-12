@@ -150,7 +150,7 @@ const routes: RouteRecordRaw[] = [
             component: () =>
               import('../modules/gerencia/views/GerenciaDashboardView.vue'),
           },
-          // Sedes: listado y calendario de feriados y excepciones
+          // Sedes: listado, horario semanal y calendario de feriados y excepciones
           {
             path: 'sedes',
             children: [
@@ -159,6 +159,12 @@ const routes: RouteRecordRaw[] = [
                 name: 'gerencia-sedes',
                 component: () =>
                   import('../modules/gerencia/views/GestionSedesView.vue'),
+              },
+              {
+                path: 'horarios',
+                name: 'gerencia-horarios',
+                component: () =>
+                  import('../modules/gerencia/views/GestionHorariosView.vue'),
               },
               {
                 path: 'calendario',

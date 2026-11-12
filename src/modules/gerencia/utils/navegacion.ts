@@ -7,7 +7,8 @@ export interface Pestana {
 
 /** Pantallas del área Sedes del panel de gerencia. */
 export const PESTANAS_SEDES: readonly Pestana[] = [
-  { nombre: 'Sedes y ciudades', ruta: { name: 'gerencia-sedes' } },
+  { nombre: 'Sedes', ruta: { name: 'gerencia-sedes' } },
+  { nombre: 'Horarios', ruta: { name: 'gerencia-horarios' } },
   { nombre: 'Calendario', ruta: { name: 'gerencia-calendario' } },
 ]
 
