@@ -14,6 +14,11 @@ import {
 import BaseModal from '@/common/components/BaseModal.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import { toast } from '@/common/utils/toast'
+import { validarConEsquema } from '@/common/utils/validation'
+import {
+  crearCanchaTipoSchema,
+  actualizarCanchaTipoSchema,
+} from '../schemas/cancha-tipo.schema'
 import axios from 'axios'
 import canchasService from '../services/canchas.service'
 import type { Cancha, CanchaTipo } from '../types/canchas.types'
@@ -41,11 +46,13 @@ const incluirInactivos = ref(false)
 // Estado para creación
 const nuevoNombre = ref('')
 const guardandoNuevo = ref(false)
+const errorCreacion = ref<string | null>(null)
 
 // Estado para edición inline
 const idTipoEditando = ref<number | null>(null)
 const nombreEditado = ref('')
 const guardandoEdicion = ref(false)
+const errorEdicion = ref<string | null>(null)
 
 // Estado para reactivación
 const reactivandoId = ref<number | null>(null)
@@ -100,16 +107,25 @@ function canchasActivasPorTipo(idTipo: number): number {
 
 // Iniciar creación
 async function handleCrearTipo() {
-  const nombreLimpio = nuevoNombre.value.trim()
-  if (!nombreLimpio) {
-    toast.warning('Por favor ingresá el nombre o descripción del deporte.')
+  const resultado = validarConEsquema(crearCanchaTipoSchema, {
+    descripcion: nuevoNombre.value,
+  })
+
+  if (!resultado.valido || !resultado.datos) {
+    errorCreacion.value =
+      resultado.primerError ||
+      'Por favor ingresá un nombre válido para el deporte.'
+    toast.warning(errorCreacion.value)
     return
   }
 
+  errorCreacion.value = null
   guardandoNuevo.value = true
   try {
-    await canchasService.crearTipoCancha(nombreLimpio)
-    toast.success(`Tipo de cancha "${nombreLimpio}" creado con éxito.`)
+    await canchasService.crearTipoCancha(resultado.datos.descripcion)
+    toast.success(
+      `Tipo de cancha "${resultado.datos.descripcion}" creado con éxito.`
+    )
     nuevoNombre.value = ''
     await cargarListaTipos()
     emit('actualizado')
@@ -129,25 +145,33 @@ async function handleCrearTipo() {
 function iniciarEdicion(tipo: CanchaTipo) {
   idTipoEditando.value = tipo.id_cancha_tipo
   nombreEditado.value = tipo.descripcion || ''
+  errorEdicion.value = null
 }
 
 function cancelarEdicion() {
   idTipoEditando.value = null
   nombreEditado.value = ''
+  errorEdicion.value = null
 }
 
 // Guardar edición
 async function handleGuardarEdicion(idTipo: number) {
-  const nombreLimpio = nombreEditado.value.trim()
-  if (!nombreLimpio) {
-    toast.warning('El nombre del deporte no puede estar vacío.')
+  const resultado = validarConEsquema(actualizarCanchaTipoSchema, {
+    descripcion: nombreEditado.value,
+  })
+
+  if (!resultado.valido || !resultado.datos) {
+    errorEdicion.value =
+      resultado.primerError || 'El nombre del deporte no puede estar vacío.'
+    toast.warning(errorEdicion.value)
     return
   }
 
+  errorEdicion.value = null
   guardandoEdicion.value = true
   try {
     await canchasService.actualizarTipoCancha(idTipo, {
-      descripcion: nombreLimpio,
+      descripcion: resultado.datos.descripcion,
     })
     toast.success('Tipo de cancha actualizado correctamente.')
     idTipoEditando.value = null
@@ -254,9 +278,21 @@ function cerrarModal() {
               v-model="nuevoNombre"
               type="text"
               placeholder="Ej: Tenis, Pádel, Básquetbol..."
-              class="w-full pl-10 pr-4 py-2 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#202759]/20 focus:border-[#202759] transition-all text-slate-800 placeholder:text-slate-400"
+              class="w-full pl-10 pr-4 py-2 text-sm bg-white border rounded-xl focus:outline-none focus:ring-2 transition-all text-slate-800 placeholder:text-slate-400"
+              :class="[
+                errorCreacion
+                  ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20'
+                  : 'border-slate-200 focus:border-[#202759] focus:ring-[#202759]/20',
+              ]"
               :disabled="guardandoNuevo"
+              @input="errorCreacion = null"
             />
+            <p
+              v-if="errorCreacion"
+              class="text-xs text-rose-600 mt-1 font-medium"
+            >
+              {{ errorCreacion }}
+            </p>
           </div>
           <BaseButton
             type="submit"
@@ -382,15 +418,29 @@ function cerrarModal() {
                 v-if="idTipoEditando === tipo.id_cancha_tipo"
                 class="flex items-center gap-2"
               >
-                <input
-                  v-model="nombreEditado"
-                  type="text"
-                  class="w-full max-w-xs px-3 py-1.5 text-xs sm:text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#202759]/20 focus:border-[#202759]"
-                  placeholder="Nombre de la disciplina"
-                  :disabled="guardandoEdicion"
-                  @keyup.enter="handleGuardarEdicion(tipo.id_cancha_tipo)"
-                  @keyup.esc="cancelarEdicion"
-                />
+                <div class="flex flex-col gap-1 w-full max-w-xs">
+                  <input
+                    v-model="nombreEditado"
+                    type="text"
+                    class="w-full px-3 py-1.5 text-xs sm:text-sm bg-white border rounded-lg focus:outline-none focus:ring-2"
+                    :class="[
+                      errorEdicion
+                        ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20'
+                        : 'border-slate-300 focus:border-[#202759] focus:ring-[#202759]/20',
+                    ]"
+                    placeholder="Nombre de la disciplina"
+                    :disabled="guardandoEdicion"
+                    @input="errorEdicion = null"
+                    @keyup.enter="handleGuardarEdicion(tipo.id_cancha_tipo)"
+                    @keyup.esc="cancelarEdicion"
+                  />
+                  <span
+                    v-if="errorEdicion"
+                    class="text-[11px] text-rose-600 font-medium"
+                  >
+                    {{ errorEdicion }}
+                  </span>
+                </div>
                 <button
                   type="button"
                   class="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors disabled:opacity-50"

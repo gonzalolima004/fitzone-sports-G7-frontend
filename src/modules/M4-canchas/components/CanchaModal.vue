@@ -1,7 +1,13 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, watch } from 'vue'
 import BaseModal from '@/common/components/BaseModal.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
+import { toast } from '@/common/utils/toast'
+import { validarConEsquema } from '@/common/utils/validation'
+import {
+  crearCanchaSchema,
+  actualizarCanchaSchema,
+} from '../schemas/cancha.schema'
 import type { Cancha, CanchaTipo } from '../types/canchas.types'
 
 interface SedeOpcion {
@@ -50,6 +56,7 @@ const form = ref<{
 })
 
 const errorValidacion = ref<string | null>(null)
+const erroresCampos = ref<Record<string, string>>({})
 
 // Sincronizar formulario al abrir o cambiar la cancha seleccionada
 watch(
@@ -57,6 +64,7 @@ watch(
   ([abierto]) => {
     if (abierto) {
       errorValidacion.value = null
+      erroresCampos.value = {}
       if (props.esEdicion && props.cancha) {
         form.value = {
           nombre: props.cancha.nombre,
@@ -93,36 +101,55 @@ watch(
   { immediate: true }
 )
 
-const formularioValido = computed(() => {
-  return (
-    form.value.nombre.trim().length >= 3 &&
-    form.value.id_sede !== '' &&
-    Number(form.value.id_sede) > 0 &&
-    form.value.id_cancha_tipo !== '' &&
-    Number(form.value.id_cancha_tipo) > 0 &&
-    form.value.costo_base !== '' &&
-    Number(form.value.costo_base) > 0
-  )
-})
+function limpiarErrorCampo(campo: string) {
+  if (erroresCampos.value[campo]) {
+    delete erroresCampos.value[campo]
+  }
+}
+
+function validarCampoIndividual(
+  campo: 'nombre' | 'costo_base' | 'id_sede' | 'id_cancha_tipo'
+) {
+  const resultado = props.esEdicion
+    ? validarConEsquema(actualizarCanchaSchema, form.value)
+    : validarConEsquema(crearCanchaSchema, form.value)
+  if (resultado.errores[campo]) {
+    erroresCampos.value[campo] = resultado.errores[campo]
+  } else {
+    limpiarErrorCampo(campo)
+  }
+}
 
 function cerrar() {
   emit('update:modelValue', false)
 }
 
 function handleGuardar() {
-  if (!formularioValido.value) {
+  const resultado = props.esEdicion
+    ? validarConEsquema(actualizarCanchaSchema, form.value)
+    : validarConEsquema(crearCanchaSchema, form.value)
+
+  if (!resultado.valido || !resultado.datos) {
+    erroresCampos.value = resultado.errores
     errorValidacion.value =
+      resultado.primerError ||
       'Por favor completa todos los campos requeridos con valores válidos.'
+    if (resultado.primerError) {
+      toast.warning(resultado.primerError)
+    }
     return
   }
 
+  erroresCampos.value = {}
   errorValidacion.value = null
   emit('guardar', {
-    nombre: form.value.nombre.trim(),
-    id_sede: Number(form.value.id_sede),
-    id_cancha_tipo: Number(form.value.id_cancha_tipo),
-    costo_base: Number(form.value.costo_base),
-    disponible: form.value.disponible,
+    nombre: resultado.datos.nombre ?? form.value.nombre,
+    id_sede: Number(resultado.datos.id_sede ?? form.value.id_sede),
+    id_cancha_tipo: Number(
+      resultado.datos.id_cancha_tipo ?? form.value.id_cancha_tipo
+    ),
+    costo_base: Number(resultado.datos.costo_base ?? form.value.costo_base),
+    disponible: resultado.datos.disponible ?? form.value.disponible,
   })
 }
 </script>
@@ -140,14 +167,6 @@ function handleGuardar() {
     @update:model-value="emit('update:modelValue', $event)"
   >
     <form class="space-y-4" @submit.prevent="handleGuardar">
-      <!-- Error de Validación -->
-      <div
-        v-if="errorValidacion"
-        class="p-3 text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl"
-      >
-        {{ errorValidacion }}
-      </div>
-
       <!-- Nombre de la cancha -->
       <div class="flex flex-col gap-1.5">
         <label class="text-xs font-semibold text-slate-700">
@@ -157,12 +176,24 @@ function handleGuardar() {
           v-model="form.nombre"
           type="text"
           placeholder="Ej: Cancha 1 (Césped Techada)"
-          required
-          class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#202759]/20 focus:border-[#202759] transition-all"
+          class="w-full px-3 py-2 text-sm bg-slate-50 border rounded-xl focus:bg-white focus:outline-none focus:ring-2 transition-all"
+          :class="[
+            erroresCampos.nombre
+              ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20'
+              : 'border-slate-200 focus:border-[#202759] focus:ring-[#202759]/20',
+          ]"
+          @input="limpiarErrorCampo('nombre')"
+          @blur="validarCampoIndividual('nombre')"
         />
-        <span class="text-[11px] text-slate-400"
-          >Identificador visible para los usuarios y socios.</span
+        <span
+          v-if="erroresCampos.nombre"
+          class="text-[11px] text-rose-600 font-medium"
         >
+          {{ erroresCampos.nombre }}
+        </span>
+        <span v-else class="text-[11px] text-slate-400">
+          Identificador visible para los usuarios y socios.
+        </span>
       </div>
 
       <!-- Selector de Sede -->
@@ -172,8 +203,13 @@ function handleGuardar() {
         </label>
         <select
           v-model="form.id_sede"
-          required
-          class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#202759]/20 focus:border-[#202759] transition-all"
+          class="w-full px-3 py-2 text-sm bg-slate-50 border rounded-xl focus:bg-white focus:outline-none focus:ring-2 transition-all"
+          :class="[
+            erroresCampos.id_sede
+              ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20'
+              : 'border-slate-200 focus:border-[#202759] focus:ring-[#202759]/20',
+          ]"
+          @change="validarCampoIndividual('id_sede')"
         >
           <option value="" disabled>Seleccioná una sede...</option>
           <option
@@ -184,6 +220,12 @@ function handleGuardar() {
             {{ sede.nombre }}
           </option>
         </select>
+        <span
+          v-if="erroresCampos.id_sede"
+          class="text-[11px] text-rose-600 font-medium"
+        >
+          {{ erroresCampos.id_sede }}
+        </span>
       </div>
 
       <!-- Selector de Tipo de Cancha / Deporte -->
@@ -193,8 +235,13 @@ function handleGuardar() {
         </label>
         <select
           v-model="form.id_cancha_tipo"
-          required
-          class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#202759]/20 focus:border-[#202759] transition-all"
+          class="w-full px-3 py-2 text-sm bg-slate-50 border rounded-xl focus:bg-white focus:outline-none focus:ring-2 transition-all"
+          :class="[
+            erroresCampos.id_cancha_tipo
+              ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20'
+              : 'border-slate-200 focus:border-[#202759] focus:ring-[#202759]/20',
+          ]"
+          @change="validarCampoIndividual('id_cancha_tipo')"
         >
           <option value="" disabled>Seleccioná el tipo...</option>
           <option
@@ -205,6 +252,12 @@ function handleGuardar() {
             {{ tipo.descripcion || `Tipo #${tipo.id_cancha_tipo}` }}
           </option>
         </select>
+        <span
+          v-if="erroresCampos.id_cancha_tipo"
+          class="text-[11px] text-rose-600 font-medium"
+        >
+          {{ erroresCampos.id_cancha_tipo }}
+        </span>
       </div>
 
       <!-- Costo Base por Hora -->
@@ -213,18 +266,29 @@ function handleGuardar() {
           Costo Base por Hora ($ ARS) <span class="text-[#F96167]">*</span>
         </label>
         <input
-          v-model.number="form.costo_base"
+          v-model="form.costo_base"
           type="number"
           min="1"
           step="100"
           placeholder="Ej: 8500"
-          required
-          class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#202759]/20 focus:border-[#202759] transition-all font-mono"
+          class="w-full px-3 py-2 text-sm bg-slate-50 border rounded-xl focus:bg-white focus:outline-none focus:ring-2 transition-all font-mono"
+          :class="[
+            erroresCampos.costo_base
+              ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20'
+              : 'border-slate-200 focus:border-[#202759] focus:ring-[#202759]/20',
+          ]"
+          @input="limpiarErrorCampo('costo_base')"
+          @blur="validarCampoIndividual('costo_base')"
         />
-        <span class="text-[11px] text-slate-400"
-          >Tarifa de referencia sobre la cual se aplicarán recargos o
-          descuentos.</span
+        <span
+          v-if="erroresCampos.costo_base"
+          class="text-[11px] text-rose-600 font-medium"
         >
+          {{ erroresCampos.costo_base }}
+        </span>
+        <span v-else class="text-[11px] text-slate-400">
+          Tarifa de referencia sobre la cual se aplicarán recargos o descuentos.
+        </span>
       </div>
 
       <!-- Switch de Estado Operativo: Disponible para Reservas -->
@@ -261,7 +325,7 @@ function handleGuardar() {
       <BaseButton
         variant="primary"
         :loading="guardando"
-        :disabled="!formularioValido"
+        :disabled="guardando"
         @click="handleGuardar"
       >
         {{ esEdicion ? 'Actualizar Cancha' : 'Guardar Cancha' }}
