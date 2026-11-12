@@ -210,6 +210,22 @@
 
 ----
 
+#### 07/11/2026
+#### Gonzalo Lima | Rol: Desarrollador Frontend
+
+- **Actividades**:
+  - Descarga segura de comprobantes: se actualizó la vista del historial de pagos para que la descarga de facturas en PDF viaje protegida con la cuenta del usuario, garantizando la privacidad de su información.
+  - Botón para suspender membresía: se agregó el botón "Suspender membresía" con una ventana de confirmación clara. Al suspenderla, se muestra un aviso indicando hasta qué día siguen activos los beneficios y se desactivan los botones de compra para no pagar dos veces.
+- **Decisiones**:
+  - Descargar los comprobantes mediante la sesión activa del usuario para que nadie externo pueda abrirlos.
+  - Desactivar la contratación de planes mientras la membresía suspendida siga vigente para evitar cobros dobles accidentales.
+- **Dificultades**: Ninguna.
+- **Commits**:
+  - `feat(pagos): descargar comprobantes mediante peticion autenticada en historial de pagos`
+  - `feat(membresia): añadir botón para suspender membresía y badge informativos`
+
+----
+
 #### 03/10/2026 - 05/10/2026
 #### Matías Sillen | Rol: Desarrollador Frontend
 
@@ -909,7 +925,7 @@
 ---
 
 #### 03/11/2026
-#### Marcos Caraballo | Rol: Desarrollador Frontend
+#### Marcos Caraballo | Rol: TL - Desarrollador Frontend
 - **Actividades**:
   - Centralización del horario operativo de sedes en `useSedeStore` mediante `obtenerHorarioOperativo` y caché reactiva en memoria (`horariosCache`), evitando estados locales duplicados en vistas.
   - Optimización de carga inicial y eliminación de peticiones redundantes en `CanchasView.vue` controlando la ejecución de los `watch()` mediante un flag de inicialización (`inicializado`).
@@ -929,7 +945,7 @@
 ---
 
 #### 04/11/2026
-#### Marcos Caraballo | Rol: Desarrollador Frontend
+#### Marcos Caraballo | Rol: TL - Desarrollador Frontend
 - **Actividades**:
   - Conexión del cálculo y desglose de tarifas de reservas con el endpoint `GET /canchas/cotizar` del backend en `reservas.service.ts`.
   - Extensión de la interfaz de respuesta `CotizacionTurnoResponse` en `canchas.types.ts` para soportar las validaciones de descuento (`aplica_descuento_socio` y `motivo_sin_descuento`).
@@ -945,6 +961,59 @@
   - Manejo de casos de borde en los que el usuario posee rol de socio pero su sede de afiliación es de otra ciudad o su membresía está inactiva, requiriendo adaptar los estados y textos explicativos sin alterar el flujo habitual de reserva.
 - **Commits:**
 - `feat(M4): interfaz y tipo para endpoint cotizar`
+- `docs(log): actualizacion de bitacora`
+
+---
+
+#### 06/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Frontend
+- **Actividades**:
+  - Suscripción en tiempo real vía Supabase Broadcast (`canchas:sede:${idSede}`) para escuchar eventos `turno_reservado`.
+  - Creación del composable `useCanchasRealtime` con gestión reactiva ante cambio de sedes y desuscripción automática al desmontar.
+  - Procesamiento reactivo en `CanchasView`: actualización de slots en la grilla, deselección y cierre forzado del modal ante reservas concurrentes con Toasts de advertencia.
+  - Manejo de colisión HTTP 409 en `ConfirmarReserva` para forzar cierre, marcar slot reservado y notificar conflicto.
+  - Suite de tests unitarios en `canchas-realtime-concurrencia.spec.ts`.
+- **Decisiones**:
+  - Encapsular el ciclo de vida de los canales realtime en un composable desacoplado de la vista.
+- **Dificultades**: Ninguna
+- **Commits:**
+- `feat(M4): nuevo tipo para el canal realtime`
+- `feat(M4): implementar supabase realtime en canchas`
+- `feat(M4): test de canchas realtime para concurrencia`
+- `docs(log): actualizacion de bitacora`
+
+---
+
+#### 06/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Frontend
+- **Actividades**:
+  - Eliminación definitiva de cálculos estáticos y funciones de mock de feriados (`calcularHorarioOperativo` y `generarSlotsParaCancha`) en `canchas.service.ts`.
+  - Integración de `getDisponibilidadPorSede` con la respuesta unificada del backend, sincronizando el horario operativo en la caché de `useSedeStore` sin peticiones redundantes.
+  - Incorporación de indicadores visuales en `CanchasView.vue` y `GrillaTurnos.vue` para reflejar el estado de horario especial (`es_horario_especial`) y el motivo de cierre oficial (`motivo_cierre`).
+  - Creación de tests unitarios en `canchas-disponibilidad-horario.spec.ts` validando el renderizado de estados cerrados/especiales y la ausencia de slots inventados ante fallos.
+- **Decisiones**:
+  - Establecer el backend (`CalendarioSede`, `Calendario`, `SedeHorario`) como la única fuente de verdad para determinar feriados y horarios de sedes.
+  - Centralizar y reutilizar la caché de horarios en Pinia aprovechando el payload unificado de disponibilidad para optimizar el consumo de red.
+- **Dificultades**: Ninguna
+- **Commits:**
+- `feat(M4): Eliminacion de fallabacks viejos de prueba`
+- `feat(M4): obtencion correcta del horario en cache`
+- `feat(M4): test de disponibilidad horario`
+- `docs(log): actualizacion de bitacora`
+- `style: uso de prettier para el formato`
+
+---
+
+#### 07/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Full Stack
+- **Actividades**:
+  - Ajuste en `DetalleReservaView.vue` para tomar el costo base y calcular el recargo por horario pico directamente desde el objeto `cancha` de la reserva.
+  - Simplificación y limpieza de etiquetas y textos visuales en el desglose de tarifas.
+- **Decisiones**:
+  - Utilizar temporalmente los datos directos de `reserva.cancha` para mostrar tarifas más precisas en la interfaz a la espera de la actualización definitiva del backend.
+- **Dificultades**: Ninguna
+- **Commits:**
+- `fix(M4): simplificar desglose de tarifas en detalle de reserva`
 - `docs(log): actualizacion de bitacora`
 
 ---
@@ -1057,6 +1126,35 @@
 
 ---
 
+#### 10/11/2026
+#### Facundo Agüero | Rol: Desarrollador Frontend
+
+- **Tarea:** Calendario de feriados y excepciones de cada sede para el gerente (parte frontend).
+- **Actividades:**
+  - Pantalla `/gerencia/calendario`, con acceso desde el panel del gerente: grilla del mes de lunes a domingo con los feriados y fechas de toda la cadena y con los cierres u horarios especiales de la sede elegida. Al tocar un día se ve su detalle con las acciones, y debajo de la grilla, la lista de fechas del mes.
+  - La sede del calendario es la del selector del encabezado (store de sedes): si cambia en cualquiera de los dos lugares, se recargan las excepciones.
+  - Alta y edición de feriados en `FeriadoFormModal` (fecha, descripción, feriado y día hábil) y de excepciones en `ExcepcionSedeFormModal` (cierre de todo el día u horario especial con apertura y cierre, y motivo), validados con Zod según los DTO del backend. Las bajas usan `ConfirmarEliminacionModal` y toast; se reutilizan `BaseModal`, `BaseInput`, `BaseButton` y `BaseSkeleton`.
+  - Servicio `calendario.service.ts` para `/calendario` y `/sedes/:id/calendario`, y tipos de las respuestas.
+  - Pruebas con Vitest: carga del mes y marcas de la grilla, cambio de mes y de sede, altas, edición, bajas, validaciones, errores del servidor y acceso a la ruta solo con el rol gerente (guard del router).
+- **Decisiones:**
+  - Cada mes se carga con dos consultas en paralelo (fechas del calendario y excepciones de la sede), porque cada viaje al backend suma tiempo. Si llega tarde la respuesta de un mes o de una sede anteriores, se descarta.
+  - Si se carga un feriado en una fecha que ya existe como día común (el backend la crea al cargar una excepción), se actualiza esa fecha en lugar de crear otra; si ya es un feriado, se pide editarlo.
+  - Si al quitar un feriado alguna sede tiene una excepción ese día, el backend responde 409: la fecha queda como día común, las excepciones se mantienen y el toast lo informa.
+  - Al editar una excepción, la fecha se envía solo si cambió, para ahorrar una consulta.
+  - Después de cada cambio se borran del store los horarios operativos en caché de las fechas tocadas (de todas las sedes si es un feriado, de una sede si es una excepción), para que canchas y clases los vuelvan a pedir.
+  - El acceso por rol se resuelve con la ruta hija de `/gerencia`, que ya exige el rol gerente; además, el backend responde 403 a cualquier otro rol.
+- **Dificultades:**
+  - Un feriado de toda la cadena no cambia por sí solo el horario operativo que consultan canchas y clases: `GET /sedes/:id/horario-operativo` tiene en cuenta las excepciones de cada sede y el horario semanal. El formulario del feriado lo aclara y sugiere cargar una excepción para cerrar la sede; cómo tratar los feriados en ese endpoint queda a definir con su responsable.
+  - En tablet, el selector de sede quedaba cortado a la derecha de la barra del mes; ahora la barra pasa a dos líneas cuando no hay lugar.
+- **Verificación:** 16 archivos y 110 pruebas aprobadas (18 nuevas); typecheck, lint y build aprobados; cada commit compila y pasa sus pruebas. Recorrido visual en navegador con API simulada (escritorio, tablet y celular). Pendiente: recorrido con la cuenta de gerente contra el backend.
+- **Commits:**
+  - `feat(gerencia): agregar vista de calendario con feriados y excepciones por sede`
+  - `feat(gerencia): agregar formularios de feriados y excepciones de sede`
+  - `test(gerencia): agregar pruebas de la vista de calendario`
+  - `docs(log): registrar vista y formularios de calendario`
+
+---
+
 #### 27/10/2026 - 29/10/2026
 
 #### Matías Sillen | Rol: Desarrollador Frontend
@@ -1153,3 +1251,34 @@
 - **Verificación:** 14 suites y 90 pruebas aprobadas al 100%. Typecheck (`vue-tsc -b`), linter (`eslint .`), formateo (`prettier`) y build de producción (`vite build`) exitosos sin errores ni advertencias.
 - **Commits:**
   - `feat(clases): permitir visualizacion a clientes externos y restringir reservas por estado de membresia`
+
+---
+
+#### 10/11/2026
+#### Angelina Vialle | Rol:Desarrolladora Frontend
+
+- **Actividades**:
+  - **Módulo M2 (Accesos - Generación y Validación de QR Offline)**:
+    - Creación del servicio `OfflineValidator` (`offline-validator.ts`): implementación de validación de tokens QR locales mediante la Web Crypto API (`window.crypto.subtle`) con algoritmo HMAC-SHA256, verificando formato, firma de 16 caracteres y ventana de expiración estricta de 60 segundos (+5s de tolerancia).
+    - Soporte offline en `accesos.service.ts`: mecanismo de contingencia ante fallos de red (`ERR_NETWORK` o ausencia de respuesta del servidor) en `obtenerQr`, permitiendo la generación local del token QR con firma HMAC si el socio cuenta con membresía activa y ciudad asignada.
+    - Manejo de egreso offline en `accesos.service.ts`: encolamiento de registros de salida en `localStorage` (`fitzone_offline_queue`) ante caídas de conexión para sincronización posterior.
+    - Adaptación de `ValidacionAcceso.vue`: integración del validador offline en el flujo de recepción al detectar errores de red, simulando la aprobación de acceso local y guardando los ingresos en `localStorage` (`ingresos_pendientes_sync`).
+    - Actualización del store de sedes (`sede.ts`): persistencia y lectura de la propiedad `id_ciudad` en la sede seleccionada para comprobación de alcance geográfico.
+    - Actualización de dependencias y tipados: incorporación de `qrcode.vue` y ampliación de tipos en `accesos.types.ts` (`ApiErrorDto`, `SocioPerfilDto`).
+- **Decisiones**:
+  - **Estrategia para funcionamiento offline del código QR**: En lugar de depender de mecanismos asimétricos complejos o almacenamiento previo de claves públicas, se eligió replicar de forma idéntica el método de generación y verificación en ambos extremos (backend y frontend) utilizando una clave secreta compartida (`VITE_QR_OFFLINE_SECRET`) y el estándar HMAC-SHA256 procesado de manera nativa con la Web Crypto API. Esto asegura que el token generado en el cliente ante la falta de conexión sea indistinguible y verificable tanto por el backend como por el frontend de la sede.
+- **Dificultades**:
+  - **Restricción geográfica en modo offline (evitar accesos en sedes de otra ciudad)**: Al operar desconectado, el frontend no puede consultar la base de datos central para corroborar los alcances del plan del socio. Para evitar que un usuario utilice un QR generado offline para ingresar a una sede de una ciudad distinta a la que le corresponde, se incluyó el identificador de ciudad (`idCiudad`) dentro de la estructura del token (`${userId}.${idCiudad}.${timestamp}.${signature}`). Tanto al generar el QR como al validarlo en recepción, se verifica que la sede pertenezca a la misma ciudad registrada para el socio; si no coinciden, se rechaza la generación y el acceso.
+  - **Dependencia de servidores y servicios de Supabase para validar**: La arquitectura original requería validar y consultar en tiempo real contra los servidores y la base de datos de Supabase/backend, lo cual impedía completamente la operatoria offline en caso de cortes de internet o fallas de conectividad. Para resolverlo, se diseñó un fallback desacoplado que intercepta los errores de red, valida criptográficamente la credencial en local y almacena temporalmente los eventos de acceso en el almacenamiento local del navegador (`localStorage`) para su posterior sincronización diferida.
+- **Commits**:
+  - `build(deps): agregar qrcode.vue`
+  - `fix(M1): remover id hardcodeado en rol`
+  - `feat(store): adicion variable id_ciudad`
+  - `feat(M2): adicion logica para validacion offline y almacenar ingresos offline`
+  - `refactor(M2): mejora mensaje de error`
+  - `feat(M2): adicion funciones para validar qr igual a backend en frontend`
+  - `feat(M2): servicio para manejar validacion offline de qr`
+  - `feat(M2): actualizacion egreso-ingreso, adicion de variables a appierror y a socioperfil`
+  - `docs(log): actualizacion de bitacora`
+  
+  ---

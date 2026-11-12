@@ -1,13 +1,17 @@
 export type TipoOperacion = 'ingreso' | 'egreso'
 
 // DTOs de Request como unión de tipos para soportar QR o DNI
-export type ValidarAccesoRequestDto =
-  | { readonly qrToken: string; readonly id_sede: number }
-  | { readonly dni: string; readonly id_sede: number }
+export type ValidarAccesoRequestDto = {
+  readonly qrToken?: string
+  readonly id_sede: number
+  readonly dni?: string
+}
 
-export type RegistrarEgresoRequestDto =
-  | { readonly qrToken: string; readonly id_sede: number }
-  | { readonly dni: string; readonly id_sede: number }
+export type RegistrarEgresoRequestDto = {
+  readonly qrToken?: string
+  readonly dni?: string
+  readonly id_sede?: number
+}
 
 export interface ValidarAccesoResponseDto {
   readonly exito: boolean
@@ -45,14 +49,24 @@ export interface ApiErrorDto {
   readonly status: number
   readonly detail: string
   readonly instance?: string
+  readonly message?: string | string[]
 }
 
 export interface SocioPerfilDto {
+  readonly apellido?: string
   readonly socioId: string | number
+  readonly email?: string
   readonly nombre: string
   readonly dni: string
   readonly iniciales: string
-  readonly estado: 'ACTIVO' | 'INACTIVO' | 'SUSPENDIDO' | string
+  readonly foto_url?: string | null
+  readonly id_sede?: number
+  readonly id_ciudad?: string | number
+  readonly membresia?: {
+    readonly membresia_estado?: {
+      readonly descripcion?: string
+    }
+  }
 }
 
 export interface AforoResponseDto {

@@ -55,7 +55,11 @@ const franjasHorarias = computed(() => {
     return Array.from(horasSet).sort()
   }
 
-  if (props.horarioOperativo && props.horarioOperativo.abierto) {
+  if (
+    props.horarioOperativo &&
+    (props.horarioOperativo.abierto ||
+      props.horarioOperativo.es_horario_especial)
+  ) {
     const inicio = parseInt(
       props.horarioOperativo.hora_apertura.split(':')[0],
       10
@@ -107,9 +111,20 @@ function formatoMoneda(valor: number): string {
       class="px-5 py-4 border-b border-slate-200 bg-slate-50/60 flex flex-wrap items-center justify-between gap-4"
     >
       <div>
-        <h3 class="text-sm font-bold text-[#202759]">
-          Grilla Horaria de Disponibilidad
-        </h3>
+        <div class="flex items-center gap-2 flex-wrap">
+          <h3 class="text-sm font-bold text-[#202759]">
+            Grilla Horaria de Disponibilidad
+          </h3>
+          <span
+            v-if="
+              horarioOperativo?.es_horario_especial && horarioOperativo?.abierto
+            "
+            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300"
+          >
+            Horario Especial ({{ horarioOperativo.hora_apertura }} a
+            {{ horarioOperativo.hora_cierre }} hs)
+          </span>
+        </div>
         <p class="text-xs text-slate-500 mt-0.5">
           Seleccioná un casillero libre para reservar tu turno en el día.
         </p>
@@ -180,7 +195,11 @@ function formatoMoneda(valor: number): string {
 
     <!-- Estado de Sede Cerrada o Fecha No Programada en Calendario -->
     <div
-      v-else-if="horarioOperativo && !horarioOperativo.abierto"
+      v-else-if="
+        horarioOperativo &&
+        !horarioOperativo.abierto &&
+        !horarioOperativo.es_horario_especial
+      "
       class="p-12 text-center flex flex-col items-center justify-center gap-3"
     >
       <div
