@@ -324,7 +324,7 @@ describe('Dashboard del gerente', () => {
     expect(sur).toContain('bg-amber-50')
   })
 
-  it('ofrece accesos a sedes, calendario, planes, membresías, canchas y reportes', async () => {
+  it('agrupa los accesos por área: sedes, socios, canchas y reportes', async () => {
     servidor()
     const wrapper = await montar()
 
@@ -334,11 +334,17 @@ describe('Dashboard del gerente', () => {
       .filter((enlace) => accesos.contains(enlace.element))
       .map((enlace) => enlace.props('to'))
 
+    expect(
+      wrapper
+        .findAll('[data-testid="grupo-accesos"]')
+        .map((grupo) => grupo.attributes('aria-label'))
+    ).toEqual(['Sedes', 'Socios y membresías', 'Canchas', 'Reportes'])
     expect(destinos).toEqual([
       '/gerencia/sedes',
-      '/gerencia/calendario',
+      '/gerencia/sedes/calendario',
       '/gerencia/planes',
       '/gerencia/membresias',
+      '/gerencia/directorio-usuarios',
       '/gerencia/canchas',
       '/gerencia/reportes',
       '/gerencia/reportes/ocupacion',
