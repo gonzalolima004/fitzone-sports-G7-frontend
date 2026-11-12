@@ -380,7 +380,7 @@ describe('E16-T1: Visualización para externos y restricciones por membresía', 
         },
         global: { plugins: [router] },
       })
-      expect(cardWrapper.text()).toContain('Reservar Lugar')
+      expect(cardWrapper.text()).toContain('Reservar Clase')
     })
   })
 

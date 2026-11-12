@@ -288,6 +288,7 @@ const clasesAgendadas = computed<ClaseCardProps[]>(() => {
       fecha_fin: fechaFinISO,
       profesor: clase.profesor || null,
       sala: clase.sala || null,
+      descripcion: clase.descripcion || null,
       capacidadMaxima: clase.capacidad_maxima,
       cuposOcupados: clase.cupos_ocupados,
       cuposDisponibles: clase.cupos_disponibles,
@@ -310,36 +311,72 @@ const clasesAgendadas = computed<ClaseCardProps[]>(() => {
 
 // Escuchar cambios en tiempo real desde Supabase para aviso de vacantes
 let vacantesSubscription: ReturnType<typeof supabase.channel> | null = null
+// Suscripción para actualizar cupos en la agenda en vivo
+let cuposSubscription: ReturnType<typeof supabase.channel> | null = null
+let timerCupos: ReturnType<typeof setTimeout> | null = null
 
 function setupRealtimeNotifications() {
-  if (!authStore.usuario?.id) return
+  // 1. Notificación personal para socios en lista de espera
+  if (authStore.usuario?.id && !vacantesSubscription) {
+    vacantesSubscription = supabase
+      .channel('lista-espera-vacantes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'clase_lista_espera',
+          filter: `id_usuario=eq.${authStore.usuario.id}`,
+        },
+        (payload: { new: Record<string, unknown> }) => {
+          const newData = payload.new as {
+            id_clase_lista_espera_estado: number
+          }
+          // Estado 1 = En Espera, 2 = Notificado / Promovido
+          if (newData.id_clase_lista_espera_estado === 2) {
+            toast.success(
+              `¡Se liberó un lugar en tu clase! La vacante fue confirmada a tu favor. Tenés 4 horas para asistir — verificá tu reserva en la agenda.`,
+              { autoClose: false }
+            )
+            cargarClases(true)
+          }
+        }
+      )
+      .subscribe()
+  }
 
-  vacantesSubscription = supabase
-    .channel('lista-espera-vacantes')
-    .on(
-      'postgres_changes',
-      {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'clase_lista_espera',
-        filter: `id_usuario=eq.${authStore.usuario.id}`,
-      },
-      (payload: { new: Record<string, unknown> }) => {
-        const newData = payload.new as {
-          id_clase_lista_espera_estado: number
+  // 2. Suscripción Realtime a reservas para actualizar cupos disponibles en vivo (para cualquier usuario)
+  if (!cuposSubscription) {
+    cuposSubscription = supabase
+      .channel('cupos-agenda-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'clase_reserva',
+        },
+        () => {
+          // Debounce para mitigar ráfagas de eventos concurrentes sin saturar la red
+          if (timerCupos) clearTimeout(timerCupos)
+          timerCupos = setTimeout(() => {
+            cargarClases(true)
+          }, 150)
         }
-        // Estado 1 = En Espera, 2 = Notificado / Promovido
-        if (newData.id_clase_lista_espera_estado === 2) {
-          toast.success(
-            `¡Se ha liberado un lugar en tu clase! Se te ha asignado y confirmado la vacante automáticamente.`,
-            { autoClose: false }
-          )
-          cargarClases()
-        }
-      }
-    )
-    .subscribe()
+      )
+      .subscribe()
+  }
 }
+
+// Re-vincular notificaciones de vacantes si el usuario se autentica después del montaje inicial
+watch(
+  () => authStore.usuario?.id,
+  (nuevoId) => {
+    if (nuevoId) {
+      setupRealtimeNotifications()
+    }
+  }
+)
 
 onMounted(() => {
   if (!fechaSeleccionada.value) {
@@ -354,8 +391,14 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  if (timerCupos) {
+    clearTimeout(timerCupos)
+  }
   if (vacantesSubscription) {
     supabase.removeChannel(vacantesSubscription)
+  }
+  if (cuposSubscription) {
+    supabase.removeChannel(cuposSubscription)
   }
 })
 
@@ -381,10 +424,19 @@ watch(fechaSeleccionada, (nuevaFecha) => {
   }
 })
 
-async function cargarClases() {
+// Control de peticiones concurrentes para descartar respuestas desfasadas
+let idCargaActual = 0
+
+async function cargarClases(silencioso = false) {
   if (!sedeStore.idSedeSeleccionada) return
-  cargando.value = true
+  const idCarga = ++idCargaActual
+
+  // Solo activar skeleton si no hay datos o no es una actualización silenciosa de fondo
+  if (!silencioso || clases.value.length === 0) {
+    cargando.value = true
+  }
   error.value = null
+
   try {
     const promises: [
       Promise<ClaseAgendaResponse[]>,
@@ -406,29 +458,42 @@ async function cargarClases() {
             .obtenerMisInscripciones(fechaSeleccionada.value)
             .catch(() => [])
         : Promise.resolve([]),
-      clasesService
-        .obtenerHorarioOperativoSede(
-          sedeStore.idSedeSeleccionada,
-          fechaSeleccionada.value
-        )
-        .catch(() => null),
+      sedeStore.obtenerHorarioOperativo
+        ? (
+            sedeStore.obtenerHorarioOperativo(
+              sedeStore.idSedeSeleccionada,
+              fechaSeleccionada.value
+            ) as Promise<HorarioOperativoSedeResponse>
+          ).catch(() => null)
+        : clasesService
+            .obtenerHorarioOperativoSede(
+              sedeStore.idSedeSeleccionada,
+              fechaSeleccionada.value
+            )
+            .catch(() => null),
     ]
 
     const [agendaData, reservasData, inscripcionesData, horarioData] =
       await Promise.all(promises)
+
+    // Si otra petición se completó después o cambió la fecha/sede, descartar
+    if (idCarga !== idCargaActual) return
 
     clases.value = agendaData
     misReservas.value = reservasData
     misInscripciones.value = inscripcionesData
     horarioSede.value = horarioData
   } catch (err: unknown) {
+    if (idCarga !== idCargaActual) return
     if (axios.isAxiosError(err)) {
       error.value = err.response?.data?.message || 'Error al cargar las clases.'
     } else {
       error.value = 'Error al cargar las clases.'
     }
   } finally {
-    cargando.value = false
+    if (idCarga === idCargaActual) {
+      cargando.value = false
+    }
   }
 }
 
@@ -532,11 +597,38 @@ async function confirmarReserva() {
 
   reservando.value = true
   try {
-    await clasesService.reservarClase({
+    const res = await clasesService.reservarClase({
       id_clase: claseAReservar.value.id,
       fecha_inicio: claseAReservar.value.fecha_inicio,
       fecha_fin: claseAReservar.value.fecha_fin,
     })
+
+    // Actualización optimista inmediata en memoria para respuesta instantánea
+    const targetId = claseAReservar.value.id
+    const cIdx = clases.value.findIndex((c) => c.id_clase === targetId)
+    if (cIdx !== -1) {
+      clases.value[cIdx] = {
+        ...clases.value[cIdx],
+        cupos_disponibles: Math.max(
+          0,
+          clases.value[cIdx].cupos_disponibles - 1
+        ),
+        cupos_ocupados: clases.value[cIdx].cupos_ocupados + 1,
+      }
+    }
+    const idRes = res?.id_clase_reserva || res?.id_reserva
+    if (idRes) {
+      misReservas.value.push({
+        id_clase_reserva: idRes,
+        id_clase: targetId,
+        id_usuario: authStore.usuario?.id || 0,
+        fecha_inicio: claseAReservar.value.fecha_inicio || '',
+        fecha_fin: claseAReservar.value.fecha_fin || '',
+        id_clase_reserva_estado: 1,
+        estado: 'CONFIRMADA',
+        nombre_clase: claseAReservar.value.nombre,
+      })
+    }
 
     toast.success(`Reserva confirmada para ${claseAReservar.value.nombre}`)
     modalReservaVisible.value = false
@@ -556,7 +648,7 @@ async function confirmarReserva() {
     }
   } finally {
     reservando.value = false
-    await cargarClases()
+    await cargarClases(true)
   }
 }
 
@@ -641,6 +733,30 @@ async function confirmarListaEspera() {
       fecha_fin: claseAEsperar.value.fecha_fin,
     })
 
+    // Actualización optimista inmediata
+    const targetId = claseAEsperar.value.id
+    const cIdx = clases.value.findIndex((c) => c.id_clase === targetId)
+    if (cIdx !== -1) {
+      clases.value[cIdx] = {
+        ...clases.value[cIdx],
+        en_espera: (clases.value[cIdx].en_espera || 0) + 1,
+      }
+    }
+    const idLista = res?.inscripcion?.id_clase_lista_espera || res?.id_lista
+    if (idLista) {
+      misInscripciones.value.push({
+        id_clase_lista_espera: idLista,
+        id_clase: targetId,
+        id_usuario: authStore.usuario?.id || 0,
+        fecha_inicio: claseAEsperar.value.fecha_inicio || '',
+        fecha_fin: claseAEsperar.value.fecha_fin || '',
+        orden_en_cola: res.orden_en_cola || 1,
+        id_clase_lista_espera_estado: 1,
+        estado: 'ACTIVA',
+        nombre_clase: claseAEsperar.value.nombre,
+      })
+    }
+
     const orden = res.orden_en_cola ? ` (Posición #${res.orden_en_cola})` : ''
     toast.success(
       `Estás en lista de espera para ${claseAEsperar.value.nombre}${orden}`
@@ -661,7 +777,7 @@ async function confirmarListaEspera() {
     }
   } finally {
     esperando.value = false
-    await cargarClases()
+    await cargarClases(true)
   }
 }
 
@@ -699,6 +815,24 @@ async function confirmarCancelacion() {
   cancelando.value = true
   try {
     await clasesService.cancelarReserva(idReserva)
+
+    // Actualización optimista de cupos y reservas
+    const targetId = claseACancelar.value.id
+    const cIdx = clases.value.findIndex((c) => c.id_clase === targetId)
+    if (cIdx !== -1) {
+      clases.value[cIdx] = {
+        ...clases.value[cIdx],
+        cupos_disponibles: Math.min(
+          clases.value[cIdx].capacidad_maxima,
+          clases.value[cIdx].cupos_disponibles + 1
+        ),
+        cupos_ocupados: Math.max(0, clases.value[cIdx].cupos_ocupados - 1),
+      }
+    }
+    misReservas.value = misReservas.value.filter(
+      (r) => r.id_clase_reserva !== idReserva
+    )
+
     toast.info(`Reserva de ${claseACancelar.value.nombre} cancelada.`)
     modalCancelacionVisible.value = false
   } catch (err: unknown) {
@@ -710,7 +844,7 @@ async function confirmarCancelacion() {
     }
   } finally {
     cancelando.value = false
-    await cargarClases()
+    await cargarClases(true)
   }
 }
 
@@ -962,7 +1096,7 @@ async function confirmarEliminacion() {
         <div class="flex items-center gap-2 self-end sm:self-auto">
           <!-- Botón Volver a Hoy -->
           <button
-            class="px-3.5 py-1.5 text-xs font-bold rounded-xl border border-slate-200 text-slate-600 hover:text-rose-500 hover:border-rose-200 transition-all active:scale-95 bg-slate-50"
+            class="px-3.5 py-1.5 text-xs font-bold rounded-xl border border-slate-200 text-slate-600 hover:text-rose-500 hover:border-rose-200 transition-all active:scale-95 bg-slate-50 cursor-pointer"
             @click="irAHoy"
           >
             Hoy
@@ -970,7 +1104,7 @@ async function confirmarEliminacion() {
 
           <!-- Flecha Día Anterior -->
           <button
-            class="p-2 rounded-xl border border-slate-200 text-slate-600 hover:text-rose-500 hover:border-rose-200 transition-all active:scale-95 bg-white"
+            class="p-2 rounded-xl border border-slate-200 text-slate-600 hover:text-rose-500 hover:border-rose-200 transition-all active:scale-95 bg-white cursor-pointer"
             title="Día anterior"
             @click="cambiarDia(-1)"
           >
@@ -979,7 +1113,7 @@ async function confirmarEliminacion() {
 
           <!-- Flecha Día Siguiente -->
           <button
-            class="p-2 rounded-xl border border-slate-200 text-slate-600 hover:text-rose-500 hover:border-rose-200 transition-all active:scale-95 bg-white"
+            class="p-2 rounded-xl border border-slate-200 text-slate-600 hover:text-rose-500 hover:border-rose-200 transition-all active:scale-95 bg-white cursor-pointer"
             title="Día siguiente"
             @click="cambiarDia(1)"
           >
@@ -991,7 +1125,7 @@ async function confirmarEliminacion() {
       <!-- Tira interactiva de 7 días con navegación semanal -->
       <div class="flex items-center gap-2">
         <button
-          class="p-2.5 rounded-2xl border border-slate-200 text-slate-500 hover:text-rose-500 hover:border-rose-200 transition-all active:scale-95 bg-slate-50 hidden sm:flex items-center justify-center shrink-0"
+          class="p-2.5 rounded-2xl border border-slate-200 text-slate-500 hover:text-rose-500 hover:border-rose-200 transition-all active:scale-95 bg-slate-50 hidden sm:flex items-center justify-center shrink-0 cursor-pointer"
           title="Semana anterior"
           @click="cambiarSemana(-1)"
         >
@@ -1005,7 +1139,7 @@ async function confirmarEliminacion() {
             v-for="dia in diasVisibles"
             :key="dia.fechaISO"
             :class="[
-              'flex flex-col items-center justify-center py-3 px-2 rounded-2xl transition-all duration-200 border relative select-none',
+              'flex flex-col items-center justify-center py-3 px-2 rounded-2xl transition-all duration-200 border relative select-none cursor-pointer',
               fechaSeleccionada === dia.fechaISO
                 ? 'bg-rose-500 text-white border-rose-500 shadow-md shadow-rose-200 scale-102 font-bold'
                 : 'bg-slate-50/70 text-slate-600 border-slate-100 hover:bg-rose-50/50 hover:border-rose-200 hover:text-rose-500',
@@ -1040,7 +1174,7 @@ async function confirmarEliminacion() {
         </div>
 
         <button
-          class="p-2.5 rounded-2xl border border-slate-200 text-slate-500 hover:text-rose-500 hover:border-rose-200 transition-all active:scale-95 bg-slate-50 hidden sm:flex items-center justify-center shrink-0"
+          class="p-2.5 rounded-2xl border border-slate-200 text-slate-500 hover:text-rose-500 hover:border-rose-200 transition-all active:scale-95 bg-slate-50 hidden sm:flex items-center justify-center shrink-0 cursor-pointer"
           title="Semana siguiente"
           @click="cambiarSemana(1)"
         >
@@ -1089,8 +1223,8 @@ async function confirmarEliminacion() {
       </h3>
       <p class="text-rose-600 font-medium mb-6 max-w-md mx-auto">{{ error }}</p>
       <button
-        class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-md active:scale-95"
-        @click="cargarClases"
+        class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
+        @click="() => cargarClases()"
       >
         Volver a intentar
       </button>
@@ -1119,7 +1253,7 @@ async function confirmarEliminacion() {
         cronograma.
       </p>
       <button
-        class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-md active:scale-95 text-sm"
+        class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-md active:scale-95 text-sm cursor-pointer"
         @click="irAHoy"
       >
         Volver a hoy

@@ -31,6 +31,7 @@ export interface ClaseCardProps {
   fecha_fin?: string
   profesor?: string | null
   sala?: string | null
+  descripcion?: string | null
   capacidadMaxima: number
   cuposOcupados: number
   cuposDisponibles?: number
@@ -191,6 +192,12 @@ const estadoVentana = computed(() => {
         {{ clase.profesor || 'Sin profesor asignado' }} &middot;
         {{ clase.sala || 'Sala no especificada' }}
       </p>
+      <p
+        v-if="clase.descripcion"
+        class="text-xs text-slate-400 mt-2 line-clamp-2 leading-relaxed"
+      >
+        {{ clase.descripcion }}
+      </p>
     </div>
 
     <!-- Progreso y Cupos -->
@@ -335,15 +342,10 @@ const estadoVentana = computed(() => {
     <!-- 6. Si está disponible para reservar dentro de la ventana de 48 hs -->
     <button
       v-else-if="!estaCompleto"
-      class="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition-all active:scale-95 text-white shadow-md cursor-pointer"
-      :class="
-        clase.tipo.includes('CROSSFIT') || clase.tipo.includes('FUNCIONAL')
-          ? 'bg-slate-800 hover:bg-slate-700 shadow-slate-200'
-          : 'bg-rose-500 hover:bg-rose-600 shadow-rose-200'
-      "
+      class="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition-all active:scale-95 text-white shadow-md cursor-pointer bg-[#202759] hover:bg-[#161b3d] shadow-slate-300/50"
       @click="emit('reservar', clase.id)"
     >
-      Reservar Lugar
+      Reservar Clase
     </button>
 
     <!-- 7. Si está completo pero dentro de la ventana de 48 hs para lista de espera -->
