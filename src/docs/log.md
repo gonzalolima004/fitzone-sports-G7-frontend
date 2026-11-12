@@ -1199,3 +1199,32 @@
 - `feat(M2): correciones para agregar la opcion de ingresar por DNI`
 - `feat(M2): adicion de acceso en barra lateral`
 - `actualizacion index`
+
+---
+
+#### 10/11/2026
+#### Angelina Vialle | Rol:Desarrolladora Frontend
+
+- **Actividades**:
+  - **Módulo M2 (Accesos - Generación y Validación de QR Offline)**:
+    - Creación del servicio `OfflineValidator` (`offline-validator.ts`): implementación de validación de tokens QR locales mediante la Web Crypto API (`window.crypto.subtle`) con algoritmo HMAC-SHA256, verificando formato, firma de 16 caracteres y ventana de expiración estricta de 60 segundos (+5s de tolerancia).
+    - Soporte offline en `accesos.service.ts`: mecanismo de contingencia ante fallos de red (`ERR_NETWORK` o ausencia de respuesta del servidor) en `obtenerQr`, permitiendo la generación local del token QR con firma HMAC si el socio cuenta con membresía activa y ciudad asignada.
+    - Manejo de egreso offline en `accesos.service.ts`: encolamiento de registros de salida en `localStorage` (`fitzone_offline_queue`) ante caídas de conexión para sincronización posterior.
+    - Adaptación de `ValidacionAcceso.vue`: integración del validador offline en el flujo de recepción al detectar errores de red, simulando la aprobación de acceso local y guardando los ingresos en `localStorage` (`ingresos_pendientes_sync`).
+    - Actualización del store de sedes (`sede.ts`): persistencia y lectura de la propiedad `id_ciudad` en la sede seleccionada para comprobación de alcance geográfico.
+    - Actualización de dependencias y tipados: incorporación de `qrcode.vue` y ampliación de tipos en `accesos.types.ts` (`ApiErrorDto`, `SocioPerfilDto`).
+- **Decisiones**:
+  - **Estrategia para funcionamiento offline del código QR**: En lugar de depender de mecanismos asimétricos complejos o almacenamiento previo de claves públicas, se eligió replicar de forma idéntica el método de generación y verificación en ambos extremos (backend y frontend) utilizando una clave secreta compartida (`VITE_QR_OFFLINE_SECRET`) y el estándar HMAC-SHA256 procesado de manera nativa con la Web Crypto API. Esto asegura que el token generado en el cliente ante la falta de conexión sea indistinguible y verificable tanto por el backend como por el frontend de la sede.
+- **Dificultades**:
+  - **Restricción geográfica en modo offline (evitar accesos en sedes de otra ciudad)**: Al operar desconectado, el frontend no puede consultar la base de datos central para corroborar los alcances del plan del socio. Para evitar que un usuario utilice un QR generado offline para ingresar a una sede de una ciudad distinta a la que le corresponde, se incluyó el identificador de ciudad (`idCiudad`) dentro de la estructura del token (`${userId}.${idCiudad}.${timestamp}.${signature}`). Tanto al generar el QR como al validarlo en recepción, se verifica que la sede pertenezca a la misma ciudad registrada para el socio; si no coinciden, se rechaza la generación y el acceso.
+  - **Dependencia de servidores y servicios de Supabase para validar**: La arquitectura original requería validar y consultar en tiempo real contra los servidores y la base de datos de Supabase/backend, lo cual impedía completamente la operatoria offline en caso de cortes de internet o fallas de conectividad. Para resolverlo, se diseñó un fallback desacoplado que intercepta los errores de red, valida criptográficamente la credencial en local y almacena temporalmente los eventos de acceso en el almacenamiento local del navegador (`localStorage`) para su posterior sincronización diferida.
+- **Commits**:
+  - `build(deps): agregar qrcode.vue`
+  - `fix(M1): remover id hardcodeado en rol`
+  - `feat(store): adicion variable id_ciudad`
+  - `feat(M2): adicion logica para validacion offline y almacenar ingresos offline`
+  - `refactor(M2): mejora mensaje de error`
+  - `feat(M2): adicion funciones para validar qr igual a backend en frontend`
+  - `feat(M2): servicio para manejar validacion offline de qr`
+  - `feat(M2): actualizacion egreso-ingreso, adicion de variables a appierror y a socioperfil`
+  - `docs(log): actualizacion de bitacora`

@@ -20,6 +20,7 @@ import BaseInput from '@/common/components/BaseInput.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import { Html5Qrcode } from 'html5-qrcode'
 import axios from 'axios'
+import { OfflineValidator } from '../services/offline-validator'
 
 const sedeStore = useSedeStore()
 
@@ -75,38 +76,72 @@ const handleIngreso = async (tokenAValidar?: string): Promise<void> => {
 
   try {
     const idSede = sedeStore.idSedeSeleccionada
-
-    if (idSede == null) {
+    if (idSede == null)
       throw new Error('No se ha seleccionado una sede válida.')
-    }
 
-    // Enviamos el payload dependiendo si es QR o DNI
+    // 1. Intentar primero la validación online normal contra la API
     const payload = isDniMode
       ? { dni: valorFinal.trim(), id_sede: idSede }
       : { qrToken: valorFinal.trim(), id_sede: idSede }
-
     const respuesta = await accesosService.validarAcceso(payload)
     resultadoValidacion.value = respuesta
   } catch (error: unknown) {
+    // 2. MODO OFFLINE: Si falla la red o el servidor no responde, evaluamos si es un QR y aplicamos validación local
+    const isNetworkError =
+      axios.isAxiosError(error) &&
+      (!error.response || error.code === 'ERR_NETWORK')
+
+    if (isNetworkError && !isDniMode) {
+      const sedeActual = sedeStore.sedeSeleccionada as {
+        id_sede?: number
+        id_ciudad?: number
+      }
+      const idCiudadSedeActual = sedeActual?.id_ciudad
+      const resultadoLocal = await OfflineValidator.validarTokenLocal(
+        valorFinal.trim(),
+        Number(idCiudadSedeActual)
+      )
+
+      if (resultadoLocal.valido) {
+        // Simulamos la respuesta respetando estrictamente las propiedades del DTO de socio
+        resultadoValidacion.value = {
+          exito: true,
+          mensaje:
+            '¡Acceso Aprobado [MODO OFFLINE SUCURSAL] - ${idCiudadSedeActual}]!',
+          socio: {
+            id: Number(resultadoLocal.userId),
+            nombre: 'Socio (Validado Offline)',
+            apellido: '',
+            dni: 'Verificado localmente',
+          },
+        }
+        guardarIngresoPendienteSincronizacion({
+          userId: resultadoLocal.userId,
+          fecha: new Date(),
+          sede: sedeStore.idSedeSeleccionada,
+        })
+        return
+      } else {
+        errorMensaje.value = `[Offline] ${resultadoLocal.mensaje}`
+        return
+      }
+    }
+
+    // Si no fue error de red, mostramos el error normal de la API (ej. 403 Mora)
     if (axios.isAxiosError<ApiErrorDto>(error) && error.response) {
       const data = error.response.data as {
         message?: string | string[]
         detail?: string
         title?: string
       }
-
       const rawMessage =
         data?.message ||
         data?.detail ||
         data?.title ||
         'Ocurrió un error en el servidor.'
-
-      // Si el mensaje viene como un array (ej. validaciones de class-validator de NestJS), lo unimos en un texto plano
-      if (Array.isArray(rawMessage)) {
-        errorMensaje.value = rawMessage.join('. ')
-      } else {
-        errorMensaje.value = rawMessage
-      }
+      errorMensaje.value = Array.isArray(rawMessage)
+        ? rawMessage.join('. ')
+        : rawMessage
     } else if (error instanceof Error) {
       errorMensaje.value = `Error de conexión: ${error.message}`
     } else {
@@ -116,6 +151,15 @@ const handleIngreso = async (tokenAValidar?: string): Promise<void> => {
   } finally {
     isLoading.value = false
   }
+}
+
+// Función auxiliar para almacenar ingresos locales pendientes
+function guardarIngresoPendienteSincronizacion(datos: unknown) {
+  const pendientes = JSON.parse(
+    localStorage.getItem('ingresos_pendientes_sync') || '[]'
+  )
+  pendientes.push(datos)
+  localStorage.setItem('ingresos_pendientes_sync', JSON.stringify(pendientes))
 }
 
 // Acción de Registrar Egreso (soporta QR o DNI)
@@ -136,11 +180,18 @@ const handleEgreso = async (tokenAValidar?: string): Promise<void> => {
   limpiarEstados()
 
   try {
+    const idSede = sedeStore.idSedeSeleccionada
+    if (idSede == null) {
+      errorMensaje.value =
+        'Debe seleccionar una sede activa antes de registrar el egreso.'
+      return
+    }
+
     const payload = isDniMode
-      ? { dni: valorFinal.trim(), id_sede: sedeStore.idSedeSeleccionada ?? 1 }
+      ? { dni: valorFinal.trim(), id_sede: idSede }
       : {
           qrToken: valorFinal.trim(),
-          id_sede: sedeStore.idSedeSeleccionada ?? 1,
+          id_sede: idSede,
         }
 
     await accesosService.registrarEgreso(payload)
@@ -197,7 +248,7 @@ const detenerEscaneoCamara = async (): Promise<void> => {
       await html5QrCode.stop()
       html5QrCode.clear()
     } catch (err) {
-      console.warn('Advertencia al detener la cámara:', err)
+      console.warn('Error al detener la cámara:', err)
     }
   }
   escaneandoActivo.value = false

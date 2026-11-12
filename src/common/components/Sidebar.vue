@@ -13,6 +13,8 @@ import {
   PhUser,
   PhSignOut,
   PhX,
+  PhUserCheck,
+  PhAddressBook,
 } from '@phosphor-icons/vue'
 import { useAuthStore, type RolUsuario } from '../../store/auth'
 
@@ -40,10 +42,16 @@ const todasLasSecciones: NavSection[] = [
     titulo: 'OPERACIONES',
     items: [
       {
+        nombre: 'Recepcion',
+        ruta: '/recepcion',
+        icono: 'recepcion-icon',
+        roles: ['recepcionista'],
+      },
+      {
         nombre: 'Dashboard',
         ruta: '/inicio',
         icono: 'grid',
-        roles: ['socio', 'recepcionista', 'gerente'],
+        roles: ['socio'],
       },
       {
         nombre: 'Clases Grupales',
@@ -67,7 +75,7 @@ const todasLasSecciones: NavSection[] = [
         nombre: 'Control de Aforo',
         ruta: '/aforo',
         icono: 'users',
-        roles: ['recepcionista', 'gerente'],
+        roles: ['gerente'],
       },
     ],
   },
@@ -75,15 +83,9 @@ const todasLasSecciones: NavSection[] = [
     titulo: 'ADMINISTRACIÓN',
     items: [
       {
-        nombre: 'Recepcion',
-        ruta: '/recepcion',
-        icono: 'users-directory',
-        roles: ['gerente', 'recepcionista'],
-      },
-      {
         nombre: 'Directorio de Usuarios',
         ruta: '/gerencia/directorio-usuarios',
-        icono: 'users-directory',
+        icono: 'directorio-icon',
         roles: ['gerente'],
       },
       {
@@ -236,6 +238,30 @@ async function cerrarSesion() {
                   v-else-if="item.icono === 'qr'"
                   class="w-5 h-5 flex-shrink-0"
                   :weight="route.path === item.ruta ? 'bold' : 'regular'"
+                />
+                <!--  Ícono exclusivo para Recepción  -->
+                <PhUserCheck
+                  v-else-if="item.icono === 'recepcion-icon'"
+                  class="w-5 h-5 flex-shrink-0"
+                  :weight="
+                    route.path === item.ruta ||
+                    (item.ruta !== '/' &&
+                      route.path.startsWith(item.ruta + '/'))
+                      ? 'bold'
+                      : 'regular'
+                  "
+                />
+                <!-- Ícono exclusivo para Directorio de Usuarios -->
+                <PhAddressBook
+                  v-else-if="item.icono === 'directorio-icon'"
+                  class="w-5 h-5 flex-shrink-0"
+                  :weight="
+                    route.path === item.ruta ||
+                    (item.ruta !== '/' &&
+                      route.path.startsWith(item.ruta + '/'))
+                      ? 'bold'
+                      : 'regular'
+                  "
                 />
                 <PhUsers
                   v-else-if="item.icono === 'users'"
