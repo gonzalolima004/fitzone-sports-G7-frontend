@@ -38,6 +38,9 @@ describe('Sidebar: ítem activo del gerente', () => {
     expect(await itemsActivosEn('/gerencia/reportes/ocupacion')).toEqual([
       'Panel de gerencia',
     ])
+    expect(await itemsActivosEn('/gerencia/calendario')).toEqual([
+      'Panel de gerencia',
+    ])
   })
 
   it('marca solo Gestión de Canchas en /gerencia/canchas', async () => {

@@ -81,11 +81,10 @@ function normalizarEstado(
   return 'pendiente'
 }
 
-function descargarComprobante(idPago: number) {
+async function descargarComprobante(idPago: number) {
   try {
-    const url = pagosService.getComprobanteUrl(idPago)
-    const win = window.open(url, '_blank')
-    if (!win) {
+    const abierto = await pagosService.abrirComprobante(idPago)
+    if (!abierto) {
       toast.warn(
         'Por favor habilitá las ventanas emergentes para ver el comprobante'
       )

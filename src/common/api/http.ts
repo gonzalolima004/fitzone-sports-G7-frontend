@@ -36,6 +36,9 @@ http.interceptors.request.use(
 http.interceptors.response.use(
   (response) => response,
   async (error) => {
+    if (!error.response) {
+      return Promise.reject(error)
+    }
     const status = error.response?.status
     const message =
       error.response?.data?.message || error.message || 'Error de conexión'
