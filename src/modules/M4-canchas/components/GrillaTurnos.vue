@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { obtenerFechaHoyLocal } from '@/common/utils/date'
+import {
+  calcularEsSlotPasado,
+  generarFranjasHorarias,
+  formatoMoneda,
+} from '@/modules/M4-canchas/utils/canchas-horarios.utils'
 import type {
   Cancha,
   TurnoSlot,
@@ -26,14 +30,7 @@ const emit = defineEmits<{
 
 // Comprueba si un slot ya transcurrió en el tiempo para el día actual
 function esSlotPasado(slot: TurnoSlot): boolean {
-  const hoyRef = props.fechaHoy || obtenerFechaHoyLocal()
-  if (props.fecha < hoyRef) return true
-  if (props.fecha === hoyRef) {
-    const ahora = new Date()
-    const horaActual = `${ahora.getHours().toString().padStart(2, '0')}:${ahora.getMinutes().toString().padStart(2, '0')}`
-    return slot.hora_inicio <= horaActual
-  }
-  return false
+  return calcularEsSlotPasado(props.fecha, slot.hora_inicio, props.fechaHoy)
 }
 
 // Lista dinámica de horas según los slots de la sede y fecha (SedeHorario y Calendario)
@@ -60,16 +57,10 @@ const franjasHorarias = computed(() => {
     (props.horarioOperativo.abierto ||
       props.horarioOperativo.es_horario_especial)
   ) {
-    const inicio = parseInt(
-      props.horarioOperativo.hora_apertura.split(':')[0],
-      10
+    return generarFranjasHorarias(
+      props.horarioOperativo.hora_apertura,
+      props.horarioOperativo.hora_cierre
     )
-    const fin = parseInt(props.horarioOperativo.hora_cierre.split(':')[0], 10)
-    const res: string[] = []
-    for (let h = inicio; h < fin; h++) {
-      res.push(`${h.toString().padStart(2, '0')}:00`)
-    }
-    return res
   }
   return []
 })
@@ -91,14 +82,6 @@ function esSlotSeleccionado(canchaId: number, slot: TurnoSlot): boolean {
 function handleSlotClick(cancha: Cancha, slot: TurnoSlot) {
   if (esSlotPasado(slot) || slot.estado !== 'DISPONIBLE') return
   emit('seleccionarTurno', { cancha, slot })
-}
-
-function formatoMoneda(valor: number): string {
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    maximumFractionDigits: 0,
-  }).format(valor)
 }
 </script>
 

@@ -73,7 +73,7 @@ export const reservasService = {
 
   /**
    * Obtiene el detalle de una reserva de cancha por ID
-   * Consume GET /reservas-canchas/:id con fallback resiliente para testing.
+   * Consume GET /reservas-canchas/:id
    */
   async obtenerReservaPorId(id: number): Promise<DetalleReservaCancha> {
     try {
@@ -82,16 +82,6 @@ export const reservasService = {
       )
       return response.data
     } catch (err) {
-      // Si el endpoint no responde, verificar si la reserva fue creada en la sesión actual
-      try {
-        const raw = localStorage.getItem(`fitzone_reserva_${id}`)
-        if (raw) {
-          return JSON.parse(raw) as DetalleReservaCancha
-        }
-      } catch (e) {
-        console.warn('Error al leer reserva de localStorage:', e)
-      }
-
       console.warn(
         `No se pudo obtener la reserva #${id} desde el backend HTTP:`,
         err
