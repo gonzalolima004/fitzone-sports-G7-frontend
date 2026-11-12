@@ -214,9 +214,10 @@ async function sincronizarRolSocio() {
       })
     }
   } catch {
-    if (authStore.rol === 'externo') {
+    const usuarioActual = authStore.usuario
+    if (authStore.rol === 'externo' && usuarioActual) {
       authStore.setPerfilInterno({
-        ...authStore.usuario,
+        ...usuarioActual,
         rol: 'socio',
       })
     }

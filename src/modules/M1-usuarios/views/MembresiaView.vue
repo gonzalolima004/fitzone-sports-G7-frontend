@@ -49,10 +49,13 @@ const sincronizarRolSocio = async () => {
       })
     }
   } catch {
-    authStore.setPerfilInterno({
-      ...authStore.usuario,
-      rol: 'socio',
-    })
+    const usuarioActual = authStore.usuario
+    if (usuarioActual) {
+      authStore.setPerfilInterno({
+        ...usuarioActual,
+        rol: 'socio',
+      })
+    }
   }
 }
 
