@@ -15,6 +15,7 @@ import {
   PhMedal,
   PhWarningCircle,
   PhArrowRight,
+  PhMapPin,
 } from '@phosphor-icons/vue'
 import { useSedeStore } from '@/store/sede'
 import axios from 'axios'
@@ -86,12 +87,46 @@ const sinMembresia = computed(
     )
 )
 
+// Validación de concordancia de ciudad entre la sede del socio y la sede de la clase
+const idSedeSocio = computed<number | undefined>(() => {
+  return (
+    authStore.usuario?.id_sede || authStore.usuario?.sede?.id_sede || undefined
+  )
+})
+
+const sedeSocio = computed(() => {
+  if (!idSedeSocio.value) return authStore.usuario?.sede
+  return (
+    sedeStore.sedes?.find((s) => s.id_sede === idSedeSocio.value) ||
+    authStore.usuario?.sede
+  )
+})
+
+const idCiudadSocio = computed<number | undefined>(() => {
+  return (
+    authStore.usuario?.sede?.id_ciudad ??
+    sedeSocio.value?.id_ciudad ??
+    undefined
+  )
+})
+
+const idCiudadSedeSeleccionada = computed<number | undefined>(() => {
+  return sedeStore.sedeSeleccionada?.id_ciudad
+})
+
+const esCiudadDiferente = computed<boolean>(() => {
+  if (!esSocio.value) return false
+  if (!idCiudadSocio.value || !idCiudadSedeSeleccionada.value) return false
+  return idCiudadSocio.value !== idCiudadSedeSeleccionada.value
+})
+
 const usuarioInhabilitado = computed(
   () =>
     esExterno.value ||
     estaEnMora.value ||
     esMembresiaSuspendida.value ||
-    sinMembresia.value
+    sinMembresia.value ||
+    esCiudadDiferente.value
 )
 
 const motivoInhabilitacion = computed<MotivoInhabilitacion>(() => {
@@ -99,6 +134,7 @@ const motivoInhabilitacion = computed<MotivoInhabilitacion>(() => {
   if (estaEnMora.value) return 'MORA'
   if (esMembresiaSuspendida.value) return 'SUSPENDIDA'
   if (sinMembresia.value) return 'SIN_MEMBRESIA'
+  if (esCiudadDiferente.value) return 'CIUDAD_DIFERENTE'
   return null
 })
 
@@ -312,6 +348,7 @@ onMounted(() => {
   if (sedeStore.idSedeSeleccionada) {
     cargarClases()
   }
+  sedeStore.cargarSedes?.()
   cargarEstadoMembresia()
   setupRealtimeNotifications()
 })
@@ -463,6 +500,12 @@ function handleReservar(idClase: number) {
     router.push('/membresia')
     return
   }
+  if (esCiudadDiferente.value) {
+    toast.warning(
+      'Solo puedes reservar clases grupales en sedes pertenecientes a tu misma ciudad.'
+    )
+    return
+  }
 
   const clase = clasesAgendadas.value.find((c) => c.id === idClase)
   if (clase) {
@@ -558,6 +601,12 @@ function handleListaEspera(idClase: number) {
       'No dispones de una membresía activa vigente para anotarte en lista de espera.'
     )
     router.push('/membresia')
+    return
+  }
+  if (esCiudadDiferente.value) {
+    toast.warning(
+      'Solo puedes anotarte en lista de espera en sedes pertenecientes a tu misma ciudad.'
+    )
     return
   }
 
@@ -795,7 +844,9 @@ async function confirmarEliminacion() {
             ? 'bg-amber-50/90 border-amber-200 text-amber-950'
             : esMembresiaSuspendida
               ? 'bg-rose-50/90 border-rose-200 text-rose-950'
-              : 'bg-slate-50 border-slate-200 text-slate-800',
+              : esCiudadDiferente
+                ? 'bg-amber-50/90 border-amber-200 text-amber-950'
+                : 'bg-slate-50 border-slate-200 text-slate-800',
       ]"
     >
       <div class="flex items-start gap-3.5">
@@ -808,11 +859,14 @@ async function confirmarEliminacion() {
                 ? 'bg-amber-100 text-amber-600'
                 : esMembresiaSuspendida
                   ? 'bg-rose-100 text-rose-600'
-                  : 'bg-slate-200 text-slate-700',
+                  : esCiudadDiferente
+                    ? 'bg-amber-100 text-amber-600'
+                    : 'bg-slate-200 text-slate-700',
           ]"
         >
+          <PhMapPin v-if="esCiudadDiferente" :size="26" weight="duotone" />
           <PhMedal
-            v-if="esExterno || sinMembresia"
+            v-else-if="esExterno || sinMembresia"
             :size="26"
             weight="duotone"
           />
@@ -827,7 +881,9 @@ async function confirmarEliminacion() {
                   ? 'Membresía Vencida / Cuota Pendiente'
                   : esMembresiaSuspendida
                     ? 'Membresía Suspendida'
-                    : 'Sin Membresía Activa'
+                    : esCiudadDiferente
+                      ? 'Sede en otra ciudad'
+                      : 'Sin Membresía Activa'
             }}
           </h3>
           <p class="text-xs sm:text-sm mt-1 opacity-90 leading-relaxed">
@@ -838,13 +894,26 @@ async function confirmarEliminacion() {
                   ? 'Presentas pagos o cuotas pendientes en tu suscripción. Regulariza tu situación para volver a reservar clases grupales o inscribirte en listas de espera.'
                   : esMembresiaSuspendida
                     ? 'Tu membresía se encuentra suspendida temporalmente. No podrás reservar clases grupales hasta regularizarla.'
-                    : 'No tienes una membresía activa vigente asignada a tu cuenta. Adquiere un plan para poder reservar tus clases grupales favoritas.'
+                    : esCiudadDiferente
+                      ? 'Tu membresía te permite reservar clases únicamente en sedes de tu misma ciudad. Puedes explorar la agenda de esta sede pero no reservar ni ingresar a lista de espera.'
+                      : 'No tienes una membresía activa vigente asignada a tu cuenta. Adquiere un plan para poder reservar tus clases grupales favoritas.'
             }}
           </p>
         </div>
       </div>
 
+      <button
+        v-if="esCiudadDiferente && idSedeSocio"
+        type="button"
+        class="shrink-0 inline-flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm bg-amber-600 hover:bg-amber-700 text-white shadow-sm transition-all active:scale-95 cursor-pointer"
+        @click="sedeStore.seleccionarSede(idSedeSocio)"
+      >
+        <span>Volver a mi Sede</span>
+        <PhArrowRight :size="16" weight="bold" />
+      </button>
+
       <RouterLink
+        v-else
         to="/membresia"
         class="shrink-0 inline-flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all shadow-sm active:scale-95 cursor-pointer"
         :class="[

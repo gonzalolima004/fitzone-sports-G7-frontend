@@ -6,11 +6,32 @@ import ClasesView from '@/modules/M3-clases-grupales/views/ClasesView.vue'
 import ClaseCard from '@/modules/M3-clases-grupales/components/ClaseCard.vue'
 import Sidebar from '@/common/components/Sidebar.vue'
 import routerInstance from '@/router/index'
+import type { Usuario } from '@/store/auth'
 
 const mockAuth = vi.hoisted(() => ({
   rol: 'socio' as 'socio' | 'externo' | 'gerente',
   isAuthenticated: true,
-  usuario: { id: 10, nombre: 'Juan Perez' },
+  usuario: {
+    id: 10,
+    nombre: 'Juan Perez',
+    id_sede: 1,
+    sede: { id_sede: 1, nombre: 'Sede Central', id_ciudad: 1 },
+  } as Usuario | null,
+}))
+
+const mockSedeStore = vi.hoisted(() => ({
+  idSedeSeleccionada: 1,
+  sedeSeleccionada: { id_sede: 1, nombre: 'Sede Central', id_ciudad: 1 } as {
+    id_sede: number
+    nombre: string
+    id_ciudad?: number
+  } | null,
+  sedes: [
+    { id_sede: 1, nombre: 'Sede Central', id_ciudad: 1 },
+    { id_sede: 2, nombre: 'Sede Córdoba', id_ciudad: 2 },
+  ],
+  cargarSedes: vi.fn(),
+  seleccionarSede: vi.fn(),
 }))
 
 const mockMembresias = vi.hoisted(() => ({
@@ -37,10 +58,7 @@ vi.mock('@/store/auth', () => ({
 }))
 
 vi.mock('@/store/sede', () => ({
-  useSedeStore: () => ({
-    idSedeSeleccionada: 1,
-    sedeSeleccionada: { id_sede: 1, nombre: 'Sede Central' },
-  }),
+  useSedeStore: () => mockSedeStore,
 }))
 
 vi.mock('@/common/utils/toast', () => ({
@@ -312,7 +330,12 @@ describe('E16-T1: Visualización para externos y restricciones por membresía', 
   describe('Socio Activo Habilitado', () => {
     beforeEach(() => {
       mockAuth.rol = 'socio'
-      mockAuth.usuario = { id: 40, nombre: 'Socio Activo' }
+      mockAuth.usuario = {
+        id: 40,
+        nombre: 'Socio Activo',
+        id_sede: 1,
+        sede: { id_sede: 1, nombre: 'Sede Central', id_ciudad: 1 },
+      }
       mockMembresias.verificarEstado.mockResolvedValue({
         esSocioActivo: true,
         enMora: false,
@@ -334,6 +357,7 @@ describe('E16-T1: Visualización para externos y restricciones por membresía', 
       expect(wrapper.text()).not.toContain('Acceso de solo lectura')
       expect(wrapper.text()).not.toContain('Membresía Vencida')
       expect(wrapper.text()).not.toContain('Membresía Suspendida')
+      expect(wrapper.text()).not.toContain('Sede en otra ciudad')
 
       // Verificamos ClaseCard directamente dentro de la ventana
       const cardWrapper = mount(ClaseCard, {
@@ -357,6 +381,85 @@ describe('E16-T1: Visualización para externos y restricciones por membresía', 
         global: { plugins: [router] },
       })
       expect(cardWrapper.text()).toContain('Reservar Lugar')
+    })
+  })
+
+  describe('Validación de Jurisdicción por Ciudad (Regla 4)', () => {
+    beforeEach(() => {
+      mockAuth.rol = 'socio'
+      // Socio pertenece a Sede Córdoba (id_ciudad: 2)
+      mockAuth.usuario = {
+        id: 45,
+        nombre: 'Socio Cordoba',
+        id_sede: 2,
+        sede: { id_sede: 2, nombre: 'Sede Córdoba', id_ciudad: 2 },
+      }
+      // Membresía activa sin mora
+      mockMembresias.verificarEstado.mockResolvedValue({
+        esSocioActivo: true,
+        enMora: false,
+        estado: 'ACTIVA',
+      })
+      // Sede seleccionada en vista es Sede Central (id_ciudad: 1)
+      mockSedeStore.idSedeSeleccionada = 1
+      mockSedeStore.sedeSeleccionada = {
+        id_sede: 1,
+        nombre: 'Sede Central',
+        id_ciudad: 1,
+      }
+    })
+
+    it('bloquea la reserva y muestra banner informativo cuando la sede pertenece a otra ciudad', async () => {
+      const router = createTestRouter()
+      router.push('/clases')
+      await router.isReady()
+
+      const wrapper = mount(ClasesView, {
+        global: { plugins: [router] },
+      })
+      await flushPromises()
+
+      // Banner específico de sede en otra ciudad
+      expect(wrapper.text()).toContain('Sede en otra ciudad')
+      expect(wrapper.text()).toContain(
+        'Tu membresía te permite reservar clases únicamente en sedes de tu misma ciudad'
+      )
+
+      // Botón para volver a su sede nativa
+      const volverBtn = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('Volver a mi Sede'))
+      expect(volverBtn).toBeDefined()
+      await volverBtn?.trigger('click')
+      expect(mockSedeStore.seleccionarSede).toHaveBeenCalledWith(2)
+    })
+
+    it('en ClaseCard muestra botón deshabilitado "Sede en otra ciudad"', () => {
+      const router = createTestRouter()
+      const cardWrapper = mount(ClaseCard, {
+        props: {
+          clase: {
+            id: 101,
+            nombre: 'Spinning Power',
+            tipo: 'SPINNING',
+            icono: 'bicycle',
+            horario: '18:00 - 19:00 hs',
+            fecha_inicio: fechaFuturaInicio,
+            fecha_fin: fechaFuturaFin,
+            capacidadMaxima: 20,
+            cuposOcupados: 5,
+            cuposDisponibles: 15,
+            enListaEspera: 0,
+            estado: 'DISPONIBLE',
+          },
+          motivoInhabilitacion: 'CIUDAD_DIFERENTE',
+        },
+        global: { plugins: [router] },
+      })
+
+      expect(cardWrapper.text()).toContain('Sede en otra ciudad')
+      const btn = cardWrapper.find('button[disabled]')
+      expect(btn.exists()).toBe(true)
     })
   })
 })
