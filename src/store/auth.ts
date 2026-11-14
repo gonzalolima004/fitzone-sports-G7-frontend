@@ -16,6 +16,8 @@ export interface Usuario {
   nombre?: string
   apellido?: string
   email?: string
+  telefono?: string
+  foto_url?: string
   rol?: RolUsuario
   id_sede?: number
   sede?: {
@@ -70,6 +72,8 @@ export const useAuthStore = defineStore('auth', () => {
   const session = ref<Session | null>(null)
   const usuario = ref<Usuario | null>(null)
   const isInitialized = ref(false)
+  const cargandoPerfil = ref(false)
+  const perfilVerificado = ref(false)
 
   const isAuthenticated = computed(() => !!session.value)
   const token = computed(() => session.value?.access_token || null)
@@ -80,6 +84,10 @@ export const useAuthStore = defineStore('auth', () => {
       'socio'
     )
   })
+
+  function marcarPerfilVerificado(valor: boolean) {
+    perfilVerificado.value = valor
+  }
 
   async function sincronizarPerfilSocio() {
     try {
@@ -101,13 +109,20 @@ export const useAuthStore = defineStore('auth', () => {
           ) || listaMembresias[0]
         const descripcionEstado = membresiaActiva ? 'Activa' : 'Inactiva'
 
+        const datosActuales = usuario.value ?? ({} as Partial<Usuario>)
+
         setPerfilInterno({
+          ...datosActuales,
           id: Number(perfilData.socioId),
-          nombre: perfilData.nombre,
-          email: perfilData.email,
+          nombre: perfilData.nombre ?? datosActuales.nombre,
+          apellido: perfilData.apellido ?? datosActuales.apellido,
+          email: perfilData.email ?? datosActuales.email,
+          telefono: datosActuales.telefono,
+          foto_url: (perfilData.foto_url ?? datosActuales.foto_url) || undefined,
+          rol: datosActuales.rol,
           estadoMembresia: descripcionEstado,
-          dni: perfilData.dni,
-          id_ciudad: Number(perfilData.id_ciudad),
+          dni: perfilData.dni ?? datosActuales.dni,
+          id_ciudad: Number(perfilData.id_ciudad) || datosActuales.id_ciudad,
         })
       }
     } catch (error) {
@@ -118,18 +133,92 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function cargarPerfilLocal() {
+    cargandoPerfil.value = true
+    try {
+      const respuesta = (await authService.verifyLocalProfile()) as {
+        success?: boolean
+        user?: {
+          id_usuario: number
+          dni?: string
+          nombre?: string
+          apellido?: string
+          email?: string
+          telefono?: string | null
+          foto_url?: string | null
+          rol?: string
+          roles?: string[]
+          id_sede?: number
+          sede?: {
+            id_sede: number
+            nombre?: string
+            id_ciudad?: number
+          }
+        }
+      }
+
+      const u = respuesta?.user
+      if (u) {
+        const rolBackend = String(
+          u.rol ?? u.roles?.[0] ?? 'externo'
+        ).toLowerCase() as RolUsuario
+
+        setPerfilInterno({
+          id: u.id_usuario,
+          dni: u.dni,
+          nombre: u.nombre,
+          apellido: u.apellido,
+          email: u.email,
+          telefono: u.telefono ?? undefined,
+          foto_url: u.foto_url ?? undefined,
+          rol: rolBackend,
+          id_sede: u.id_sede,
+          sede: u.sede,
+        })
+        marcarPerfilVerificado(true)
+        return usuario.value
+      }
+      return null
+    } finally {
+      cargandoPerfil.value = false
+    }
+  }
+
+  function actualizarDatosUsuario(datosParciales: Partial<Usuario>) {
+    if (!usuario.value) return
+    usuario.value = {
+      ...usuario.value,
+      ...datosParciales,
+    }
+    localStorage.setItem('fitzone_user_perfil', JSON.stringify(usuario.value))
+    if (usuario.value.rol) {
+      localStorage.setItem('rol', usuario.value.rol)
+    }
+  }
+
   async function initialize() {
     const { data } = await supabase.auth.getSession()
     session.value = data.session
     isInitialized.value = true
 
     if (session.value) {
+      const guardado = localStorage.getItem('fitzone_user_perfil')
+      if (guardado) {
+        try {
+          usuario.value = JSON.parse(guardado) as Usuario
+        } catch {
+          // ignore error
+        }
+      }
       sincronizarPerfilSocio()
     }
 
     supabase.auth.onAuthStateChange((_event, newSession) => {
       session.value = newSession
-      if (!newSession) usuario.value = null
+      if (!newSession) {
+        usuario.value = null
+        perfilVerificado.value = false
+      }
     })
   }
 
@@ -144,7 +233,9 @@ export const useAuthStore = defineStore('auth', () => {
     // 1. Limpiamos Pinia de forma síncrona INMEDIATAMENTE para que el router.push('/login') no rebote
     session.value = null
     usuario.value = null
+    perfilVerificado.value = false
     localStorage.removeItem('rol')
+    localStorage.removeItem('fitzone_user_perfil')
 
     // 2. Cerramos sesión en Supabase en segundo plano
     try {
@@ -167,11 +258,16 @@ export const useAuthStore = defineStore('auth', () => {
     usuario,
     token,
     rol,
+    cargandoPerfil,
+    perfilVerificado,
     isAuthenticated,
     isInitialized,
     initialize,
     login,
     logout,
     setPerfilInterno,
+    marcarPerfilVerificado,
+    cargarPerfilLocal,
+    actualizarDatosUsuario,
   }
 })
