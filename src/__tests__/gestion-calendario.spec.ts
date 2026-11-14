@@ -42,11 +42,13 @@ vi.mock('@/common/utils/toast', () => ({
 const sesion = vi.hoisted(() => ({
   isInitialized: true,
   isAuthenticated: true,
+  perfilVerificado: true,
   rol: 'gerente' as string,
   usuario: { rol: 'gerente' as string },
   initialize: async () => {},
   logout: async () => {},
   setPerfilInterno: () => {},
+  marcarPerfilVerificado: () => {},
 }))
 vi.mock('@/store/auth', () => ({ useAuthStore: () => sesion }))
 vi.mock('@/common/api/supabase', () => ({ supabase: {} }))
