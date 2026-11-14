@@ -23,6 +23,12 @@ const isSubiendoFoto = ref(false)
 const isGuardandoPerfil = ref(false)
 const isCambiandoPassword = ref(false)
 const avatarError = ref(false)
+const avatarLoadError = ref(false)
+
+const avatarMostrado = computed(() => {
+  if (avatarLoadError.value || avatarError.value) return null
+  return fotoPreview.value || authStore.usuario?.foto_url || null
+})
 
 // Input de archivo
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -388,13 +394,15 @@ const iniciales = computed(() => {
           <!-- Avatar Preview -->
           <div class="relative group">
             <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden bg-slate-100 border-2 border-slate-200 flex items-center justify-center text-[#202759] font-extrabold text-2xl shadow-inner select-none">
-              <img
-                v-if="(fotoPreview || authStore.usuario?.foto_url) && !avatarError"
-                :src="fotoPreview || authStore.usuario?.foto_url"
-                alt="Foto de perfil"
-                class="w-full h-full object-cover"
-                @error="avatarError = true"
-              />
+               <img
+                 v-if="avatarMostrado"
+                 :src="avatarMostrado"
+                 alt="Foto de perfil"
+                 referrerpolicy="no-referrer"
+                 class="w-full h-full object-cover"
+                 data-testid="perfil-avatar-img"
+                 @error="avatarLoadError = true"
+               />
               <span v-else>{{ iniciales }}</span>
             </div>
 

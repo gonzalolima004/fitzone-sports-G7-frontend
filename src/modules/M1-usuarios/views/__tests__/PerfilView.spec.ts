@@ -159,4 +159,15 @@ describe('PerfilView.vue - Edición de Perfil, Restricciones y Seguridad', () =>
 
     expect(toast.success).toHaveBeenCalledWith('¡Contraseña actualizada con éxito!')
   })
+
+  it('renderiza la imagen de perfil con referrerpolicy="no-referrer"', async () => {
+    mockAuthStore.usuario.foto_url = 'https://lh3.googleusercontent.com/a-/avatar.jpg'
+    const wrapper = mount(PerfilView)
+    await flushPromises()
+
+    const avatarImg = wrapper.find('[data-testid="perfil-avatar-img"]')
+    expect(avatarImg.exists()).toBe(true)
+    expect(avatarImg.attributes('referrerpolicy')).toBe('no-referrer')
+    expect(avatarImg.attributes('src')).toBe('https://lh3.googleusercontent.com/a-/avatar.jpg')
+  })
 })

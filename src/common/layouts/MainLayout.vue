@@ -62,6 +62,13 @@ const rolCapitalizado = computed(() => {
   return r.charAt(0).toUpperCase() + r.slice(1)
 })
 
+const fotoPerfilUrl = computed(() => {
+  if (avatarError.value) return null
+  return authStore.usuario?.foto_url || null
+})
+
+const nombreAMostrar = computed(() => nombreCompleto.value)
+
 async function handleLogout() {
   menuUsuarioAbierto.value = false
   await authStore.logout()
@@ -199,19 +206,22 @@ async function handleLogout() {
                 {{ nombreCompleto }}
               </span>
 
-              <!-- Fotografía o inicial -->
-              <div
-                class="w-9 h-9 rounded-full overflow-hidden bg-[#202759]/10 border border-[#202759]/20 flex items-center justify-center text-[#202759] font-bold text-sm select-none"
-              >
-                <img
-                  v-if="authStore.usuario?.foto_url && !avatarError"
-                  :src="authStore.usuario.foto_url"
-                  :alt="nombreCompleto"
-                  class="w-full h-full object-cover"
-                  @error="avatarError = true"
-                />
-                <span v-else>{{ inicialUsuario }}</span>
-              </div>
+               <!-- Fotografía o inicial -->
+               <img
+                 v-if="fotoPerfilUrl"
+                 :src="fotoPerfilUrl"
+                 :alt="nombreAMostrar"
+                 referrerpolicy="no-referrer"
+                 class="w-9 h-9 rounded-full object-cover border border-[#202759]/20 shadow-2xs"
+                 data-testid="navbar-user-avatar"
+                 @error="avatarError = true"
+               />
+               <div
+                 v-else
+                 class="w-9 h-9 rounded-full overflow-hidden bg-[#202759]/10 border border-[#202759]/20 flex items-center justify-center text-[#202759] font-bold text-sm select-none"
+               >
+                 <span>{{ inicialUsuario }}</span>
+               </div>
 
               <PhCaretDown
                 :size="14"

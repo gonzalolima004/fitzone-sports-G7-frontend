@@ -68,6 +68,22 @@ window.addEventListener('online', () => {
   sincronizarColaOffline()
 })
 
+function obtenerAvatarDesdeSesion(
+  sesionActual: Session | null
+): string | undefined {
+  const metadata = sesionActual?.user?.user_metadata as
+    | Record<string, unknown>
+    | undefined
+  if (!metadata) return undefined
+  if (typeof metadata.avatar_url === 'string' && metadata.avatar_url.trim()) {
+    return metadata.avatar_url.trim()
+  }
+  if (typeof metadata.picture === 'string' && metadata.picture.trim()) {
+    return metadata.picture.trim()
+  }
+  return undefined
+}
+
 export const useAuthStore = defineStore('auth', () => {
   const session = ref<Session | null>(null)
   const usuario = ref<Usuario | null>(null)
@@ -170,7 +186,7 @@ export const useAuthStore = defineStore('auth', () => {
           apellido: u.apellido,
           email: u.email,
           telefono: u.telefono ?? undefined,
-          foto_url: u.foto_url ?? undefined,
+          foto_url: u.foto_url ?? obtenerAvatarDesdeSesion(session.value),
           rol: rolBackend,
           id_sede: u.id_sede,
           sede: u.sede,
@@ -246,10 +262,14 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function setPerfilInterno(perfil: Usuario) {
-    usuario.value = perfil
-    localStorage.setItem('fitzone_user_perfil', JSON.stringify(perfil))
-    if (perfil.rol) {
-      localStorage.setItem('rol', perfil.rol)
+    const perfilNormalizado: Usuario = {
+      ...perfil,
+      foto_url: perfil.foto_url || obtenerAvatarDesdeSesion(session.value),
+    }
+    usuario.value = perfilNormalizado
+    localStorage.setItem('fitzone_user_perfil', JSON.stringify(perfilNormalizado))
+    if (perfilNormalizado.rol) {
+      localStorage.setItem('rol', perfilNormalizado.rol)
     }
   }
 
