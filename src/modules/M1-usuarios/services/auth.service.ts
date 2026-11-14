@@ -44,6 +44,15 @@ export const authService = {
     if (error) throw error
   },
 
+  async reauthenticateWithPassword(email: string, currentPassword: string) {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password: currentPassword,
+    })
+    if (error) throw error
+    return data
+  },
+
   async updatePassword(newPassword: string) {
     const { data, error } = await supabase.auth.updateUser({
       password: newPassword,
