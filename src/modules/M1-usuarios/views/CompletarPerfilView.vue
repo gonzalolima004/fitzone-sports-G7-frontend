@@ -125,7 +125,6 @@ const handleCompletarRegistro = async () => {
       apellido: form.apellido.trim(),
       telefono: form.telefono,
       id_sede: form.id_sede,
-      roles: [4],
     })
 
     // Subir la foto si el usuario seleccionó un archivo local
@@ -136,6 +135,7 @@ const handleCompletarRegistro = async () => {
       )
     }
 
+    authStore.marcarPerfilVerificado(false)
     toast.success('¡Perfil completado con éxito!')
     router.push('/')
   } catch (error: unknown) {
