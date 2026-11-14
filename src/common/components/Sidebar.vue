@@ -114,17 +114,6 @@ const todasLasSecciones: NavSection[] = [
       },
     ],
   },
-  {
-    titulo: 'CUENTA',
-    items: [
-      {
-        nombre: 'Mi Perfil',
-        ruta: '/perfil',
-        icono: 'user',
-        roles: ['socio', 'externo', 'recepcionista', 'gerente'],
-      },
-    ],
-  },
 ]
 
 const seccionesFiltradas = computed(() => {
