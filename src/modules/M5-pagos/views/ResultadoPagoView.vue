@@ -214,9 +214,14 @@ async function sincronizarRolSocio() {
       })
     }
   } catch {
-    if (authStore.rol === 'externo') {
+    if (
+      authStore.rol === 'externo' &&
+      authStore.usuario &&
+      authStore.usuario.id !== undefined
+    ) {
       authStore.setPerfilInterno({
         ...authStore.usuario,
+        id: authStore.usuario.id, // TypeScript valida que id es number
         rol: 'socio',
       })
     }

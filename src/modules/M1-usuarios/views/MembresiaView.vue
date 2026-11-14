@@ -49,10 +49,13 @@ const sincronizarRolSocio = async () => {
       })
     }
   } catch {
-    authStore.setPerfilInterno({
-      ...authStore.usuario,
-      rol: 'socio',
-    })
+    if (authStore.usuario && authStore.usuario.id !== undefined) {
+      authStore.setPerfilInterno({
+        ...authStore.usuario,
+        id: authStore.usuario.id, // TypeScript valida que id es number
+        rol: 'socio',
+      })
+    }
   }
 }
 
