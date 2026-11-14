@@ -1228,3 +1228,36 @@
   - `feat(M2): servicio para manejar validacion offline de qr`
   - `feat(M2): actualizacion egreso-ingreso, adicion de variables a appierror y a socioperfil`
   - `docs(log): actualizacion de bitacora`
+
+---
+
+#### 14/11/2026
+#### Angelina Vialle | Rol: Desarrolladora Frontend
+
+- **Actividades**:
+  - **Módulo M1 (Directorio de Usuarios - Paginación, Baja Lógica y Restauración)**:
+    - Implementación de baja lógica (*soft-delete*): incorporación de modal de confirmación (`modalEliminacionAbierto`) con llamado al endpoint `DELETE /usuarios/:id`, botón de acción con ícono `PhTrash` visible solo en usuarios activos y actualización optimista inmediata en la interfaz para remover al usuario del listado local y actualizar el contador.
+    - Flujo de restauración de cuentas inactivas: creación del método `restaurarUsuarioDirecto` que actualiza `id_usuario_estado` a `1` (`USER_STATUS.ACTIVO`) mediante `PATCH /usuarios/:id`, con un banner informativo y botón de restauración directa (`PhArrowCounterClockwise`) dentro del modal de edición cuando el usuario se encuentra desactivado.
+    - Paginación server-side y filtros dinámicos: adaptación de `cargarDirectorio` en `useDirectorioUsuarios.ts` para enviar parámetros de paginación (`page`, `limit`) y filtrado (`includeDeactivated`, `id_usuario_estado`, `id_sede`) a la API, procesando metadatos de respuesta (`totalPages`, `totalRegistros`) e integrando controles de paginación ("Anterior", "Siguiente") en la tabla.
+    - Actualización de filtros de estado en `DirectorioUsuariosView.vue`: redefinición de las opciones del selector ("Activos", "Desactivados", "Todos los Estados"), iniciando la visualización por defecto en usuarios activos.
+  - **Enrutamiento y Control de Navegación (`router/index.ts`)**:
+    - Ajuste en el guardia de la ruta raíz (`/`): exclusión del rol `gerente` de la redirección automática a `/recepcion`, limitándola exclusivamente al rol `recepcionista`.
+  - **Barra de Navegación Lateral (`Sidebar.vue`)**:
+    - Reorganización de visibilidad por roles en la sección de Operaciones: habilitación del acceso a "Dashboard" (`/inicio`) tanto para `socio` como para `gerente`, y acceso a "Recepción" (`/recepcion`) para roles `recepcionista` y `gerente`.
+  - **Módulos M1 y M5 (Sincronización de Roles y Tipado Seguro)**:
+    - Corrección en `MembresiaView.vue` y `ResultadoPagoView.vue`: incorporación de validación estricta (`authStore.usuario.id !== undefined`) antes de invocar `authStore.setPerfilInterno` en los bloques de captura de excepciones, garantizando la integridad de tipos en TypeScript.
+  - **Módulo M4 (Canchas - Formato)**:
+    - Ajustes de estilo y legibilidad en `DetalleReservaView.vue` para el formateo del cálculo del descuento por membresía.
+- **Decisiones**:
+  - **Actualización optimista de UI para bajas y restauraciones**: Se optó por reflejar de forma inmediata en el estado reactivo (`usuarios.value` y `totalRegistros`) la desactivación o restauración antes de aguardar la respuesta del backend, recargando el padrón únicamente en caso de que la petición HTTP falle para asegurar una experiencia de usuario rápida y fluida.
+  - **Migración a paginación y filtrado desde el servidor**: En lugar de filtrar la totalidad de los usuarios en memoria en el cliente, se trasladó el filtrado y paginado a la consulta al backend (`GET /usuarios?page=...&limit=...`), optimizando el rendimiento y el consumo de recursos de red.
+  - **Diferenciación de flujo de entrada según rol**: Mantener la redirección forzada a recepción únicamente para recepcionistas, permitiendo a los gerentes ingresar a las métricas del dashboard sin pasos intermedios.
+- **Dificultades**:
+  - **Coherencia reactiva entre filtros de estado y actualización optimista**: Al ejecutar una baja lógica o restauración estando activo un filtro específico (por ejemplo, "Activos" o "Desactivados"), fue necesario manejar la remoción del registro del array local o la mutación de su `id_usuario_estado` según el filtro vigente, evitando desfases visuales o contadores desactualizados sin forzar una recarga completa de red.
+  - **Restricciones de tipado estricto en Pinia**: `authStore.usuario.id` está declarado como opcional (`id?: number`), lo que generaba advertencias de TypeScript al intentar propagarlo en `setPerfilInterno` tras procesar pagos o activaciones de membresías. Se resolvió aplicando guards explícitas de existencia antes de actualizar el store.
+- **Commits**:
+  - `fix(index): redireccion de solo recepcionista`
+  - `style(M4): arreglo formato`
+  - `fix(M5 y M1): correcion para que este el id definido`
+  - `fix(components): organizacion SideBar`
+  - `feat(M1): implementacion de baja logica, restauracion y paginacion`
