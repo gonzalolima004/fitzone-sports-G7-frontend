@@ -1,28 +1,41 @@
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { usuariosService } from '../services/usuarios.service'
 import type { UsuarioResponse, RegistroPayload } from '../types/usuario.types'
 import { toast } from '@/common/utils/toast'
 import { http } from '@/common/api/http'
 import { usuarioDirectorioSchema } from '@/common/utils/validators'
 
+export const USER_STATUS = {
+  ACTIVO: 1,
+  DESACTIVADO: 3,
+} as const
+
 export function useDirectorioUsuarios() {
   const usuarios = ref<UsuarioResponse[]>([])
   const sedes = ref<{ id_sede: number; nombre: string }[]>([])
   const cargando = ref<boolean>(true)
 
-  // Filtros
+  // Paginación
+  const page = ref<number>(1)
+  const limit = ref<number>(10)
+  const totalPages = ref<number>(1)
+  const totalRegistros = ref<number>(0)
+
+  // Modal de confirmación de baja lógica
+  const modalEliminacionAbierto = ref<boolean>(false)
+  const usuarioAEliminar = ref<UsuarioResponse | null>(null)
+
+  // Filtros: Activos por defecto
   const filtroBusqueda = ref<string>('')
-  const estadoSeleccionado = ref<string>('todos')
+  const estadoSeleccionado = ref<string>('activos')
   const sedeSeleccionada = ref<string>('todas')
 
-  // Modales
+  // Modales de registro y edición
   const modalRegistroAbierto = ref<boolean>(false)
   const modalEdicionAbierto = ref<boolean>(false)
   const guardandoUsuario = ref<boolean>(false)
-
   const usuarioEnEdicion = ref<UsuarioResponse | null>(null)
 
-  // Añadimos idRolSeleccionado para controlar el select de la interfaz
   const payloadInicial: RegistroPayload & { idRolSeleccionado: number } = {
     dni: '',
     email: '',
@@ -32,7 +45,7 @@ export function useDirectorioUsuarios() {
     telefono: '',
     id_sede: '1',
     roles: [1],
-    idRolSeleccionado: 1, // 1 por defecto (socio)
+    idRolSeleccionado: 1,
   }
 
   const nuevoUsuario = ref({ ...payloadInicial })
@@ -49,12 +62,41 @@ export function useDirectorioUsuarios() {
   const cargarDirectorio = async (): Promise<void> => {
     try {
       cargando.value = true
-      await Promise.all([
-        cargarSedes(),
-        usuariosService.obtenerUsuarios().then((data) => {
-          usuarios.value = data
-        }),
-      ])
+
+      const includeDeactivated =
+        estadoSeleccionado.value === 'todos' ||
+        estadoSeleccionado.value === 'desactivados'
+
+      const idEstadoParam =
+        estadoSeleccionado.value === 'activos'
+          ? USER_STATUS.ACTIVO
+          : estadoSeleccionado.value === 'desactivados'
+            ? USER_STATUS.DESACTIVADO
+            : undefined
+
+      const response = await http.get('/usuarios', {
+        params: {
+          page: page.value,
+          limit: limit.value,
+          includeDeactivated,
+          id_usuario_estado: idEstadoParam,
+          id_sede:
+            sedeSeleccionada.value !== 'todas'
+              ? sedeSeleccionada.value
+              : undefined,
+        },
+      })
+
+      if (response.data && response.data.data) {
+        usuarios.value = response.data.data
+        if (response.data.meta) {
+          totalPages.value = response.data.meta.lastPage
+          totalRegistros.value = response.data.meta.total
+        }
+      } else {
+        usuarios.value = response.data
+        totalRegistros.value = usuarios.value.length
+      }
     } catch (error) {
       console.error('Error al cargar el directorio de usuarios:', error)
       toast.error('No se pudo cargar el padrón de usuarios.')
@@ -63,30 +105,22 @@ export function useDirectorioUsuarios() {
     }
   }
 
-  // Filtrado avanzado
+  watch([estadoSeleccionado, sedeSeleccionada], () => {
+    page.value = 1
+    cargarDirectorio()
+  })
+
   const usuariosFiltrados = computed<UsuarioResponse[]>(() => {
-    return usuarios.value.filter((u: UsuarioResponse) => {
-      const query = filtroBusqueda.value.toLowerCase()
-      const coincideTexto =
+    const query = filtroBusqueda.value.trim().toLowerCase()
+    if (!query) return usuarios.value
+
+    return usuarios.value.filter(
+      (u: UsuarioResponse) =>
         u.nombre.toLowerCase().includes(query) ||
         u.apellido.toLowerCase().includes(query) ||
         u.dni.includes(query) ||
         u.email.toLowerCase().includes(query)
-
-      let coincideEstado = true
-      if (estadoSeleccionado.value === 'activos') {
-        coincideEstado = u.id_usuario_estado === 1
-      } else if (estadoSeleccionado.value === 'suspendidos') {
-        coincideEstado = u.id_usuario_estado === 3
-      }
-
-      let coincideSede = true
-      if (sedeSeleccionada.value !== 'todas') {
-        coincideSede = String(u.id_sede) === String(sedeSeleccionada.value)
-      }
-
-      return coincideTexto && coincideEstado && coincideSede
-    })
+    )
   })
 
   const exportarPadron = () => {
@@ -101,8 +135,8 @@ export function useDirectorioUsuarios() {
       u.apellido,
       u.dni,
       u.email,
-      u.sede?.nombre,
-      u.id_usuario_estado === 1 ? 'ACTIVO' : 'SUSPENDIDO',
+      u.sede?.nombre || '',
+      u.id_usuario_estado === USER_STATUS.ACTIVO ? 'ACTIVO' : 'DESACTIVADO',
     ])
 
     const csvContent =
@@ -129,6 +163,78 @@ export function useDirectorioUsuarios() {
       rol_seleccionado: rolActualId,
     } as UsuarioResponse & { rol_seleccionado?: number }
     modalEdicionAbierto.value = true
+  }
+
+  const confirmarEliminacion = (usuario: UsuarioResponse) => {
+    usuarioAEliminar.value = usuario
+    modalEliminacionAbierto.value = true
+  }
+
+  // OPTIMIZACIÓN: Baja lógica rápida con actualización inmediata en UI
+  const ejecutarBajaLogica = async () => {
+    if (!usuarioAEliminar.value) return
+    const userId = usuarioAEliminar.value.id_usuario
+
+    try {
+      modalEliminacionAbierto.value = false
+
+      // Actualización optimista instantánea en la lista local antes de que responda el servidor
+      const index = usuarios.value.findIndex((u) => u.id_usuario === userId)
+      if (index !== -1) {
+        if (estadoSeleccionado.value === 'activos') {
+          usuarios.value.splice(index, 1) // Si estábamos viendo solo activos, lo quitamos de la vista al instante
+          totalRegistros.value = Math.max(0, totalRegistros.value - 1)
+        } else {
+          usuarios.value[index].id_usuario_estado = USER_STATUS.DESACTIVADO
+        }
+      }
+
+      await http.delete(`/usuarios/${userId}`)
+      toast.success('Usuario desactivado correctamente.')
+      usuarioAEliminar.value = null
+    } catch (error) {
+      console.error('Error al desactivar usuario:', error)
+      toast.error('No se pudo desactivar el usuario.')
+      await cargarDirectorio() // Recargar si falla
+    }
+  }
+
+  // OPTIMIZACIÓN: Restauración rápida con actualización inmediata en UI
+  const restaurarUsuarioDirecto = async (usuario: UsuarioResponse) => {
+    const userId = usuario.id_usuario
+    try {
+      modalEdicionAbierto.value = false
+      guardandoUsuario.value = true
+
+      // Actualización optimista instantánea
+      const index = usuarios.value.findIndex((u) => u.id_usuario === userId)
+      if (index !== -1) {
+        if (estadoSeleccionado.value === 'desactivados') {
+          usuarios.value.splice(index, 1) // Si estábamos viendo solo desactivados, lo quitamos al activarlo
+          totalRegistros.value = Math.max(0, totalRegistros.value - 1)
+        } else {
+          usuarios.value[index].id_usuario_estado = USER_STATUS.ACTIVO
+        }
+      }
+
+      await usuariosService.actualizarPerfil(userId, {
+        id_usuario_estado: USER_STATUS.ACTIVO,
+      })
+      toast.success('¡Cuenta restaurada a estado activo con éxito!')
+    } catch (error) {
+      console.error('Error al restaurar usuario:', error)
+      toast.error('No se pudo restaurar la cuenta.')
+      await cargarDirectorio() // Recargar si falla
+    } finally {
+      guardandoUsuario.value = false
+    }
+  }
+
+  const cambiarPagina = (nuevaPagina: number) => {
+    if (nuevaPagina >= 1 && nuevaPagina <= totalPages.value) {
+      page.value = nuevaPagina
+      cargarDirectorio()
+    }
   }
 
   const guardarEdicionUsuario = async () => {
@@ -167,10 +273,8 @@ export function useDirectorioUsuarios() {
   }
 
   async function registrarNuevoUsuario() {
-    // 1. Extraemos idRolSeleccionado para que NO se envíe en la petición HTTP
     const { idRolSeleccionado, ...datosParaEnviar } = nuevoUsuario.value
 
-    // 2. Construimos el payload limpio y asignamos el rol en formato de array (ej: [3] para gerente)
     const payloadAEnviar = {
       ...datosParaEnviar,
       roles: [Number(idRolSeleccionado)],
@@ -202,7 +306,6 @@ export function useDirectorioUsuarios() {
         }
       }
 
-      // Manejo específico para DNI duplicado (409 Conflict)
       if (err.response?.status === 409) {
         const errorData = err.response.data?.message
         const mensajeDni =
@@ -227,8 +330,8 @@ export function useDirectorioUsuarios() {
     }
   }
 
-  onMounted(() => {
-    cargarDirectorio()
+  onMounted(async () => {
+    await Promise.all([cargarSedes(), cargarDirectorio()])
   })
 
   return {
@@ -243,8 +346,17 @@ export function useDirectorioUsuarios() {
     guardandoUsuario,
     nuevoUsuario,
     usuarioEnEdicion,
+    page,
+    totalPages,
+    totalRegistros,
+    modalEliminacionAbierto,
+    usuarioAEliminar,
     exportarPadron,
     abrirModalEdicion,
+    confirmarEliminacion,
+    ejecutarBajaLogica,
+    restaurarUsuarioDirecto,
+    cambiarPagina,
     guardarEdicionUsuario,
     registrarNuevoUsuario,
   }
