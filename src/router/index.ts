@@ -51,11 +51,8 @@ const routes: RouteRecordRaw[] = [
         beforeEnter: (_to, _from, next) => {
           const authStore = useAuthStore()
 
-          // Si el rol es recepcionista o gerente, redirigimos a la vista de recepción
-          if (
-            authStore.rol === 'recepcionista' ||
-            authStore.rol === 'gerente'
-          ) {
+          // Si el rol es recepcionista, redirigimos a la vista de recepción
+          if (authStore.rol === 'recepcionista') {
             next({ name: 'recepcion' })
           } else {
             next() // Los socios continúan hacia HomeView.vue
