@@ -49,8 +49,14 @@ const todasLasSecciones: NavSection[] = [
       },
       {
         nombre: 'Dashboard',
-        ruta: '/inicio',
+        ruta: '/socio-dashboard',
         icono: 'grid',
+        roles: ['socio'],
+      },
+      {
+        nombre: 'Historial',
+        ruta: '/historial',
+        icono: 'calendar',
         roles: ['socio'],
       },
       {

@@ -78,14 +78,31 @@ const routes: RouteRecordRaw[] = [
         },
         beforeEnter: (_to, _from, next) => {
           const authStore = useAuthStore()
-          if (
-            authStore.rol === 'recepcionista' ||
-            authStore.rol === 'gerente'
-          ) {
+          if (authStore.rol === 'socio') {
+            next({ name: 'socio-dashboard' })
+          } else if (authStore.rol === 'recepcionista' || authStore.rol === 'gerente') {
             next({ name: 'recepcion' })
           } else {
             next()
           }
+        },
+      },
+      {
+        path: 'socio-dashboard',
+        name: 'socio-dashboard',
+        component: () => import('@/modules/M1-usuarios/views/SocioDashboardView.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['socio'],
+        },
+      },
+      {
+        path: 'historial',
+        name: 'historial',
+        component: () => import('@/modules/M1-usuarios/views/HistorialReservasView.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['socio'],
         },
       },
 
