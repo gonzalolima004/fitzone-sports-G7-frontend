@@ -104,6 +104,23 @@ export const reservasService = {
       console.warn('Error guardando reserva en cache:', e)
     }
   },
+
+  /**
+   * Obtiene las reservas de canchas del usuario autenticado.
+   */
+  async obtenerMisReservasCanchas(): Promise<DetalleReservaCancha[]> {
+    try {
+      const response = await http.get<DetalleReservaCancha[]>('/reservas-canchas/mis-reservas')
+      return response.data
+    } catch {
+      try {
+        const response = await http.get<DetalleReservaCancha[]>('/reservas-canchas')
+        return response.data
+      } catch {
+        return []
+      }
+    }
+  },
 }
 
 export default reservasService
