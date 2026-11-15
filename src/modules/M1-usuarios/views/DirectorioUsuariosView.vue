@@ -4,6 +4,8 @@ import {
   PhUserPlus,
   PhFileArrowDown,
   PhMagnifyingGlass,
+  PhTrash,
+  PhArrowCounterClockwise,
 } from '@phosphor-icons/vue'
 
 import BaseButton from '@/common/components/BaseButton.vue'
@@ -11,7 +13,10 @@ import BaseInput from '@/common/components/BaseInput.vue'
 import BaseModal from '@/common/components/BaseModal.vue'
 import Skeleton from '@/common/components/BaseSkeleton.vue'
 
-import { useDirectorioUsuarios } from '../composables/useDirectorioUsuarios'
+import {
+  useDirectorioUsuarios,
+  USER_STATUS,
+} from '../composables/useDirectorioUsuarios'
 import { obtenerPerfilBadge } from '../utils/user-helpers'
 
 const {
@@ -26,8 +31,17 @@ const {
   guardandoUsuario,
   nuevoUsuario,
   usuarioEnEdicion,
+  page,
+  totalPages,
+  totalRegistros,
+  modalEliminacionAbierto,
+  usuarioAEliminar,
   exportarPadron,
   abrirModalEdicion,
+  confirmarEliminacion,
+  ejecutarBajaLogica,
+  restaurarUsuarioDirecto,
+  cambiarPagina,
   guardarEdicionUsuario,
   registrarNuevoUsuario,
 } = useDirectorioUsuarios()
@@ -93,17 +107,16 @@ const {
         />
       </div>
 
-      <div class="flex items-center gap-3">
+      <div class="flex flex-wrap items-center gap-3">
         <select
           v-model="estadoSeleccionado"
           class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 font-medium focus:outline-none focus:border-[#202759]"
         >
-          <option value="todos">Todos los Estados</option>
           <option value="activos">Activos</option>
-          <option value="suspendidos">Suspendidos</option>
+          <option value="desactivados">Desactivados</option>
+          <option value="todos">Todos los Estados</option>
         </select>
 
-        <!-- Filtro Dinámico de Sedes -->
         <select
           v-model="sedeSeleccionada"
           class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 font-medium focus:outline-none focus:border-[#202759]"
@@ -117,7 +130,7 @@ const {
         <div
           class="bg-slate-100 border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-bold text-[#202759] tracking-wider"
         >
-          {{ usuariosFiltrados.length }} REGISTRADOS
+          {{ totalRegistros }} REGISTRADOS
         </div>
       </div>
     </div>
@@ -204,21 +217,35 @@ const {
               <span
                 class="px-3 py-1 rounded-full text-xs font-extrabold tracking-wide"
                 :class="
-                  user.id_usuario_estado === 1
+                  user.id_usuario_estado === USER_STATUS.ACTIVO
                     ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
                     : 'bg-red-50 text-[#F96167] border border-red-200'
                 "
               >
-                {{ user.id_usuario_estado === 1 ? 'ACTIVO' : 'SUSPENDIDO' }}
+                {{
+                  user.id_usuario_estado === USER_STATUS.ACTIVO
+                    ? 'ACTIVO'
+                    : 'DESACTIVADO'
+                }}
               </span>
             </td>
-            <td class="p-4.5 text-right">
+            <td class="p-4.5 text-right flex items-center justify-end gap-2">
               <BaseButton
                 variant="outline"
                 size="sm"
                 @click="abrirModalEdicion(user)"
               >
                 Gestionar
+              </BaseButton>
+              <!-- Botón de baja lógica (Soft-delete) solo visible en activos -->
+              <BaseButton
+                v-if="user.id_usuario_estado === USER_STATUS.ACTIVO"
+                variant="outline"
+                size="sm"
+                class="text-red-600 border-red-200 hover:bg-red-50"
+                @click="confirmarEliminacion(user)"
+              >
+                <PhTrash :size="16" weight="bold" />
               </BaseButton>
             </td>
           </tr>
@@ -230,6 +257,31 @@ const {
           </tr>
         </tbody>
       </table>
+
+      <!-- Controles de Paginación -->
+      <div
+        class="flex justify-between items-center p-4 bg-white border-t border-slate-100"
+      >
+        <BaseButton
+          variant="outline"
+          size="sm"
+          :disabled="page <= 1"
+          @click="cambiarPagina(page - 1)"
+        >
+          Anterior
+        </BaseButton>
+        <span class="text-xs font-bold text-slate-600"
+          >Página {{ page }} de {{ totalPages }}</span
+        >
+        <BaseButton
+          variant="outline"
+          size="sm"
+          :disabled="page >= totalPages"
+          @click="cambiarPagina(page + 1)"
+        >
+          Siguiente
+        </BaseButton>
+      </div>
     </div>
 
     <!-- 1. Modal de Registro de Usuario -->
@@ -296,7 +348,7 @@ const {
             >
             <select
               v-model="nuevoUsuario.id_sede"
-              class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm text-slate-800 focus:outline-none focus:border-[#202759] focus:ring-2 focus:ring-[#202759]/15"
+              class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm text-slate-800 focus:outline-none focus:border-[#202759]"
             >
               <option
                 v-for="s in sedes"
@@ -314,7 +366,7 @@ const {
             >
             <select
               v-model="nuevoUsuario.idRolSeleccionado"
-              class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm text-slate-800 focus:outline-none focus:border-[#202759] focus:ring-2 focus:ring-[#202759]/15"
+              class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm text-slate-800 focus:outline-none focus:border-[#202759]"
             >
               <option :value="1">Socio</option>
               <option :value="2">Recepcionista</option>
@@ -340,11 +392,11 @@ const {
       </template>
     </BaseModal>
 
-    <!-- 2. Modal de Edición/Gestión de Usuario (SEPARADO) -->
+    <!-- 2. Modal de Edición/Gestión de Usuario -->
     <BaseModal
       v-model="modalEdicionAbierto"
       title="Gestionar y Modificar Usuario"
-      subtitle="Modifique los datos personales, el estado o la sede asignada para regular el acceso por ciudad."
+      subtitle="Modifique los datos personales o reasigne la sede del usuario."
       max-width="lg"
     >
       <form
@@ -391,35 +443,52 @@ const {
             </select>
           </div>
 
-          <!-- Selector de Estado -->
-          <div class="flex flex-col gap-1.5 w-full text-left">
-            <label class="text-xs font-bold text-[#202759] tracking-wide"
-              >Estado del Usuario</label
-            >
-            <select
-              v-model="usuarioEnEdicion.id_usuario_estado"
-              class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm text-slate-800 focus:outline-none focus:border-[#202759]"
-            >
-              <option :value="1">Activo</option>
-              <option :value="3">Suspendido</option>
-            </select>
-          </div>
-        </div>
-        <!-- Nuevo Fila: Selector de Rol / Perfil en Edición -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Selector de Rol / Perfil -->
           <div class="flex flex-col gap-1.5 w-full text-left">
             <label class="text-xs font-bold text-[#202759] tracking-wide"
               >Rol / Perfil</label
             >
             <select
               v-model="(usuarioEnEdicion as any).rol_seleccionado"
-              class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm text-slate-800 focus:outline-none focus:border-[#202759] focus:ring-2 focus:ring-[#202759]/15"
+              class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm text-slate-800 focus:outline-none focus:border-[#202759]"
             >
               <option :value="1">Socio</option>
               <option :value="2">Recepcionista</option>
               <option :value="3">Gerente</option>
               <option :value="4">Externo</option>
             </select>
+          </div>
+        </div>
+
+        <!-- Botón exclusivo para Restaurar cuenta si está Desactivado (Sin selector de estado para activos) -->
+        <div
+          v-if="usuarioEnEdicion.id_usuario_estado === USER_STATUS.DESACTIVADO"
+          class="pt-2"
+        >
+          <div
+            class="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between"
+          >
+            <div>
+              <p
+                class="text-xs font-bold text-amber-800 uppercase tracking-wide"
+              >
+                Cuenta Desactivada
+              </p>
+              <p class="text-xs text-amber-600 mt-0.5">
+                Este usuario se encuentra inactivo en el sistema.
+              </p>
+            </div>
+            <BaseButton
+              variant="secondary"
+              size="sm"
+              class="bg-emerald-600 hover:bg-emerald-700 text-white"
+              @click="restaurarUsuarioDirecto(usuarioEnEdicion)"
+            >
+              <template #icon>
+                <PhArrowCounterClockwise :size="16" weight="bold" />
+              </template>
+              Restaurar Cuenta
+            </BaseButton>
           </div>
         </div>
       </form>
@@ -435,6 +504,38 @@ const {
           :loading="guardandoUsuario"
         >
           Guardar Cambios
+        </BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- 3. Modal de Confirmación de Baja Lógica (Soft-Delete) -->
+    <BaseModal
+      v-model="modalEliminacionAbierto"
+      title="Confirmar Desactivación"
+      subtitle="¿Estás seguro de que desea eliminar este usuario?."
+    >
+      <div
+        v-if="usuarioAEliminar"
+        class="p-4 bg-slate-50 border border-slate-200 rounded-xl mb-2"
+      >
+        <p class="text-sm font-bold text-[#202759]">
+          {{ usuarioAEliminar.nombre }} {{ usuarioAEliminar.apellido }}
+        </p>
+        <p class="text-xs text-slate-500">
+          DNI: {{ usuarioAEliminar.dni }} | Email: {{ usuarioAEliminar.email }}
+        </p>
+      </div>
+
+      <template #actions>
+        <BaseButton variant="outline" @click="modalEliminacionAbierto = false">
+          Cancelar
+        </BaseButton>
+        <BaseButton
+          variant="primary"
+          class="bg-red-600 hover:bg-red-700 text-white"
+          @click="ejecutarBajaLogica"
+        >
+          Sí, Desactivar
         </BaseButton>
       </template>
     </BaseModal>
