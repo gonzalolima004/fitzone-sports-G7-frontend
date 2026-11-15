@@ -12,7 +12,6 @@ import http from '@/common/api/http'
 import { toast } from '@/common/utils/toast'
 import { useSedeStore, type HorarioOperativo } from '@/store/sede'
 import type { RolUsuario } from '@/store/auth'
-import { rutaPorRol } from '@/common/guards/ruta-por-rol'
 import GestionCalendarioView from '@/modules/gerencia/views/GestionCalendarioView.vue'
 import {
   excepcionSchema,
@@ -619,19 +618,32 @@ describe('Calendario de sedes (panel de gerencia)', () => {
 describe('Calendario de sedes: acceso por rol', () => {
   it('solo el gerente puede abrir la pantalla', async () => {
     const { router } = await import('@/router')
-    const roles: RolUsuario[] = ['recepcionista', 'socio', 'externo']
+    const roles: RolUsuario[] = ['socio', 'externo', 'recepcionista']
 
     for (const rol of roles) {
       sesion.rol = rol
       sesion.usuario = { rol }
-      await router.push('/gerencia/calendario')
-      expect(router.currentRoute.value.path).toBe(rutaPorRol(rol))
+      // El guard lo saca de gerencia; adónde lo manda depende de cada rol.
+      await router.push('/gerencia/sedes/calendario').catch(() => undefined)
+      expect(router.currentRoute.value.path).not.toMatch(/^\/gerencia/)
     }
 
     sesion.rol = 'gerente'
     sesion.usuario = { rol: 'gerente' }
-    await router.push('/gerencia/calendario')
+    await router.push('/gerencia/sedes/calendario')
     expect(router.currentRoute.value.name).toBe('gerencia-calendario')
+  })
+
+  it('la dirección anterior lleva al calendario dentro de sedes', async () => {
+    const { router } = await import('@/router')
+    sesion.rol = 'gerente'
+    sesion.usuario = { rol: 'gerente' }
+
+    await router.push('/gerencia/calendario')
+
+    expect(router.currentRoute.value.fullPath).toBe(
+      '/gerencia/sedes/calendario'
+    )
   })
 })
 

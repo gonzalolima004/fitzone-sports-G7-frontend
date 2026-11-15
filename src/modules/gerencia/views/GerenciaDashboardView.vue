@@ -2,12 +2,14 @@
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import {
+  PhAddressBook,
   PhArrowRight,
   PhBuildings,
   PhCalendarBlank,
   PhCalendarCheck,
   PhChartBar,
   PhChartLineUp,
+  PhClock,
   PhCourtBasketball,
   PhCurrencyDollar,
   PhIdentificationCard,
@@ -69,48 +71,81 @@ const aforoActualTotal = computed(() =>
   [...aforoPorSede.value.values()].reduce((total, valor) => total + valor, 0)
 )
 
-const accesos = [
+/** Pantallas de gerencia agrupadas por área, en el mismo orden que las rutas. */
+const gruposDeAccesos = [
   {
     titulo: 'Sedes',
-    descripcion: 'Alta, modificación y baja de sedes y ciudades.',
-    ruta: '/gerencia/sedes',
-    icono: PhBuildings,
+    accesos: [
+      {
+        titulo: 'Sedes y ciudades',
+        descripcion: 'Alta, modificación y baja de sedes y ciudades.',
+        ruta: '/gerencia/sedes',
+        icono: PhBuildings,
+      },
+      {
+        titulo: 'Horarios semanales',
+        descripcion: 'Apertura y cierre de cada día en cada sede.',
+        ruta: '/gerencia/sedes/horarios',
+        icono: PhClock,
+      },
+      {
+        titulo: 'Calendario',
+        descripcion: 'Feriados de la cadena y cierres u horarios especiales.',
+        ruta: '/gerencia/sedes/calendario',
+        icono: PhCalendarBlank,
+      },
+    ],
   },
   {
-    titulo: 'Calendario de sedes',
-    descripcion: 'Feriados de la cadena y cierres u horarios especiales.',
-    ruta: '/gerencia/calendario',
-    icono: PhCalendarBlank,
-  },
-  {
-    titulo: 'Planes de membresía',
-    descripcion: 'Nombre, duración y precio de cada plan.',
-    ruta: '/gerencia/planes',
-    icono: PhMedal,
-  },
-  {
-    titulo: 'Membresías de socios',
-    descripcion: 'Plan, vencimiento y estado de cada socio.',
-    ruta: '/gerencia/membresias',
-    icono: PhIdentificationCard,
+    titulo: 'Socios y membresías',
+    accesos: [
+      {
+        titulo: 'Planes de membresía',
+        descripcion: 'Nombre, duración y precio de cada plan.',
+        ruta: '/gerencia/planes',
+        icono: PhMedal,
+      },
+      {
+        titulo: 'Membresías de socios',
+        descripcion: 'Plan, vencimiento y estado de cada socio.',
+        ruta: '/gerencia/membresias',
+        icono: PhIdentificationCard,
+      },
+      {
+        titulo: 'Directorio de usuarios',
+        descripcion: 'Socios, externos, recepcionistas y gerentes.',
+        ruta: '/gerencia/directorio-usuarios',
+        icono: PhAddressBook,
+      },
+    ],
   },
   {
     titulo: 'Canchas',
-    descripcion: 'Inventario, tarifas y mantenimiento por sede.',
-    ruta: '/gerencia/canchas',
-    icono: PhCourtBasketball,
+    accesos: [
+      {
+        titulo: 'Gestión de canchas',
+        descripcion: 'Inventario, tarifas y mantenimiento por sede.',
+        ruta: '/gerencia/canchas',
+        icono: PhCourtBasketball,
+      },
+    ],
   },
   {
-    titulo: 'Reporte de ingresos',
-    descripcion: 'Ingresos por período, sede y concepto.',
-    ruta: '/gerencia/reportes',
-    icono: PhChartLineUp,
-  },
-  {
-    titulo: 'Ocupación y reservas',
-    descripcion: 'Asistencias y reservas de canchas y clases.',
-    ruta: '/gerencia/reportes/ocupacion',
-    icono: PhChartBar,
+    titulo: 'Reportes',
+    accesos: [
+      {
+        titulo: 'Ingresos',
+        descripcion: 'Ingresos por período, sede y concepto.',
+        ruta: '/gerencia/reportes',
+        icono: PhChartLineUp,
+      },
+      {
+        titulo: 'Ocupación y reservas',
+        descripcion: 'Asistencias y reservas de canchas y clases.',
+        ruta: '/gerencia/reportes/ocupacion',
+        icono: PhChartBar,
+      },
+    ],
   },
 ] as const
 
@@ -530,37 +565,50 @@ onMounted(() => {
       <h2 id="titulo-accesos" class="text-base font-bold text-[#202759]">
         Administración
       </h2>
-      <nav
+      <div
         data-testid="accesos"
-        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+        class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start"
       >
-        <RouterLink
-          v-for="acceso in accesos"
-          :key="acceso.ruta"
-          :to="acceso.ruta"
-          class="group p-5 bg-white rounded-2xl border border-slate-200 hover:border-[#202759]/40 hover:shadow-sm transition-all flex flex-col gap-3"
+        <nav
+          v-for="grupo in gruposDeAccesos"
+          :key="grupo.titulo"
+          :aria-label="grupo.titulo"
+          data-testid="grupo-accesos"
+          class="px-4 pt-3 pb-1 bg-white rounded-2xl border border-slate-200"
         >
-          <div class="flex items-center justify-between">
-            <div
-              class="w-10 h-10 rounded-xl bg-[#F96167]/10 text-[#F96167] flex items-center justify-center"
-            >
-              <component :is="acceso.icono" :size="20" weight="bold" />
-            </div>
-            <PhArrowRight
-              :size="18"
-              class="text-slate-300 group-hover:text-[#202759] group-hover:translate-x-0.5 transition-all"
-            />
-          </div>
-          <div>
-            <h3 class="text-sm font-bold text-[#202759] m-0">
-              {{ acceso.titulo }}
-            </h3>
-            <p class="text-xs text-slate-500 mt-1 m-0">
-              {{ acceso.descripcion }}
-            </p>
-          </div>
-        </RouterLink>
-      </nav>
+          <h3
+            class="text-[11px] font-bold uppercase tracking-wider text-slate-500 m-0"
+          >
+            {{ grupo.titulo }}
+          </h3>
+          <ul class="divide-y divide-slate-100">
+            <li v-for="acceso in grupo.accesos" :key="acceso.ruta">
+              <RouterLink
+                :to="acceso.ruta"
+                class="group -mx-2 px-2 py-3 rounded-xl flex items-center gap-3 hover:bg-slate-50 transition-colors"
+              >
+                <span
+                  class="w-9 h-9 rounded-xl bg-[#F96167]/10 text-[#F96167] flex items-center justify-center shrink-0"
+                >
+                  <component :is="acceso.icono" :size="18" weight="bold" />
+                </span>
+                <span class="min-w-0 flex-1">
+                  <span class="block text-sm font-bold text-[#202759]">
+                    {{ acceso.titulo }}
+                  </span>
+                  <span class="block text-xs text-slate-500">
+                    {{ acceso.descripcion }}
+                  </span>
+                </span>
+                <PhArrowRight
+                  :size="16"
+                  class="shrink-0 text-slate-300 group-hover:text-[#202759] group-hover:translate-x-0.5 transition-all"
+                />
+              </RouterLink>
+            </li>
+          </ul>
+        </nav>
+      </div>
     </section>
   </div>
 </template>

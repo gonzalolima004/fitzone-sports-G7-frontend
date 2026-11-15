@@ -1193,6 +1193,35 @@
 
 ---
 
+#### 12/11/2026
+#### Facundo Agüero | Rol: Desarrollador Frontend
+
+- **Tarea:** Horarios semanales de cada sede y orden de las rutas y accesos de gerencia, sedes y reportes (parte frontend).
+- **Actividades:**
+  - Pantalla `/gerencia/sedes/horarios`: el gerente elige la sede (la misma del selector del encabezado) y ve la semana de lunes a domingo. Cada día puede abrir (con hora de apertura y de cierre), estar cerrado o quedar sin horario cargado, que se marca con un aviso. Los cambios se guardan juntos con "Guardar cambios", con un pedido por día modificado (alta, modificación o baja de `/sedes/:idSede/horarios`), y se pueden deshacer por día o descartar.
+  - Validación con Zod de las horas de cada día que abre, compartida con las excepciones del calendario, que tenían la misma regla.
+  - Rutas de gerencia ordenadas y agrupadas como el panel: sedes (listado, horarios y calendario, ahora bajo `/gerencia/sedes`), socios y membresías, canchas y reportes. `/gerencia/calendario` redirige a `/gerencia/sedes/calendario`. Las rutas del directorio de usuarios y de gestión de canchas solo cambiaron de lugar en la lista.
+  - Panel del gerente: los accesos de "Administración" quedan agrupados por área (Sedes, Socios y membresías, Canchas y Reportes) y se suman Horarios semanales y el directorio de usuarios.
+  - Pestañas para moverse entre las pantallas de cada área (`PestanasGerencia`): Sedes, Horarios y Calendario, e Ingresos y Ocupación en reportes, que además pasa a usar el mismo encabezado que el resto de gerencia.
+  - Pruebas con Vitest: carga de la semana, días sin horario, guardado de cada caso (alta, modificación y baja), validaciones, deshacer y descartar, falla parcial, cambio de sede con cambios sin guardar y error de carga; accesos agrupados del panel, ítem activo del menú y redirección del calendario.
+- **Decisiones:**
+  - Guardar solo los días que cambiaron, en paralelo: cada pedido hace una o dos consultas en el backend y no hace falta una transacción. Si un día falla, los demás quedan guardados y ese día conserva lo editado con el mensaje del backend.
+  - Con cambios sin guardar no se puede elegir otra sede en la pantalla; si cambia desde el encabezado, se descartan y se avisa.
+  - Al pasar un día a "Abre", se propone el horario de otro día que abre, para no cargarlo de cero.
+  - Después de guardar se borran del store los horarios operativos en caché de esa sede, para que canchas y clases los vuelvan a pedir.
+  - Las pestañas usan nombres cortos para que entren en el celular; el título de cada pantalla da el detalle.
+- **Dificultades:**
+  - En `dev`, la prueba de acceso por rol al calendario fallaba: la ruta de inicio de la recepcionista (`/aforo`, según `rutaPorRol`) ahora es solo para el gerente, así que el guard entra en una redirección infinita cuando la recepcionista abre una ruta sin permiso. La prueba ahora verifica que ningún otro rol entre a gerencia, sin depender de adónde lo manda el guard. La ruta de inicio de cada rol no se tocó.
+  - En tablet la tabla de la semana no entraba al lado del menú; las filas pasan a formato de tarjeta hasta pantallas anchas.
+- **Verificación:** 22 archivos y 172 pruebas aprobadas (12 nuevas); typecheck, lint y build aprobados; cada commit compila y pasa sus pruebas. Recorrido visual en navegador con API simulada (escritorio, tablet y celular). Pendiente: recorrido con la cuenta de gerente contra el backend.
+- **Commits:**
+  - `refactor(gerencia): agrupar rutas y accesos de sedes y reportes`
+  - `feat(gerencia): agregar horarios semanales de cada sede`
+  - `test(gerencia): agregar pruebas de horarios semanales`
+  - `docs(log): registrar horarios semanales y orden de rutas de gerencia`
+
+---
+
 #### 27/10/2026 - 29/10/2026
 
 #### Matías Sillen | Rol: Desarrollador Frontend
