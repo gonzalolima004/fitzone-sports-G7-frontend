@@ -38,6 +38,16 @@ body {
     sans-serif;
 }
 
+button,
+[role='button'] {
+  cursor: pointer;
+}
+
+button:disabled,
+[role='button']:disabled {
+  cursor: not-allowed;
+}
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }

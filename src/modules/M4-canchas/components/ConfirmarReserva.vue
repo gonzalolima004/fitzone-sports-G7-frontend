@@ -6,6 +6,10 @@ import { toast } from '@/common/utils/toast'
 import { useAuthStore } from '@/store/auth'
 import reservasService from '@/modules/M4-canchas/services/reservas.service'
 import { obtenerFechaHoyLocal } from '@/common/utils/date'
+import {
+  calcularEsSlotPasado,
+  formatoMoneda,
+} from '@/modules/M4-canchas/utils/canchas-horarios.utils'
 import type {
   TurnoSeleccionado,
   CotizacionTurnoResponse,
@@ -40,15 +44,6 @@ const cargandoCotizacion = ref(false)
 const confirmando = ref(false)
 const errorConflicto = ref<string | null>(null)
 const cotizacion = ref<CotizacionTurnoResponse | null>(null)
-
-// Formateador de moneda en pesos argentinos
-function formatoMoneda(valor: number): string {
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    maximumFractionDigits: 0,
-  }).format(valor)
-}
 
 // Al abrir el modal o cambiar el turno, obtenemos la cotización del backend
 watch(
@@ -96,15 +91,13 @@ async function confirmarReserva() {
     toast.error('No se pueden confirmar reservas para fechas pasadas.')
     return
   }
-  if (props.turno.fecha === hoyStr) {
-    const ahora = new Date()
-    const horaActual = `${ahora.getHours().toString().padStart(2, '0')}:${ahora.getMinutes().toString().padStart(2, '0')}`
-    if (props.turno.slot.hora_fin <= horaActual) {
-      toast.error(
-        'No se pueden confirmar reservas para horarios que ya transcurrieron hoy.'
-      )
-      return
-    }
+  if (
+    calcularEsSlotPasado(props.turno.fecha, props.turno.slot.hora_fin, hoyStr)
+  ) {
+    toast.error(
+      'No se pueden confirmar reservas para horarios que ya transcurrieron hoy.'
+    )
+    return
   }
 
   confirmando.value = true

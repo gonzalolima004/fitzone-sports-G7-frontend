@@ -19,8 +19,10 @@ import type {
   GrillaDisponibilidadBackendResponse,
   TurnoReservadoPayload,
 } from '@/modules/M4-canchas/types/canchas.types'
+import { normalizarSlotBackend } from '@/modules/M4-canchas/adapters/canchas.adapter'
+import { canchasTiposService } from '@/modules/M4-canchas/services/canchas-tipos.service'
+import { mantenimientosService } from '@/modules/M4-canchas/services/mantenimientos.service'
 
-///NOTA: Capaz es mejor que el estado lo traiga como string directamente
 export interface CanchaReservaRealtimePayload {
   id_cancha_reserva?: number
   id_cancha?: number
@@ -31,28 +33,7 @@ export interface CanchaReservaRealtimePayload {
   precio_congelado?: number
   descuento_porcentaje?: number
   es_horario_pico?: boolean
-  [key: string]: unknown // Para ignorar columnas extras que traiga Supabase
-}
-
-/**
- * Calcula la cotización dinámica estimada de un turno en memoria:
- * - Tarifa base según la cancha
- * - Recargo horario pico (+20% entre las 19:00 y 21:00 hs)
- * - Descuento de socio activo (-15% si aplica)
- */
-export function calcularPrecioSlot(
-  costoBase: number,
-  horaInicioStr: string,
-  esSocio: boolean = true
-): { esPico: boolean; precio: number } {
-  const horaNum = parseInt(horaInicioStr.split(':')[0], 10)
-  const esPico = horaNum >= 19 && horaNum < 21
-  const base =
-    costoBase && !isNaN(costoBase) && costoBase > 0 ? costoBase : 8000
-  const montoRecargoPico = esPico ? Math.round(base * 0.2) : 0
-  const montoDescuento = esSocio ? Math.round(base * 0.15) : 0
-  const precioFinal = base - montoDescuento + montoRecargoPico
-  return { esPico, precio: precioFinal }
+  [key: string]: unknown
 }
 
 export const canchasService = {
@@ -68,59 +49,50 @@ export const canchasService = {
     return await sedeStore.obtenerHorarioOperativo(idSede, fecha)
   },
 
-  /**
-   * Obtiene la lista de tipos de disciplinas deportivas, con opción de filtrar por estado activo
-   */
+  // -------------------------------------------------------------
+  // Delegación a canchasTiposService (Fachada Retrocompatible)
+  // -------------------------------------------------------------
   async getTiposCancha(inactivos?: boolean): Promise<CanchaTipo[]> {
-    try {
-      const response = await http.get(
-        '/canchas/tipos',
-        inactivos ? { params: { inactivos: true } } : undefined
-      )
-      if (response.data && response.data.length > 0) {
-        return response.data
-      }
-    } catch (err) {
-      console.warn('Error consultando /canchas/tipos en el backend:', err)
-    }
-    return []
+    return canchasTiposService.getTiposCancha(inactivos)
   },
 
-  /**
-   * Crea un nuevo tipo de cancha
-   */
+  async getCanchasTipos(inactivos?: boolean): Promise<CanchaTipo[]> {
+    return canchasTiposService.getCanchasTipos(inactivos)
+  },
+
   async crearTipoCancha(descripcion: string): Promise<CanchaTipo> {
-    const response = await http.post('/canchas/tipos', {
-      descripcion: descripcion.trim(),
-    })
-    return response.data
+    return canchasTiposService.crearTipoCancha(descripcion)
   },
 
-  /**
-   * Actualiza la descripción y/o el estado activo de un tipo de cancha
-   */
+  async crearCanchaTipo(descripcion: string): Promise<CanchaTipo> {
+    return canchasTiposService.crearCanchaTipo(descripcion)
+  },
+
   async actualizarTipoCancha(
     id: number,
     datos: ActualizarCanchaTipoDto
   ): Promise<CanchaTipo> {
-    const response = await http.patch(`/canchas/tipos/${id}`, datos)
-    return response.data
+    return canchasTiposService.actualizarTipoCancha(id, datos)
   },
 
-  /**
-   * Reactiva un tipo de cancha dado de baja lógica
-   */
+  async actualizarCanchaTipo(
+    id: number,
+    datos: ActualizarCanchaTipoDto
+  ): Promise<CanchaTipo> {
+    return canchasTiposService.actualizarCanchaTipo(id, datos)
+  },
+
   async reactivarTipoCancha(id: number): Promise<CanchaTipo> {
-    return this.actualizarTipoCancha(id, { activo: true })
+    return canchasTiposService.reactivarTipoCancha(id)
   },
 
-  /**
-   * Da de baja lógica un tipo de cancha
-   */
   async eliminarTipoCancha(id: number): Promise<void> {
-    await http.delete(`/canchas/tipos/${id}`)
+    return canchasTiposService.eliminarTipoCancha(id)
   },
 
+  // -------------------------------------------------------------
+  // CRUD de Canchas
+  // -------------------------------------------------------------
   /**
    * Obtiene la lista completa de canchas con filtros opcionales (sede, tipo, disponible)
    */
@@ -146,25 +118,6 @@ export const canchasService = {
     }
     return []
   },
-  /* NOTA: VIEJO
-  **
-   * Obtiene las canchas asociadas a una sede específica
-   *
-  async getCanchasPorSede(idSede: number): Promise<Cancha[]> {
-    try {
-      const response = await http.get(`/canchas?sedeId=${idSede}`)
-      if (Array.isArray(response.data)) {
-        return response.data
-      }
-    } catch (err) {
-      console.warn(
-        `Error al consultar canchas de sede #${idSede} en el backend:`,
-        err
-      )
-    }
-    return []
-  },
-*/
 
   /**
    * Obtiene las canchas asociadas a una sede específica desde el backend.
@@ -199,65 +152,45 @@ export const canchasService = {
     await http.delete(`/canchas/${id}`)
   },
 
-  /**
-   * Consulta los mantenimientos de canchas según filtros de sede, cancha o fechas
-   */
+  // -------------------------------------------------------------
+  // Delegación a mantenimientosService (Fachada Retrocompatible)
+  // -------------------------------------------------------------
   async getMantenimientos(
     filtros?: FiltrosMantenimiento
   ): Promise<MantenimientoResponseDto[]> {
-    const params = new URLSearchParams()
-    if (filtros?.sedeId) params.append('sedeId', String(filtros.sedeId))
-    if (filtros?.canchaId) params.append('canchaId', String(filtros.canchaId))
-    if (filtros?.fechaInicio) params.append('fechaInicio', filtros.fechaInicio)
-    if (filtros?.fechaFin) params.append('fechaFin', filtros.fechaFin)
-
-    const qs = params.toString() ? `?${params.toString()}` : ''
-    const response = await http.get<MantenimientoResponseDto[]>(
-      `/canchas/mantenimientos${qs}`
-    )
-    return Array.isArray(response.data) ? response.data : []
+    return mantenimientosService.getMantenimientos(filtros)
   },
 
-  /**
-   * Programa un mantenimiento para una cancha inhabilitando turnos futuros
-   */
   async programarMantenimiento(
     idCancha: number,
     dto: CrearMantenimientoDto
   ): Promise<MantenimientoResponseDto> {
-    const response = await http.post<MantenimientoResponseDto>(
-      `/canchas/${idCancha}/mantenimiento`,
-      dto
-    )
-    return response.data
+    return mantenimientosService.programarMantenimiento(idCancha, dto)
   },
 
-  /**
-   * Actualiza las fechas o motivo de un mantenimiento programado
-   */
+  async crearMantenimiento(
+    idCancha: number,
+    dto: CrearMantenimientoDto
+  ): Promise<MantenimientoResponseDto> {
+    return mantenimientosService.crearMantenimiento(idCancha, dto)
+  },
+
   async actualizarMantenimiento(
     idMantenimiento: number,
     dto: ActualizarMantenimientoDto
   ): Promise<MantenimientoResponseDto> {
-    const response = await http.patch<MantenimientoResponseDto>(
-      `/canchas/mantenimientos/${idMantenimiento}`,
-      dto
-    )
-    return response.data
+    return mantenimientosService.actualizarMantenimiento(idMantenimiento, dto)
   },
 
-  /**
-   * Elimina o cancela un mantenimiento programado
-   */
   async eliminarMantenimiento(idMantenimiento: number): Promise<void> {
-    await http.delete(`/canchas/mantenimientos/${idMantenimiento}`)
+    return mantenimientosService.eliminarMantenimiento(idMantenimiento)
   },
 
+  // -------------------------------------------------------------
+  // Disponibilidad y Slots (con Adapter)
+  // -------------------------------------------------------------
   /**
    * Consulta la grilla horaria de disponibilidad para una cancha y fecha
-   * desde el endpoint REST del backend (/canchas/:id/disponibilidad).
-   * Si el endpoint aún no está implementado en backend, calcula los slots
-   * en memoria con el costo base y horario operativo sin consultar tablas directamente.
    */
   async getDisponibilidad(
     idCancha: number,
@@ -276,43 +209,19 @@ export const canchasService = {
       })
       const data = response.data
 
-      // NestJS devuelve el arreglo directo: [ { horaInicio, horaFin, estado }, ... ]
-      const rawSlots: Array<{
-        horaInicio?: string
-        hora_inicio?: string
-        horaFin?: string
-        hora_fin?: string
-        estado: TurnoSlot['estado']
-        es_horario_pico?: boolean
-        precio_estimado?: number
-      }> = Array.isArray(data)
+      const rawSlots = Array.isArray(data)
         ? data
         : Array.isArray(data?.slots)
           ? data.slots
           : []
 
-      const slots: TurnoSlot[] = rawSlots.map((s) => {
-        const horaInicio = s.hora_inicio || s.horaInicio || '08:00'
-        const horaFin = s.hora_fin || s.horaFin || '09:00'
-        const { esPico, precio } = calcularPrecioSlot(
-          costo,
-          horaInicio,
-          esSocio
-        )
-
-        return {
-          hora_inicio: horaInicio,
-          hora_fin: horaFin,
-          estado: s.estado,
-          es_horario_pico: s.es_horario_pico ?? esPico,
-          precio_estimado:
-            s.precio_estimado !== undefined &&
-            s.precio_estimado > 0 &&
-            s.precio_estimado !== 15000
-              ? s.precio_estimado
-              : precio,
+      const slots: TurnoSlot[] = []
+      for (const s of rawSlots) {
+        const slot = normalizarSlotBackend(s, idCancha, fecha, costo, esSocio)
+        if (slot) {
+          slots.push(slot)
         }
-      })
+      }
 
       return {
         id_cancha: idCancha,
@@ -390,7 +299,6 @@ export const canchasService = {
       }
 
       const id = item.id_cancha
-      // Si item.costo_base viene del backend lo usamos; si no, buscamos en la lista de canchas provista
       const canchaReferencia = canchas?.find((c) => c.id_cancha === id)
       const costo = Number(item.costo_base ?? canchaReferencia?.costo_base ?? 0)
 
@@ -398,28 +306,10 @@ export const canchasService = {
       const slotsProcesados: TurnoSlot[] = []
 
       for (const s of rawSlots) {
-        const horaInicio = s.hora_inicio ?? s.horaInicio
-        const horaFin = s.hora_fin ?? s.horaFin
-
-        // Si el slot no contiene horarios reales válidos del backend, se descarta
-        if (!horaInicio || !horaFin) {
-          continue
+        const slot = normalizarSlotBackend(s, id, fecha, costo, esSocio)
+        if (slot) {
+          slotsProcesados.push(slot)
         }
-
-        const { esPico, precio } = calcularPrecioSlot(
-          costo,
-          horaInicio,
-          esSocio
-        )
-
-        slotsProcesados.push({
-          hora_inicio: horaInicio,
-          hora_fin: horaFin,
-          estado: s.estado,
-          es_horario_pico: s.es_horario_pico ?? esPico,
-          precio_estimado: s.precio_estimado ?? precio,
-          id_reserva: s.id_reserva,
-        })
       }
 
       mapa[id] = slotsProcesados
@@ -428,10 +318,11 @@ export const canchasService = {
     return mapa
   },
 
+  // -------------------------------------------------------------
+  // Supabase Realtime
+  // -------------------------------------------------------------
   /**
    * Suscribe en tiempo real al canal Supabase Broadcast de la sede actual (`canchas:sede:${idSede}`)
-   * Escuchando el evento `turno_reservado` emitido por el backend cuando otro usuario reserva un turno.
-   * Retorna una función para cancelar la suscripción y desasociar el canal limpiamente.
    */
   suscribirTurnoReservado(
     idSede: number,
@@ -458,7 +349,6 @@ export const canchasService = {
 
   /**
    * Suscribe en tiempo real a Supabase Realtime para cambios en la tabla cancha_reserva
-   * Se dispara cuando otro usuario reserva o cancela un turno concurrentemente
    */
   suscribirCambiosDisponibilidad(
     idCancha: number,

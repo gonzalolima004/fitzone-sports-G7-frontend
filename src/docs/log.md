@@ -1018,6 +1018,44 @@
 
 ---
 
+#### 07/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Full Stack
+- **Actividades**:
+  - Implementación de utilería genérica `validarConEsquema` y definición de esquemas Zod (`cancha.schema.ts`, `cancha-tipo.schema.ts`, `mantenimiento.schema.ts`) con sanitización alfanumérica contra caracteres especiales, límites decimales y validación cruzada de fechas.
+  - Integración de esquemas en `CanchaModal.vue`, `GestionTiposModal.vue`, `MantenimientoModal.vue` y `GerenciaCanchasView.vue`, bloqueando peticiones HTTP inválidas y mostrando feedback visual junto a toasts de advertencia (`toast.warning`).
+  - Creación de tests unitarios en `canchas-schemas-validation.spec.ts` verificando el bloqueo de strings inseguros, límites de longitud y reglas de negocio.
+- **Decisiones**:
+  - Proveer retroalimentación clara mediante avisos en amarillo (`toast.warning`) y marcado de inputs con error.
+- **Dificultades**: Ninguna
+- **Commits:**
+- `fix(M4): corregir calculo en detalle de reserva`
+- `feat(M4): utils de validacion y schemas Zod en M4`
+- `feat(M4): integrar validacion zod y alertas`
+- `feat(M4): tests unitarios para esquemas Zod`
+- `docs(log): actualizacion de bitacora`
+
+---
+
+#### 10/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Full Stack
+- **Actividades**:
+  - Limpieza de código muerto legacy y eliminación del fallback de `localStorage` en lectura de reservas para no enmascarar errores de red.
+  - Creación de `canchas-horarios.utils.ts` para cálculos temporales (`calcularEsSlotPasado`, `generarFranjasHorarias`) y formato monetario, reemplazando duplicaciones en `GrillaTurnos.vue` y `ConfirmarReserva.vue`.
+  - Implementación del patrón Adapter (`canchas.adapter.ts`) para normalizar slots crudos del backend (`camelCase`/`snake_case`) a `TurnoSlot`.
+  - Modularización de `canchas.service.ts` separando en `mantenimientos.service.ts` y `canchas-tipos.service.ts` bajo una fachada retrocompatible.
+- **Decisiones**:
+  - Mantener retrocompatibilidad mediante el patrón Facade en `canchasService` para no alterar imports en componentes existentes.
+- **Dificultades**: Ninguna
+- **Commits:**
+  - `refactor(canchas): remover fallback`
+  - `refactor(canchas): utils de horarios y formato`
+  - `refactor(canchas): patron adapter para normalizar slots del backend`
+  - `refactor(canchas): patron fachada para dividir canchas service`
+  - `style: formato con prettier`
+  - `docs(log): actualizacion de bitacora`
+
+---
+
 #### 26/10/2026
 
 #### Matías Sillen | Rol: Desarrollador Frontend
@@ -1126,6 +1164,64 @@
 
 ---
 
+#### 10/11/2026
+#### Facundo Agüero | Rol: Desarrollador Frontend
+
+- **Tarea:** Calendario de feriados y excepciones de cada sede para el gerente (parte frontend).
+- **Actividades:**
+  - Pantalla `/gerencia/calendario`, con acceso desde el panel del gerente: grilla del mes de lunes a domingo con los feriados y fechas de toda la cadena y con los cierres u horarios especiales de la sede elegida. Al tocar un día se ve su detalle con las acciones, y debajo de la grilla, la lista de fechas del mes.
+  - La sede del calendario es la del selector del encabezado (store de sedes): si cambia en cualquiera de los dos lugares, se recargan las excepciones.
+  - Alta y edición de feriados en `FeriadoFormModal` (fecha, descripción, feriado y día hábil) y de excepciones en `ExcepcionSedeFormModal` (cierre de todo el día u horario especial con apertura y cierre, y motivo), validados con Zod según los DTO del backend. Las bajas usan `ConfirmarEliminacionModal` y toast; se reutilizan `BaseModal`, `BaseInput`, `BaseButton` y `BaseSkeleton`.
+  - Servicio `calendario.service.ts` para `/calendario` y `/sedes/:id/calendario`, y tipos de las respuestas.
+  - Pruebas con Vitest: carga del mes y marcas de la grilla, cambio de mes y de sede, altas, edición, bajas, validaciones, errores del servidor y acceso a la ruta solo con el rol gerente (guard del router).
+- **Decisiones:**
+  - Cada mes se carga con dos consultas en paralelo (fechas del calendario y excepciones de la sede), porque cada viaje al backend suma tiempo. Si llega tarde la respuesta de un mes o de una sede anteriores, se descarta.
+  - Si se carga un feriado en una fecha que ya existe como día común (el backend la crea al cargar una excepción), se actualiza esa fecha en lugar de crear otra; si ya es un feriado, se pide editarlo.
+  - Si al quitar un feriado alguna sede tiene una excepción ese día, el backend responde 409: la fecha queda como día común, las excepciones se mantienen y el toast lo informa.
+  - Al editar una excepción, la fecha se envía solo si cambió, para ahorrar una consulta.
+  - Después de cada cambio se borran del store los horarios operativos en caché de las fechas tocadas (de todas las sedes si es un feriado, de una sede si es una excepción), para que canchas y clases los vuelvan a pedir.
+  - El acceso por rol se resuelve con la ruta hija de `/gerencia`, que ya exige el rol gerente; además, el backend responde 403 a cualquier otro rol.
+- **Dificultades:**
+  - Un feriado de toda la cadena no cambia por sí solo el horario operativo que consultan canchas y clases: `GET /sedes/:id/horario-operativo` tiene en cuenta las excepciones de cada sede y el horario semanal. El formulario del feriado lo aclara y sugiere cargar una excepción para cerrar la sede; cómo tratar los feriados en ese endpoint queda a definir con su responsable.
+  - En tablet, el selector de sede quedaba cortado a la derecha de la barra del mes; ahora la barra pasa a dos líneas cuando no hay lugar.
+- **Verificación:** 16 archivos y 110 pruebas aprobadas (18 nuevas); typecheck, lint y build aprobados; cada commit compila y pasa sus pruebas. Recorrido visual en navegador con API simulada (escritorio, tablet y celular). Pendiente: recorrido con la cuenta de gerente contra el backend.
+- **Commits:**
+  - `feat(gerencia): agregar vista de calendario con feriados y excepciones por sede`
+  - `feat(gerencia): agregar formularios de feriados y excepciones de sede`
+  - `test(gerencia): agregar pruebas de la vista de calendario`
+  - `docs(log): registrar vista y formularios de calendario`
+
+---
+
+#### 12/11/2026
+#### Facundo Agüero | Rol: Desarrollador Frontend
+
+- **Tarea:** Horarios semanales de cada sede y orden de las rutas y accesos de gerencia, sedes y reportes (parte frontend).
+- **Actividades:**
+  - Pantalla `/gerencia/sedes/horarios`: el gerente elige la sede (la misma del selector del encabezado) y ve la semana de lunes a domingo. Cada día puede abrir (con hora de apertura y de cierre), estar cerrado o quedar sin horario cargado, que se marca con un aviso. Los cambios se guardan juntos con "Guardar cambios", con un pedido por día modificado (alta, modificación o baja de `/sedes/:idSede/horarios`), y se pueden deshacer por día o descartar.
+  - Validación con Zod de las horas de cada día que abre, compartida con las excepciones del calendario, que tenían la misma regla.
+  - Rutas de gerencia ordenadas y agrupadas como el panel: sedes (listado, horarios y calendario, ahora bajo `/gerencia/sedes`), socios y membresías, canchas y reportes. `/gerencia/calendario` redirige a `/gerencia/sedes/calendario`. Las rutas del directorio de usuarios y de gestión de canchas solo cambiaron de lugar en la lista.
+  - Panel del gerente: los accesos de "Administración" quedan agrupados por área (Sedes, Socios y membresías, Canchas y Reportes) y se suman Horarios semanales y el directorio de usuarios.
+  - Pestañas para moverse entre las pantallas de cada área (`PestanasGerencia`): Sedes, Horarios y Calendario, e Ingresos y Ocupación en reportes, que además pasa a usar el mismo encabezado que el resto de gerencia.
+  - Pruebas con Vitest: carga de la semana, días sin horario, guardado de cada caso (alta, modificación y baja), validaciones, deshacer y descartar, falla parcial, cambio de sede con cambios sin guardar y error de carga; accesos agrupados del panel, ítem activo del menú y redirección del calendario.
+- **Decisiones:**
+  - Guardar solo los días que cambiaron, en paralelo: cada pedido hace una o dos consultas en el backend y no hace falta una transacción. Si un día falla, los demás quedan guardados y ese día conserva lo editado con el mensaje del backend.
+  - Con cambios sin guardar no se puede elegir otra sede en la pantalla; si cambia desde el encabezado, se descartan y se avisa.
+  - Al pasar un día a "Abre", se propone el horario de otro día que abre, para no cargarlo de cero.
+  - Después de guardar se borran del store los horarios operativos en caché de esa sede, para que canchas y clases los vuelvan a pedir.
+  - Las pestañas usan nombres cortos para que entren en el celular; el título de cada pantalla da el detalle.
+- **Dificultades:**
+  - En `dev`, la prueba de acceso por rol al calendario fallaba: la ruta de inicio de la recepcionista (`/aforo`, según `rutaPorRol`) ahora es solo para el gerente, así que el guard entra en una redirección infinita cuando la recepcionista abre una ruta sin permiso. La prueba ahora verifica que ningún otro rol entre a gerencia, sin depender de adónde lo manda el guard. La ruta de inicio de cada rol no se tocó.
+  - En tablet la tabla de la semana no entraba al lado del menú; las filas pasan a formato de tarjeta hasta pantallas anchas.
+- **Verificación:** 22 archivos y 172 pruebas aprobadas (12 nuevas); typecheck, lint y build aprobados; cada commit compila y pasa sus pruebas. Recorrido visual en navegador con API simulada (escritorio, tablet y celular). Pendiente: recorrido con la cuenta de gerente contra el backend.
+- **Commits:**
+  - `refactor(gerencia): agrupar rutas y accesos de sedes y reportes`
+  - `feat(gerencia): agregar horarios semanales de cada sede`
+  - `test(gerencia): agregar pruebas de horarios semanales`
+  - `docs(log): registrar horarios semanales y orden de rutas de gerencia`
+
+---
+
 #### 27/10/2026 - 29/10/2026
 
 #### Matías Sillen | Rol: Desarrollador Frontend
@@ -1202,7 +1298,61 @@
 
 ---
 
+#### 08/11/2026
+#### Joaquín Ribarola | Rol: Desarrollador Frontend
+
+- **Tarea:** E16-T1: Visualización de agenda para cualquier tipo de usuario, mensajes claros de membresía y restricción de reservas por jurisdicción de ciudad.
+- **Actividades:**
+  - **Enrutamiento y RBAC:** Incorporación del rol `'externo'` en `meta.roles` para la ruta `/clases` en `src/router/index.ts`, permitiendo el acceso directo a la agenda de clases para cualquier tipo de usuario (socio, externo, recepcionista, gerente) sin bloqueos ni rebotes de guardias.
+  - **Navegación lateral en `Sidebar.vue`:** Habilitación del acceso a "Clases Grupales" en la sección de Operaciones para usuarios con rol `externo`.
+  - **Integración con servicio de membresías:** Invocación de `membresiasService.verificarEstado` en `ClasesView.vue` para auditar reactivamente el estado del socio (`esSocioActivo`, `enMora`, `estado`), determinando si se encuentra habilitado para reservar.
+  - **Banner informativo contextual de estado:** Implementación en `ClasesView.vue` de avisos superiores adaptativos para clientes externos, socios en mora, con membresía suspendida o sin membresía activa, explicando claramente la inhabilitación y proveyendo un botón de redirección directa a la vista de Membresías (`/membresia`).
+  - **Restricción de reservas por ciudad (`socio.sede.id_ciudad === clase.sede.id_ciudad`):** Verificación reactiva de concordancia de ciudad entre la sede a la que pertenece el socio y la sede seleccionada de la clase. Si la sede pertenece a otra ciudad, se muestra banner informativo con botón directo "Volver a mi Sede", y se bloquea la reserva tanto a nivel de componente (`ClaseCard` deshabilitado con etiqueta "Sede en otra ciudad") como defensivamente en `handleReservar` y `handleListaEspera`.
+  - **Blindaje de acciones en `ClaseCard.vue`:** Incorporación de la propiedad `motivoInhabilitacion` (`'EXTERNO'`, `'MORA'`, `'SUSPENDIDA'`, `'SIN_MEMBRESIA'`, `'CIUDAD_DIFERENTE'`) para reemplazar los botones de reserva y lista de espera por accesos contextuales hacia `/membresia` o badges de bloqueo geográfico.
+  - **Guardias defensivas en reservas y lista de espera:** Restricción en `handleReservar` y `handleListaEspera` que bloquea la apertura de modales a usuarios no autorizados, con mora, suspensión o de otra ciudad, informando mediante `toast.warning` y redirigiendo según corresponda. Soporte ante respuestas HTTP 403 y 400 del backend mostrando mensajes informativos.
+  - **Optimización de consultas:** Condicionamiento de las peticiones a `obtenerMisReservas` y `obtenerMisInscripciones` exclusivamente para socios autenticados, evitando llamadas fallidas (403) para externos.
+  - **Cobertura de pruebas:** Creación y extensión de la suite `src/__tests__/clases-restricciones-membresia.spec.ts` con 11 pruebas unitarias certificando navegación, banners de membresía, reemplazo de botones en tarjetas, reservas de socios activos al día y bloqueo por discrepancia de ciudad.
+- **Decisiones:**
+  - Mantener la agenda pública y visible para cualquier tipo de usuario en el sistema pero inhabilitar la inscripción a nivel visual (tarjeta) y de lógica (handlers), canalizando a los usuarios hacia la adquisición de membresías o hacia sedes de su propia ciudad.
+  - No consultar los endpoints de reservas personales si el rol no es socio para no generar peticiones innecesarias que son rechazadas por los guards del backend.
+  - Sincronizar los datos de sede (`id_sede`, `sede`) en `Usuario` y `authStore` para validar en tiempo real la concordancia de ciudad sin peticiones adicionales.
+- **Dificultades:** Ninguna.
+- **Verificación:** 14 suites y 92 pruebas aprobadas al 100%. Typecheck (`vue-tsc -b`), linter (`eslint .`), formateo (`prettier`) y build de producción (`vite build`) exitosos sin errores ni advertencias.
+- **Commits:**
+  - `feat(clases): permitir visualizacion a clientes externos y restringir reservas por estado de membresia`
+  - `feat(clases): restringir reservas e inscripciones a sedes de la misma ciudad del socio`
+
+---
+
 #### 10/11/2026
+#### Joaquín Ribarola | Rol: Desarrollador Frontend
+
+- **Tarea:** E16-T2: Cupos en Tiempo Real, Notificación de Vacantes y Ajustes de Vista Gerente.
+- **Actividades:**
+  - **Realtime cupos en la agenda (`ClasesView.vue`):** Incorporación de un segundo canal Supabase Realtime (`cupos-agenda-realtime`) suscripto a `postgres_changes` sobre la tabla `clase_reserva` (`event: '*'`). Cada INSERT, UPDATE o DELETE en reservas dispara `cargarClases(true)` debounceado a 150ms en segundo plano, actualizando los cupos disponibles en vivo en la agenda sin parpadeos de skeleton.
+  - **Limpieza de canales en `onUnmounted`:** Ambos canales (`vacantesSubscription` y `cuposSubscription`) junto al timer de debounce (`timerCupos`) se limpian y desregistran al desmontar la vista, previniendo memory leaks y suscripciones huérfanas.
+  - **Mensaje de vacante con ventana de 4 horas:** El toast de notificación cuando se libera un lugar en lista de espera fue actualizado para informar explícitamente al socio que tiene 4 horas para aprovechar la vacante confirmada, alineándolo con la regla de negocio establecida por el backend.
+  - **Corrección del campo `descripcion` en el formulario del gerente:** Se identificó que `ClaseCardProps` no incluía el campo `descripcion`, por lo que el modal de edición siempre recibía `undefined`. Se agregó `descripcion?: string | null` a la interfaz en `ClaseCard.vue` y se incluyó `descripcion: clase.descripcion || null` en el mapeo de `clasesAgendadas` en `ClasesView.vue`, reparando la carga y el guardado correcto de la descripción al editar una clase sin pérdida de datos.
+  - **Validación del horario operativo de la sede (`ModalClaseForm.vue`):** Se importó `HorarioOperativoSedeResponse` y se agregó lógica para consultar `obtenerHorarioOperativoSede` al abrir el modal (tanto en modo creación como edición) y cada vez que cambia la fecha puntual. En `guardarClase()`, antes de enviar, se valida que `horario_inicio >= hora_apertura` y `horario_fin <= hora_cierre`; si no se cumple, se bloquea el guardado con un mensaje claro. Además, se muestra un banner informativo verde con el rango horario permitido por la sede.
+  - **Clarificación del tipo de clase (`ModalClaseForm.vue`):** Se incorporaron botones interactivos con íconos para disciplinas principales (Spinning, Yoga Vinyasa, CrossFit) que sincronizan automáticamente el nombre de la clase y seleccionan la disciplina adecuada.
+  - **Unificación estética del botón "Reservar Clase" (`ClaseCard.vue`):** Se estandarizó el botón de reserva para que mantenga un color uniforme institucional (`bg-[#202759] hover:bg-[#161b3d] text-white`) en todas las disciplinas, eliminando la discrepancia donde unas aparecían en rojo y otras en gris oscuro.
+  - **Optimización de carga y reservas (`ClasesView.vue`):**
+    - Descarte de respuestas desfasadas por condiciones de carrera (`idCargaActual`) al conmutar rápidamente entre fechas del calendario o sedes.
+    - Actualización optimista inmediata en memoria de cupos (`cupos_disponibles`, `cupos_ocupados`), estado de reservas e inscripciones en lista de espera al reservar o cancelar, permitiendo un feedback instantáneo en la UI antes de la reconciliación silenciosa con el servidor.
+    - Carga de clases silenciosa (`cargarClases(silencioso = true)`) tras operaciones y eventos en tiempo real, evitando mostrar esqueletos de carga si la grilla ya cuenta con datos.
+    - Reutilización de cache y deduplicación de llamadas para horarios operativos a través del store de sedes.
+  - **`cursor-pointer` en todos los botones:** Configuración global en `src/style.css` asegurando `cursor: pointer` para todos los elementos `<button>` y `[role="button"]`, y `cursor: not-allowed` en botones deshabilitados, complementado con clases explícitas en componentes clave.
+  - **Suite de pruebas unitarias (`src/__tests__/clases-criterios-e16-t2.spec.ts`):** Creación de 9 pruebas unitarias automatizadas certificando el cumplimiento riguroso de cada uno de los 5 criterios de aceptación de la tarea y la homogeneidad cromática de los botones.
+  - **Actualización de test de regresión (`conflictos-clases.spec.ts`):** Adaptado para certificar los 2 canales activos de Supabase Realtime y la limpieza controlada de suscripciones al desmontar.
+- **Decisiones:**
+  - Unificar el botón "Reservar Clase" en el color primario de marca (`#202759`) en lugar de colores variantes por disciplina, brindando consistencia visual y evitando confusiones con estados de alerta o peligro (rojo).
+  - Adoptar actualizaciones optimistas en memoria para reservas y cancelaciones junto a recarga silenciosa en segundo plano, mejorando drásticamente la percepción de velocidad en la experiencia del usuario.
+  - Consultar y cachear el horario operativo mediante `sedeStore` para evitar peticiones HTTP redundantes.
+- **Dificultades:** Ninguna.
+- **Verificación:** 15 suites y 101 pruebas aprobadas al 100%. Pipeline de validación completo exitoso: formateo (`npm run format`), linter (`npm run lint`), tipado (`npm run typecheck`), compilación de producción (`npm run build`) y tests (`npm run test`) con 0 errores y 0 advertencias.
+
+---
+
 #### Angelina Vialle | Rol:Desarrolladora Frontend
 
 - **Actividades**:
@@ -1261,3 +1411,5 @@
   - `fix(M5 y M1): correcion para que este el id definido`
   - `fix(components): organizacion SideBar`
   - `feat(M1): implementacion de baja logica, restauracion y paginacion`
+  
+  ---

@@ -10,6 +10,7 @@ import {
 import { useSedeStore } from '@/store/sede'
 import { toast } from '@/common/utils/toast'
 import BaseButton from '@/common/components/BaseButton.vue'
+import axios from 'axios'
 import canchasService from '../services/canchas.service'
 import CanchaFiltros from '../components/CanchaFiltros.vue'
 import CanchaCard from '../components/CanchaCard.vue'
@@ -176,6 +177,22 @@ function abrirEditarCancha(cancha: Cancha) {
   modalCanchaAbierto.value = true
 }
 
+function extraerMensajeError(error: unknown, fallback: string): string {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data as { message?: unknown } | undefined
+    if (Array.isArray(data?.message)) {
+      return data.message.join('. ')
+    }
+    if (typeof data?.message === 'string') {
+      return data.message
+    }
+  }
+  if (error instanceof Error && error.message) {
+    return error.message
+  }
+  return fallback
+}
+
 // Guardar cancha (Crear o Actualizar)
 async function handleGuardarCancha(datos: {
   nombre: string
@@ -214,7 +231,12 @@ async function handleGuardarCancha(datos: {
     await cargarCanchas()
   } catch (error) {
     console.error('Error al guardar cancha:', error)
-    toast.error('Ocurrió un error al guardar los datos de la cancha.')
+    toast.error(
+      extraerMensajeError(
+        error,
+        'Ocurrió un error al guardar los datos de la cancha.'
+      )
+    )
   } finally {
     guardandoCancha.value = false
   }
@@ -250,7 +272,9 @@ async function handleGuardarMantenimiento(dto: CrearMantenimientoDto) {
     await cargarCanchas()
   } catch (error) {
     console.error('Error al programar mantenimiento:', error)
-    toast.error('No se pudo programar el mantenimiento.')
+    toast.error(
+      extraerMensajeError(error, 'No se pudo programar el mantenimiento.')
+    )
   } finally {
     guardandoMantenimiento.value = false
   }

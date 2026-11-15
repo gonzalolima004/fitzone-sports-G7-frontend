@@ -14,11 +14,13 @@ import BaseSkeleton from '@/common/components/BaseSkeleton.vue'
 import { toast } from '@/common/utils/toast'
 import { useSedeStore } from '@/store/sede'
 import EncabezadoGerencia from '../components/EncabezadoGerencia.vue'
+import PestanasGerencia from '../components/PestanasGerencia.vue'
 import SedeFormModal from '../components/SedeFormModal.vue'
 import ConfirmarEliminacionModal from '../components/ConfirmarEliminacionModal.vue'
 import { sedesService } from '../services/sedes.service'
 import { obtenerMensajeDeError } from '../utils/errores'
 import { describirInstalaciones, normalizarTexto } from '../utils/formato'
+import { PESTANAS_SEDES } from '../utils/navegacion'
 import type {
   CanchaResumen,
   Ciudad,
@@ -224,6 +226,11 @@ onMounted(cargarTodo)
         </BaseButton>
       </template>
     </EncabezadoGerencia>
+
+    <PestanasGerencia
+      etiqueta="Secciones de sedes"
+      :pestanas="PESTANAS_SEDES"
+    />
 
     <section
       aria-label="Resumen de sedes"

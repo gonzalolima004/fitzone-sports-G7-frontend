@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
+import { useRouter, RouterLink } from 'vue-router'
 import {
   PhBicycle,
   PhPlug,
@@ -11,6 +12,10 @@ import {
   PhDoor,
   PhPlus,
   PhTrash,
+  PhMedal,
+  PhWarningCircle,
+  PhArrowRight,
+  PhMapPin,
 } from '@phosphor-icons/vue'
 import { useSedeStore } from '@/store/sede'
 import axios from 'axios'
@@ -31,16 +36,130 @@ import {
   obtenerEstadoVentanaReserva,
   type DiaAgendaItem,
 } from '@/common/utils/date-formatter'
-import ClaseCard, { type ClaseCardProps } from '../components/ClaseCard.vue'
+import ClaseCard, {
+  type ClaseCardProps,
+  type MotivoInhabilitacion,
+} from '../components/ClaseCard.vue'
 import ModalClaseForm from '../components/ModalClaseForm.vue'
 import BaseModal from '@/common/components/BaseModal.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import { toast } from '@/common/utils/toast'
 import { useAuthStore } from '@/store/auth'
 import { supabase } from '@/common/utils/supabase'
+import {
+  membresiasService,
+  type EstadoMembresia,
+} from '@/modules/M1-usuarios/services/membresias.service'
 
+const router = useRouter()
 const sedeStore = useSedeStore()
 const authStore = useAuthStore()
+
+// Rol y estado de membresía del usuario para reglas de inscripción
+const rolUsuario = computed<string>(
+  () => authStore.rol || authStore.usuario?.rol || 'socio'
+)
+const esExterno = computed(() => rolUsuario.value === 'externo')
+const esSocio = computed(() => rolUsuario.value === 'socio')
+
+const estadoMembresia = ref<EstadoMembresia | null>(null)
+const verificandoMembresia = ref(false)
+
+const estaEnMora = computed(
+  () =>
+    esSocio.value &&
+    (estadoMembresia.value?.enMora === true ||
+      estadoMembresia.value?.estado === 'VENCIDA')
+)
+
+const esMembresiaSuspendida = computed(
+  () => esSocio.value && estadoMembresia.value?.estado === 'SUSPENDIDA'
+)
+
+const sinMembresia = computed(
+  () =>
+    esSocio.value &&
+    Boolean(
+      estadoMembresia.value &&
+      !estadoMembresia.value.esSocioActivo &&
+      !estaEnMora.value &&
+      !esMembresiaSuspendida.value
+    )
+)
+
+// Validación de concordancia de ciudad entre la sede del socio y la sede de la clase
+const idSedeSocio = computed<number | undefined>(() => {
+  return (
+    authStore.usuario?.id_sede || authStore.usuario?.sede?.id_sede || undefined
+  )
+})
+
+const sedeSocio = computed(() => {
+  if (!idSedeSocio.value) return authStore.usuario?.sede
+  return (
+    sedeStore.sedes?.find((s) => s.id_sede === idSedeSocio.value) ||
+    authStore.usuario?.sede
+  )
+})
+
+const idCiudadSocio = computed<number | undefined>(() => {
+  return (
+    authStore.usuario?.sede?.id_ciudad ??
+    sedeSocio.value?.id_ciudad ??
+    undefined
+  )
+})
+
+const idCiudadSedeSeleccionada = computed<number | undefined>(() => {
+  return sedeStore.sedeSeleccionada?.id_ciudad
+})
+
+const esCiudadDiferente = computed<boolean>(() => {
+  if (!esSocio.value) return false
+  if (!idCiudadSocio.value || !idCiudadSedeSeleccionada.value) return false
+  return idCiudadSocio.value !== idCiudadSedeSeleccionada.value
+})
+
+const usuarioInhabilitado = computed(
+  () =>
+    esExterno.value ||
+    estaEnMora.value ||
+    esMembresiaSuspendida.value ||
+    sinMembresia.value ||
+    esCiudadDiferente.value
+)
+
+const motivoInhabilitacion = computed<MotivoInhabilitacion>(() => {
+  if (esExterno.value) return 'EXTERNO'
+  if (estaEnMora.value) return 'MORA'
+  if (esMembresiaSuspendida.value) return 'SUSPENDIDA'
+  if (sinMembresia.value) return 'SIN_MEMBRESIA'
+  if (esCiudadDiferente.value) return 'CIUDAD_DIFERENTE'
+  return null
+})
+
+async function cargarEstadoMembresia() {
+  if (
+    !authStore.isAuthenticated ||
+    !authStore.usuario?.id ||
+    rolUsuario.value !== 'socio'
+  ) {
+    return
+  }
+  verificandoMembresia.value = true
+  try {
+    const res = (await membresiasService.verificarEstado(
+      authStore.usuario.id
+    )) as EstadoMembresia
+    estadoMembresia.value = res
+  } catch (e) {
+    if (import.meta.env.MODE !== 'test') {
+      console.warn('No se pudo verificar el estado de membresía:', e)
+    }
+  } finally {
+    verificandoMembresia.value = false
+  }
+}
 
 // Fecha seleccionada actual (YYYY-MM-DD en hora local)
 const fechaSeleccionada = ref<string>(obtenerFechaLocalISO())
@@ -169,6 +288,7 @@ const clasesAgendadas = computed<ClaseCardProps[]>(() => {
       fecha_fin: fechaFinISO,
       profesor: clase.profesor || null,
       sala: clase.sala || null,
+      descripcion: clase.descripcion || null,
       capacidadMaxima: clase.capacidad_maxima,
       cuposOcupados: clase.cupos_ocupados,
       cuposDisponibles: clase.cupos_disponibles,
@@ -191,36 +311,72 @@ const clasesAgendadas = computed<ClaseCardProps[]>(() => {
 
 // Escuchar cambios en tiempo real desde Supabase para aviso de vacantes
 let vacantesSubscription: ReturnType<typeof supabase.channel> | null = null
+// Suscripción para actualizar cupos en la agenda en vivo
+let cuposSubscription: ReturnType<typeof supabase.channel> | null = null
+let timerCupos: ReturnType<typeof setTimeout> | null = null
 
 function setupRealtimeNotifications() {
-  if (!authStore.usuario?.id) return
+  // 1. Notificación personal para socios en lista de espera
+  if (authStore.usuario?.id && !vacantesSubscription) {
+    vacantesSubscription = supabase
+      .channel('lista-espera-vacantes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'clase_lista_espera',
+          filter: `id_usuario=eq.${authStore.usuario.id}`,
+        },
+        (payload: { new: Record<string, unknown> }) => {
+          const newData = payload.new as {
+            id_clase_lista_espera_estado: number
+          }
+          // Estado 1 = En Espera, 2 = Notificado / Promovido
+          if (newData.id_clase_lista_espera_estado === 2) {
+            toast.success(
+              `¡Se liberó un lugar en tu clase! La vacante fue confirmada a tu favor. Tenés 4 horas para asistir — verificá tu reserva en la agenda.`,
+              { autoClose: false }
+            )
+            cargarClases(true)
+          }
+        }
+      )
+      .subscribe()
+  }
 
-  vacantesSubscription = supabase
-    .channel('lista-espera-vacantes')
-    .on(
-      'postgres_changes',
-      {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'clase_lista_espera',
-        filter: `id_usuario=eq.${authStore.usuario.id}`,
-      },
-      (payload: { new: Record<string, unknown> }) => {
-        const newData = payload.new as {
-          id_clase_lista_espera_estado: number
+  // 2. Suscripción Realtime a reservas para actualizar cupos disponibles en vivo (para cualquier usuario)
+  if (!cuposSubscription) {
+    cuposSubscription = supabase
+      .channel('cupos-agenda-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'clase_reserva',
+        },
+        () => {
+          // Debounce para mitigar ráfagas de eventos concurrentes sin saturar la red
+          if (timerCupos) clearTimeout(timerCupos)
+          timerCupos = setTimeout(() => {
+            cargarClases(true)
+          }, 150)
         }
-        // Estado 1 = En Espera, 2 = Notificado / Promovido
-        if (newData.id_clase_lista_espera_estado === 2) {
-          toast.success(
-            `¡Se ha liberado un lugar en tu clase! Se te ha asignado y confirmado la vacante automáticamente.`,
-            { autoClose: false }
-          )
-          cargarClases()
-        }
-      }
-    )
-    .subscribe()
+      )
+      .subscribe()
+  }
 }
+
+// Re-vincular notificaciones de vacantes si el usuario se autentica después del montaje inicial
+watch(
+  () => authStore.usuario?.id,
+  (nuevoId) => {
+    if (nuevoId) {
+      setupRealtimeNotifications()
+    }
+  }
+)
 
 onMounted(() => {
   if (!fechaSeleccionada.value) {
@@ -229,12 +385,20 @@ onMounted(() => {
   if (sedeStore.idSedeSeleccionada) {
     cargarClases()
   }
+  sedeStore.cargarSedes?.()
+  cargarEstadoMembresia()
   setupRealtimeNotifications()
 })
 
 onUnmounted(() => {
+  if (timerCupos) {
+    clearTimeout(timerCupos)
+  }
   if (vacantesSubscription) {
     supabase.removeChannel(vacantesSubscription)
+  }
+  if (cuposSubscription) {
+    supabase.removeChannel(cuposSubscription)
   }
 })
 
@@ -260,10 +424,19 @@ watch(fechaSeleccionada, (nuevaFecha) => {
   }
 })
 
-async function cargarClases() {
+// Control de peticiones concurrentes para descartar respuestas desfasadas
+let idCargaActual = 0
+
+async function cargarClases(silencioso = false) {
   if (!sedeStore.idSedeSeleccionada) return
-  cargando.value = true
+  const idCarga = ++idCargaActual
+
+  // Solo activar skeleton si no hay datos o no es una actualización silenciosa de fondo
+  if (!silencioso || clases.value.length === 0) {
+    cargando.value = true
+  }
   error.value = null
+
   try {
     const promises: [
       Promise<ClaseAgendaResponse[]>,
@@ -275,39 +448,52 @@ async function cargarClases() {
         sedeStore.idSedeSeleccionada,
         fechaSeleccionada.value
       ),
-      authStore.isAuthenticated
+      authStore.isAuthenticated && esSocio.value
         ? clasesService
             .obtenerMisReservas(fechaSeleccionada.value)
             .catch(() => [])
         : Promise.resolve([]),
-      authStore.isAuthenticated
+      authStore.isAuthenticated && esSocio.value
         ? clasesService
             .obtenerMisInscripciones(fechaSeleccionada.value)
             .catch(() => [])
         : Promise.resolve([]),
-      clasesService
-        .obtenerHorarioOperativoSede(
-          sedeStore.idSedeSeleccionada,
-          fechaSeleccionada.value
-        )
-        .catch(() => null),
+      sedeStore.obtenerHorarioOperativo
+        ? (
+            sedeStore.obtenerHorarioOperativo(
+              sedeStore.idSedeSeleccionada,
+              fechaSeleccionada.value
+            ) as Promise<HorarioOperativoSedeResponse>
+          ).catch(() => null)
+        : clasesService
+            .obtenerHorarioOperativoSede(
+              sedeStore.idSedeSeleccionada,
+              fechaSeleccionada.value
+            )
+            .catch(() => null),
     ]
 
     const [agendaData, reservasData, inscripcionesData, horarioData] =
       await Promise.all(promises)
+
+    // Si otra petición se completó después o cambió la fecha/sede, descartar
+    if (idCarga !== idCargaActual) return
 
     clases.value = agendaData
     misReservas.value = reservasData
     misInscripciones.value = inscripcionesData
     horarioSede.value = horarioData
   } catch (err: unknown) {
+    if (idCarga !== idCargaActual) return
     if (axios.isAxiosError(err)) {
       error.value = err.response?.data?.message || 'Error al cargar las clases.'
     } else {
       error.value = 'Error al cargar las clases.'
     }
   } finally {
-    cargando.value = false
+    if (idCarga === idCargaActual) {
+      cargando.value = false
+    }
   }
 }
 
@@ -351,6 +537,41 @@ const reservando = ref(false)
 const errorReserva = ref<string | null>(null)
 
 function handleReservar(idClase: number) {
+  if (esExterno.value) {
+    toast.warning(
+      'La reserva de clases grupales es exclusiva para socios. Adquiere una membresía para comenzar.'
+    )
+    router.push('/membresia')
+    return
+  }
+  if (estaEnMora.value) {
+    toast.warning(
+      'Tu membresía se encuentra vencida. Regulariza tus cuotas para poder reservar clases grupales.'
+    )
+    router.push('/membresia')
+    return
+  }
+  if (esMembresiaSuspendida.value) {
+    toast.warning(
+      'Tu membresía está suspendida. No puedes realizar reservas de clases grupales.'
+    )
+    router.push('/membresia')
+    return
+  }
+  if (sinMembresia.value) {
+    toast.warning(
+      'No dispones de una membresía activa vigente. Adquiere un plan para reservar.'
+    )
+    router.push('/membresia')
+    return
+  }
+  if (esCiudadDiferente.value) {
+    toast.warning(
+      'Solo puedes reservar clases grupales en sedes pertenecientes a tu misma ciudad.'
+    )
+    return
+  }
+
   const clase = clasesAgendadas.value.find((c) => c.id === idClase)
   if (clase) {
     const ventana = obtenerEstadoVentanaReserva(clase.fecha_inicio)
@@ -376,25 +597,58 @@ async function confirmarReserva() {
 
   reservando.value = true
   try {
-    await clasesService.reservarClase({
+    const res = await clasesService.reservarClase({
       id_clase: claseAReservar.value.id,
       fecha_inicio: claseAReservar.value.fecha_inicio,
       fecha_fin: claseAReservar.value.fecha_fin,
     })
 
+    // Actualización optimista inmediata en memoria para respuesta instantánea
+    const targetId = claseAReservar.value.id
+    const cIdx = clases.value.findIndex((c) => c.id_clase === targetId)
+    if (cIdx !== -1) {
+      clases.value[cIdx] = {
+        ...clases.value[cIdx],
+        cupos_disponibles: Math.max(
+          0,
+          clases.value[cIdx].cupos_disponibles - 1
+        ),
+        cupos_ocupados: clases.value[cIdx].cupos_ocupados + 1,
+      }
+    }
+    const idRes = res?.id_clase_reserva || res?.id_reserva
+    if (idRes) {
+      misReservas.value.push({
+        id_clase_reserva: idRes,
+        id_clase: targetId,
+        id_usuario: authStore.usuario?.id || 0,
+        fecha_inicio: claseAReservar.value.fecha_inicio || '',
+        fecha_fin: claseAReservar.value.fecha_fin || '',
+        id_clase_reserva_estado: 1,
+        estado: 'CONFIRMADA',
+        nombre_clase: claseAReservar.value.nombre,
+      })
+    }
+
     toast.success(`Reserva confirmada para ${claseAReservar.value.nombre}`)
     modalReservaVisible.value = false
   } catch (err: unknown) {
     if (axios.isAxiosError(err)) {
-      errorReserva.value =
-        err.response?.data?.message ||
-        'Ocurrió un error al intentar reservar la clase.'
+      if (err.response?.status === 403) {
+        errorReserva.value =
+          err.response?.data?.message ||
+          'Acceso restringido: tu membresía no está activa o registras cuotas vencidas.'
+      } else {
+        errorReserva.value =
+          err.response?.data?.message ||
+          'Ocurrió un error al intentar reservar la clase.'
+      }
     } else {
       errorReserva.value = 'Ocurrió un error inesperado.'
     }
   } finally {
     reservando.value = false
-    await cargarClases()
+    await cargarClases(true)
   }
 }
 
@@ -413,6 +667,41 @@ const esperando = ref(false)
 const errorEspera = ref<string | null>(null)
 
 function handleListaEspera(idClase: number) {
+  if (esExterno.value) {
+    toast.warning(
+      'La lista de espera es exclusiva para socios. Adquiere una membresía para anotarte.'
+    )
+    router.push('/membresia')
+    return
+  }
+  if (estaEnMora.value) {
+    toast.warning(
+      'Tu membresía se encuentra vencida. Regulariza tus pagos para anotarte en lista de espera.'
+    )
+    router.push('/membresia')
+    return
+  }
+  if (esMembresiaSuspendida.value) {
+    toast.warning(
+      'Tu membresía está suspendida. No puedes anotarte en listas de espera.'
+    )
+    router.push('/membresia')
+    return
+  }
+  if (sinMembresia.value) {
+    toast.warning(
+      'No dispones de una membresía activa vigente para anotarte en lista de espera.'
+    )
+    router.push('/membresia')
+    return
+  }
+  if (esCiudadDiferente.value) {
+    toast.warning(
+      'Solo puedes anotarte en lista de espera en sedes pertenecientes a tu misma ciudad.'
+    )
+    return
+  }
+
   const clase = clasesAgendadas.value.find((c) => c.id === idClase)
   if (clase) {
     const ventana = obtenerEstadoVentanaReserva(clase.fecha_inicio)
@@ -444,6 +733,30 @@ async function confirmarListaEspera() {
       fecha_fin: claseAEsperar.value.fecha_fin,
     })
 
+    // Actualización optimista inmediata
+    const targetId = claseAEsperar.value.id
+    const cIdx = clases.value.findIndex((c) => c.id_clase === targetId)
+    if (cIdx !== -1) {
+      clases.value[cIdx] = {
+        ...clases.value[cIdx],
+        en_espera: (clases.value[cIdx].en_espera || 0) + 1,
+      }
+    }
+    const idLista = res?.inscripcion?.id_clase_lista_espera || res?.id_lista
+    if (idLista) {
+      misInscripciones.value.push({
+        id_clase_lista_espera: idLista,
+        id_clase: targetId,
+        id_usuario: authStore.usuario?.id || 0,
+        fecha_inicio: claseAEsperar.value.fecha_inicio || '',
+        fecha_fin: claseAEsperar.value.fecha_fin || '',
+        orden_en_cola: res.orden_en_cola || 1,
+        id_clase_lista_espera_estado: 1,
+        estado: 'ACTIVA',
+        nombre_clase: claseAEsperar.value.nombre,
+      })
+    }
+
     const orden = res.orden_en_cola ? ` (Posición #${res.orden_en_cola})` : ''
     toast.success(
       `Estás en lista de espera para ${claseAEsperar.value.nombre}${orden}`
@@ -451,14 +764,20 @@ async function confirmarListaEspera() {
     modalEsperaVisible.value = false
   } catch (err: unknown) {
     if (axios.isAxiosError(err)) {
-      errorEspera.value =
-        err.response?.data?.message || 'Error al anotarse en lista de espera.'
+      if (err.response?.status === 403) {
+        errorEspera.value =
+          err.response?.data?.message ||
+          'Acceso restringido: no puedes inscribirte en lista de espera sin membresía activa o con cuotas impagas.'
+      } else {
+        errorEspera.value =
+          err.response?.data?.message || 'Error al anotarse en lista de espera.'
+      }
     } else {
       errorEspera.value = 'Ocurrió un error inesperado al anotarse.'
     }
   } finally {
     esperando.value = false
-    await cargarClases()
+    await cargarClases(true)
   }
 }
 
@@ -496,6 +815,24 @@ async function confirmarCancelacion() {
   cancelando.value = true
   try {
     await clasesService.cancelarReserva(idReserva)
+
+    // Actualización optimista de cupos y reservas
+    const targetId = claseACancelar.value.id
+    const cIdx = clases.value.findIndex((c) => c.id_clase === targetId)
+    if (cIdx !== -1) {
+      clases.value[cIdx] = {
+        ...clases.value[cIdx],
+        cupos_disponibles: Math.min(
+          clases.value[cIdx].capacidad_maxima,
+          clases.value[cIdx].cupos_disponibles + 1
+        ),
+        cupos_ocupados: Math.max(0, clases.value[cIdx].cupos_ocupados - 1),
+      }
+    }
+    misReservas.value = misReservas.value.filter(
+      (r) => r.id_clase_reserva !== idReserva
+    )
+
     toast.info(`Reserva de ${claseACancelar.value.nombre} cancelada.`)
     modalCancelacionVisible.value = false
   } catch (err: unknown) {
@@ -507,7 +844,7 @@ async function confirmarCancelacion() {
     }
   } finally {
     cancelando.value = false
-    await cargarClases()
+    await cargarClases(true)
   }
 }
 
@@ -630,6 +967,114 @@ async function confirmarEliminacion() {
       </div>
     </div>
 
+    <!-- Banner Informativo de Membresía / Clientes Externos -->
+    <div
+      v-if="usuarioInhabilitado"
+      class="mb-8 rounded-3xl p-5 border transition-all animate-fade-in flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm"
+      :class="[
+        esExterno
+          ? 'bg-blue-50/90 border-blue-200 text-blue-950'
+          : estaEnMora
+            ? 'bg-amber-50/90 border-amber-200 text-amber-950'
+            : esMembresiaSuspendida
+              ? 'bg-rose-50/90 border-rose-200 text-rose-950'
+              : esCiudadDiferente
+                ? 'bg-amber-50/90 border-amber-200 text-amber-950'
+                : 'bg-slate-50 border-slate-200 text-slate-800',
+      ]"
+    >
+      <div class="flex items-start gap-3.5">
+        <div
+          class="p-2.5 rounded-2xl shrink-0 mt-0.5"
+          :class="[
+            esExterno
+              ? 'bg-blue-100 text-blue-600'
+              : estaEnMora
+                ? 'bg-amber-100 text-amber-600'
+                : esMembresiaSuspendida
+                  ? 'bg-rose-100 text-rose-600'
+                  : esCiudadDiferente
+                    ? 'bg-amber-100 text-amber-600'
+                    : 'bg-slate-200 text-slate-700',
+          ]"
+        >
+          <PhMapPin v-if="esCiudadDiferente" :size="26" weight="duotone" />
+          <PhMedal
+            v-else-if="esExterno || sinMembresia"
+            :size="26"
+            weight="duotone"
+          />
+          <PhWarningCircle v-else :size="26" weight="duotone" />
+        </div>
+        <div>
+          <h3 class="font-extrabold text-base sm:text-lg leading-tight">
+            {{
+              esExterno
+                ? 'Acceso de solo lectura para Clientes Externos'
+                : estaEnMora
+                  ? 'Membresía Vencida / Cuota Pendiente'
+                  : esMembresiaSuspendida
+                    ? 'Membresía Suspendida'
+                    : esCiudadDiferente
+                      ? 'Sede en otra ciudad'
+                      : 'Sin Membresía Activa'
+            }}
+          </h3>
+          <p class="text-xs sm:text-sm mt-1 opacity-90 leading-relaxed">
+            {{
+              esExterno
+                ? 'Podés consultar la agenda de clases grupales y sus cupos en tiempo real. Para inscribirte y reservar tu lugar, necesitás ser socio con una membresía activa.'
+                : estaEnMora
+                  ? 'Presentas pagos o cuotas pendientes en tu suscripción. Regulariza tu situación para volver a reservar clases grupales o inscribirte en listas de espera.'
+                  : esMembresiaSuspendida
+                    ? 'Tu membresía se encuentra suspendida temporalmente. No podrás reservar clases grupales hasta regularizarla.'
+                    : esCiudadDiferente
+                      ? 'Tu membresía te permite reservar clases únicamente en sedes de tu misma ciudad. Puedes explorar la agenda de esta sede pero no reservar ni ingresar a lista de espera.'
+                      : 'No tienes una membresía activa vigente asignada a tu cuenta. Adquiere un plan para poder reservar tus clases grupales favoritas.'
+            }}
+          </p>
+        </div>
+      </div>
+
+      <button
+        v-if="esCiudadDiferente && idSedeSocio"
+        type="button"
+        class="shrink-0 inline-flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm bg-amber-600 hover:bg-amber-700 text-white shadow-sm transition-all active:scale-95 cursor-pointer"
+        @click="sedeStore.seleccionarSede(idSedeSocio)"
+      >
+        <span>Volver a mi Sede</span>
+        <PhArrowRight :size="16" weight="bold" />
+      </button>
+
+      <RouterLink
+        v-else
+        to="/membresia"
+        class="shrink-0 inline-flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all shadow-sm active:scale-95 cursor-pointer"
+        :class="[
+          esExterno
+            ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200'
+            : estaEnMora
+              ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-amber-200'
+              : esMembresiaSuspendida
+                ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-200'
+                : 'bg-[#202759] hover:bg-[#161b3d] text-white',
+        ]"
+      >
+        <span>
+          {{
+            esExterno
+              ? 'Ver Planes de Membresía'
+              : estaEnMora
+                ? 'Regularizar Membresía'
+                : esMembresiaSuspendida
+                  ? 'Gestionar Membresía'
+                  : 'Adquirir Membresía'
+          }}
+        </span>
+        <PhArrowRight :size="16" weight="bold" />
+      </RouterLink>
+    </div>
+
     <!-- Calendario y Navegación de Agenda -->
     <div
       class="bg-white border border-slate-200 rounded-3xl p-5 mb-8 shadow-sm"
@@ -651,7 +1096,7 @@ async function confirmarEliminacion() {
         <div class="flex items-center gap-2 self-end sm:self-auto">
           <!-- Botón Volver a Hoy -->
           <button
-            class="px-3.5 py-1.5 text-xs font-bold rounded-xl border border-slate-200 text-slate-600 hover:text-rose-500 hover:border-rose-200 transition-all active:scale-95 bg-slate-50"
+            class="px-3.5 py-1.5 text-xs font-bold rounded-xl border border-slate-200 text-slate-600 hover:text-rose-500 hover:border-rose-200 transition-all active:scale-95 bg-slate-50 cursor-pointer"
             @click="irAHoy"
           >
             Hoy
@@ -659,7 +1104,7 @@ async function confirmarEliminacion() {
 
           <!-- Flecha Día Anterior -->
           <button
-            class="p-2 rounded-xl border border-slate-200 text-slate-600 hover:text-rose-500 hover:border-rose-200 transition-all active:scale-95 bg-white"
+            class="p-2 rounded-xl border border-slate-200 text-slate-600 hover:text-rose-500 hover:border-rose-200 transition-all active:scale-95 bg-white cursor-pointer"
             title="Día anterior"
             @click="cambiarDia(-1)"
           >
@@ -668,7 +1113,7 @@ async function confirmarEliminacion() {
 
           <!-- Flecha Día Siguiente -->
           <button
-            class="p-2 rounded-xl border border-slate-200 text-slate-600 hover:text-rose-500 hover:border-rose-200 transition-all active:scale-95 bg-white"
+            class="p-2 rounded-xl border border-slate-200 text-slate-600 hover:text-rose-500 hover:border-rose-200 transition-all active:scale-95 bg-white cursor-pointer"
             title="Día siguiente"
             @click="cambiarDia(1)"
           >
@@ -680,7 +1125,7 @@ async function confirmarEliminacion() {
       <!-- Tira interactiva de 7 días con navegación semanal -->
       <div class="flex items-center gap-2">
         <button
-          class="p-2.5 rounded-2xl border border-slate-200 text-slate-500 hover:text-rose-500 hover:border-rose-200 transition-all active:scale-95 bg-slate-50 hidden sm:flex items-center justify-center shrink-0"
+          class="p-2.5 rounded-2xl border border-slate-200 text-slate-500 hover:text-rose-500 hover:border-rose-200 transition-all active:scale-95 bg-slate-50 hidden sm:flex items-center justify-center shrink-0 cursor-pointer"
           title="Semana anterior"
           @click="cambiarSemana(-1)"
         >
@@ -694,7 +1139,7 @@ async function confirmarEliminacion() {
             v-for="dia in diasVisibles"
             :key="dia.fechaISO"
             :class="[
-              'flex flex-col items-center justify-center py-3 px-2 rounded-2xl transition-all duration-200 border relative select-none',
+              'flex flex-col items-center justify-center py-3 px-2 rounded-2xl transition-all duration-200 border relative select-none cursor-pointer',
               fechaSeleccionada === dia.fechaISO
                 ? 'bg-rose-500 text-white border-rose-500 shadow-md shadow-rose-200 scale-102 font-bold'
                 : 'bg-slate-50/70 text-slate-600 border-slate-100 hover:bg-rose-50/50 hover:border-rose-200 hover:text-rose-500',
@@ -729,7 +1174,7 @@ async function confirmarEliminacion() {
         </div>
 
         <button
-          class="p-2.5 rounded-2xl border border-slate-200 text-slate-500 hover:text-rose-500 hover:border-rose-200 transition-all active:scale-95 bg-slate-50 hidden sm:flex items-center justify-center shrink-0"
+          class="p-2.5 rounded-2xl border border-slate-200 text-slate-500 hover:text-rose-500 hover:border-rose-200 transition-all active:scale-95 bg-slate-50 hidden sm:flex items-center justify-center shrink-0 cursor-pointer"
           title="Semana siguiente"
           @click="cambiarSemana(1)"
         >
@@ -778,8 +1223,8 @@ async function confirmarEliminacion() {
       </h3>
       <p class="text-rose-600 font-medium mb-6 max-w-md mx-auto">{{ error }}</p>
       <button
-        class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-md active:scale-95"
-        @click="cargarClases"
+        class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
+        @click="() => cargarClases()"
       >
         Volver a intentar
       </button>
@@ -808,7 +1253,7 @@ async function confirmarEliminacion() {
         cronograma.
       </p>
       <button
-        class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-md active:scale-95 text-sm"
+        class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-md active:scale-95 text-sm cursor-pointer"
         @click="irAHoy"
       >
         Volver a hoy
@@ -836,6 +1281,7 @@ async function confirmarEliminacion() {
         :key="clase.id"
         :clase="clase"
         :es-admin-o-gerente="esAdminOGerente"
+        :motivo-inhabilitacion="motivoInhabilitacion"
         @reservar="handleReservar"
         @lista-espera="handleListaEspera"
         @cancelar="handleCancelar"
@@ -907,6 +1353,19 @@ async function confirmarEliminacion() {
         >
           Anotarme en lista de espera para esta clase →
         </button>
+        <RouterLink
+          v-if="
+            errorReserva.toLowerCase().includes('membresía') ||
+            errorReserva.toLowerCase().includes('mora') ||
+            errorReserva.toLowerCase().includes('cuota') ||
+            errorReserva.toLowerCase().includes('socio') ||
+            errorReserva.toLowerCase().includes('restringido')
+          "
+          to="/membresia"
+          class="self-start text-xs font-bold text-rose-700 underline hover:text-rose-900 cursor-pointer pt-1"
+        >
+          Ir a Membresías para regularizar situación →
+        </RouterLink>
       </div>
 
       <template #actions>
@@ -982,14 +1441,29 @@ async function confirmarEliminacion() {
 
       <div
         v-if="errorEspera"
-        class="bg-rose-50 text-rose-700 p-3 rounded-lg text-sm border border-rose-200 mt-2 mb-4 flex gap-2 items-start"
+        class="bg-rose-50 text-rose-700 p-3 rounded-lg text-sm border border-rose-200 mt-2 mb-4 flex flex-col gap-2"
       >
-        <PhWarning
-          :size="20"
-          weight="fill"
-          class="shrink-0 text-rose-500 mt-0.5"
-        />
-        <p class="font-medium">{{ errorEspera }}</p>
+        <div class="flex gap-2 items-start">
+          <PhWarning
+            :size="20"
+            weight="fill"
+            class="shrink-0 text-rose-500 mt-0.5"
+          />
+          <p class="font-medium">{{ errorEspera }}</p>
+        </div>
+        <RouterLink
+          v-if="
+            errorEspera.toLowerCase().includes('membresía') ||
+            errorEspera.toLowerCase().includes('mora') ||
+            errorEspera.toLowerCase().includes('cuota') ||
+            errorEspera.toLowerCase().includes('socio') ||
+            errorEspera.toLowerCase().includes('restringido')
+          "
+          to="/membresia"
+          class="self-start text-xs font-bold text-rose-700 underline hover:text-rose-900 cursor-pointer pt-1"
+        >
+          Ir a Membresías para regularizar situación →
+        </RouterLink>
       </div>
 
       <template #actions>

@@ -85,7 +85,7 @@ const routes: RouteRecordRaw[] = [
           import('../modules/M3-clases-grupales/views/ClasesView.vue'),
         meta: {
           requiresAuth: true,
-          roles: ['socio', 'recepcionista', 'gerente'],
+          roles: ['socio', 'externo', 'recepcionista', 'gerente'],
         },
       },
       {
@@ -139,33 +139,39 @@ const routes: RouteRecordRaw[] = [
           requiresAuth: true,
           roles: ['gerente'], // Protege el prefijo /gerencia y todas sus rutas hijas
         },
+        // Mismo orden que el panel: sedes, socios y membresías, canchas y reportes.
         children: [
-          {
-            path: 'directorio-usuarios',
-            name: 'directorio-usuarios',
-            component: () =>
-              import('@/modules/M1-usuarios/views/DirectorioUsuariosView.vue'),
-            meta: { requiresAuth: true, roles: ['gerente'] },
-          },
-          {
-            path: 'canchas',
-            name: 'gerencia-canchas',
-            component: () =>
-              import('../modules/M4-canchas/views/GerenciaCanchasView.vue'),
-            meta: { requiresAuth: true, roles: ['gerente'] },
-          },
           {
             path: '',
             name: 'gerencia',
             component: () =>
               import('../modules/gerencia/views/GerenciaDashboardView.vue'),
           },
+          // Sedes: listado, horario semanal y calendario de feriados y excepciones
           {
             path: 'sedes',
-            name: 'gerencia-sedes',
-            component: () =>
-              import('../modules/gerencia/views/GestionSedesView.vue'),
+            children: [
+              {
+                path: '',
+                name: 'gerencia-sedes',
+                component: () =>
+                  import('../modules/gerencia/views/GestionSedesView.vue'),
+              },
+              {
+                path: 'horarios',
+                name: 'gerencia-horarios',
+                component: () =>
+                  import('../modules/gerencia/views/GestionHorariosView.vue'),
+              },
+              {
+                path: 'calendario',
+                name: 'gerencia-calendario',
+                component: () =>
+                  import('../modules/gerencia/views/GestionCalendarioView.vue'),
+              },
+            ],
           },
+          // Socios y membresías
           {
             path: 'planes',
             name: 'gerencia-planes',
@@ -178,6 +184,22 @@ const routes: RouteRecordRaw[] = [
             component: () =>
               import('../modules/gerencia/views/GestionMembresiasView.vue'),
           },
+          {
+            path: 'directorio-usuarios',
+            name: 'directorio-usuarios',
+            component: () =>
+              import('@/modules/M1-usuarios/views/DirectorioUsuariosView.vue'),
+            meta: { requiresAuth: true, roles: ['gerente'] },
+          },
+          // Canchas
+          {
+            path: 'canchas',
+            name: 'gerencia-canchas',
+            component: () =>
+              import('../modules/M4-canchas/views/GerenciaCanchasView.vue'),
+            meta: { requiresAuth: true, roles: ['gerente'] },
+          },
+          // Reportes
           {
             path: 'reportes',
             component: () =>
@@ -196,6 +218,11 @@ const routes: RouteRecordRaw[] = [
                   import('../modules/M6-reportes/views/OcupacionView.vue'),
               },
             ],
+          },
+          // Dirección anterior del calendario
+          {
+            path: 'calendario',
+            redirect: { name: 'gerencia-calendario' },
           },
         ],
       },
@@ -291,8 +318,12 @@ router.beforeEach(async (to, _from, next) => {
           ).toLowerCase() as RolUsuario
           authStore.setPerfilInterno({
             id: u.id_usuario,
+            nombre: u.nombre,
+            apellido: u.apellido,
             email: u.email,
             rol: rolBackend,
+            id_sede: u.id_sede,
+            sede: u.sede,
           })
         }
       } catch (error) {

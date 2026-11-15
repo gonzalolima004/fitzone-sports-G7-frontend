@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { PhBicycle, PhFlowerLotus, PhBarbell } from '@phosphor-icons/vue'
 import BaseModal from '@/common/components/BaseModal.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import {
   clasesService,
   type CreateClaseRequest,
   type UpdateClaseRequest,
+  type HorarioOperativoSedeResponse,
 } from '../services/clases.service'
 import { toast } from '@/common/utils/toast'
 import axios from 'axios'
@@ -53,6 +55,7 @@ const guardando = ref(false)
 const errorForm = ref<string | null>(null)
 
 // Campos del formulario
+const tipoDisciplina = ref<'SPINNING' | 'YOGA' | 'CROSSFIT'>('SPINNING')
 const nombre = ref('')
 const descripcion = ref('')
 const profesor = ref('')
@@ -63,6 +66,43 @@ const capacidadMaxima = ref(20)
 const tipoProgramacion = ref<'semanal' | 'puntual'>('semanal')
 const diasSemanaSeleccionados = ref<number[]>([1, 3, 5]) // Lun, Mié, Vie por defecto
 const fechaPuntual = ref('')
+
+// Horario operativo de la sede (para validar rangos permitidos)
+const horarioOperativo = ref<HorarioOperativoSedeResponse | null>(null)
+
+/** Carga el horario operativo de la sede para la fecha indicada */
+async function cargarHorarioOperativo(fecha: string) {
+  if (!props.idSede || !fecha) return
+  try {
+    horarioOperativo.value = await clasesService.obtenerHorarioOperativoSede(
+      props.idSede,
+      fecha
+    )
+  } catch {
+    horarioOperativo.value = null
+  }
+}
+
+/** Etiqueta legible del horario operativo para mostrar en el formulario */
+const etiquetaHorarioOperativo = computed(() => {
+  const h = horarioOperativo.value
+  if (!h || !h.abierto) return null
+  return `Horario operativo de la sede: ${h.hora_apertura} – ${h.hora_cierre} hs`
+})
+
+function seleccionarTipo(tipo: 'SPINNING' | 'YOGA' | 'CROSSFIT') {
+  tipoDisciplina.value = tipo
+  if (
+    !nombre.value.trim() ||
+    nombre.value === 'Spinning HIIT' ||
+    nombre.value === 'Yoga Vinyasa' ||
+    nombre.value === 'CrossFit Funcional'
+  ) {
+    if (tipo === 'SPINNING') nombre.value = 'Spinning HIIT'
+    else if (tipo === 'YOGA') nombre.value = 'Yoga Vinyasa'
+    else nombre.value = 'CrossFit Funcional'
+  }
+}
 
 const esEdicion = computed(() => !!props.claseAEditar)
 const modalTitulo = computed(() =>
@@ -76,10 +116,11 @@ const modalSubtitulo = computed(() =>
 
 // Sincronizar campos cuando se abre el modal o cambia claseAEditar
 watch(
-  () => props.modelValue,
-  (abierto) => {
+  () => [props.modelValue, props.claseAEditar] as const,
+  ([abierto]) => {
     if (abierto) {
       errorForm.value = null
+      horarioOperativo.value = null
       if (props.claseAEditar) {
         nombre.value = props.claseAEditar.nombre || ''
         descripcion.value = props.claseAEditar.descripcion || ''
@@ -89,20 +130,35 @@ watch(
         horarioFin.value = props.claseAEditar.horario_fin || '09:00'
         capacidadMaxima.value = props.claseAEditar.capacidadMaxima || 20
 
+        const nomLower = (props.claseAEditar.nombre || '').toLowerCase()
+        if (nomLower.includes('spinning')) {
+          tipoDisciplina.value = 'SPINNING'
+        } else if (nomLower.includes('yoga')) {
+          tipoDisciplina.value = 'YOGA'
+        } else {
+          tipoDisciplina.value = 'CROSSFIT'
+        }
+
         if (props.claseAEditar.fecha) {
           tipoProgramacion.value = 'puntual'
           fechaPuntual.value = props.claseAEditar.fecha.split('T')[0] || ''
           diasSemanaSeleccionados.value = []
+          cargarHorarioOperativo(fechaPuntual.value)
         } else {
           tipoProgramacion.value = 'semanal'
           fechaPuntual.value = ''
           diasSemanaSeleccionados.value = props.claseAEditar.dias_semana?.length
             ? [...props.claseAEditar.dias_semana]
             : [1, 3, 5]
+          // Para clases semanales usar la fecha por defecto (hoy / fecha en vista)
+          if (props.fechaPorDefecto) {
+            cargarHorarioOperativo(props.fechaPorDefecto)
+          }
         }
       } else {
         // Valores limpios por defecto
-        nombre.value = ''
+        tipoDisciplina.value = 'SPINNING'
+        nombre.value = 'Spinning HIIT'
         descripcion.value = ''
         profesor.value = ''
         sala.value = ''
@@ -112,10 +168,21 @@ watch(
         tipoProgramacion.value = 'semanal'
         diasSemanaSeleccionados.value = [1, 3, 5]
         fechaPuntual.value = props.fechaPorDefecto || ''
+        if (props.fechaPorDefecto) {
+          cargarHorarioOperativo(props.fechaPorDefecto)
+        }
       }
     }
-  }
+  },
+  { immediate: true }
 )
+
+// Recargar horario operativo cuando cambia la fecha puntual
+watch(fechaPuntual, (nuevaFecha) => {
+  if (nuevaFecha && tipoProgramacion.value === 'puntual') {
+    cargarHorarioOperativo(nuevaFecha)
+  }
+})
 
 function toggleDia(dia: number) {
   const index = diasSemanaSeleccionados.value.indexOf(dia)
@@ -168,6 +235,36 @@ async function guardarClase() {
   if (tipoProgramacion.value === 'puntual' && !fechaPuntual.value) {
     errorForm.value = 'Debes indicar la fecha puntual para la clase.'
     return
+  }
+
+  // Validar que el horario respete el horario operativo de la sede
+  if (!horarioOperativo.value) {
+    const fechaRef =
+      (tipoProgramacion.value === 'puntual'
+        ? fechaPuntual.value
+        : props.fechaPorDefecto) || new Date().toISOString().split('T')[0]
+    await cargarHorarioOperativo(fechaRef)
+  }
+
+  if (horarioOperativo.value) {
+    if (!horarioOperativo.value.abierto) {
+      errorForm.value =
+        'La sede se encuentra cerrada en la fecha seleccionada. No se pueden agendar clases.'
+      return
+    }
+
+    const apertura = (horarioOperativo.value.hora_apertura || '07:00').slice(
+      0,
+      5
+    )
+    const cierre = (horarioOperativo.value.hora_cierre || '23:00').slice(0, 5)
+    const inicio = horarioInicio.value.slice(0, 5)
+    const fin = horarioFin.value.slice(0, 5)
+
+    if (inicio < apertura || fin > cierre) {
+      errorForm.value = `El horario asignado (${inicio} – ${fin} hs) está fuera del horario operativo de la sede (${apertura} – ${cierre} hs).`
+      return
+    }
   }
 
   guardando.value = true
@@ -230,6 +327,58 @@ async function guardarClase() {
         class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold"
       >
         {{ errorForm }}
+      </div>
+
+      <!-- Selección y Clarificación del Tipo de Clase / Disciplina -->
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1.5">
+          Tipo de Disciplina <span class="text-rose-500">*</span>
+        </label>
+        <div class="grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            class="px-3 py-2 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-1.5 cursor-pointer"
+            :class="
+              tipoDisciplina === 'SPINNING'
+                ? 'bg-rose-500 text-white border-rose-500 shadow-sm'
+                : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-rose-200'
+            "
+            @click="seleccionarTipo('SPINNING')"
+          >
+            <PhBicycle :size="16" weight="bold" />
+            <span>Spinning</span>
+          </button>
+          <button
+            type="button"
+            class="px-3 py-2 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-1.5 cursor-pointer"
+            :class="
+              tipoDisciplina === 'YOGA'
+                ? 'bg-rose-500 text-white border-rose-500 shadow-sm'
+                : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-rose-200'
+            "
+            @click="seleccionarTipo('YOGA')"
+          >
+            <PhFlowerLotus :size="16" weight="bold" />
+            <span>Yoga Vinyasa</span>
+          </button>
+          <button
+            type="button"
+            class="px-3 py-2 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-1.5 cursor-pointer"
+            :class="
+              tipoDisciplina === 'CROSSFIT'
+                ? 'bg-rose-500 text-white border-rose-500 shadow-sm'
+                : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-rose-200'
+            "
+            @click="seleccionarTipo('CROSSFIT')"
+          >
+            <PhBarbell :size="16" weight="bold" />
+            <span>CrossFit</span>
+          </button>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-1">
+          Define el ícono, categoría y estilo visual de la tarjeta en la agenda
+          pública.
+        </p>
       </div>
 
       <!-- Nombre y Capacidad -->
@@ -312,6 +461,14 @@ async function guardarClase() {
         </div>
       </div>
 
+      <!-- Referencia de horario operativo de la sede -->
+      <p
+        v-if="etiquetaHorarioOperativo"
+        class="text-[11px] text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-1.5"
+      >
+        🕐 {{ etiquetaHorarioOperativo }}
+      </p>
+
       <!-- Descripción opcional -->
       <div>
         <label class="block text-xs font-bold text-slate-700 mb-1">
@@ -362,7 +519,7 @@ async function guardarClase() {
               v-for="dia in DIAS_OPCIONES"
               :key="dia.valor"
               type="button"
-              class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
+              class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer"
               :class="
                 diasSemanaSeleccionados.includes(dia.valor)
                   ? 'bg-rose-500 text-white border-rose-500 shadow-sm'
