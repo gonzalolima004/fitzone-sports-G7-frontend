@@ -34,6 +34,7 @@ import {
   normalizarFecha,
   coincideFechaClase,
   obtenerEstadoVentanaReserva,
+  obtenerEstadoCancelacionReserva,
   type DiaAgendaItem,
 } from '@/common/utils/date-formatter'
 import ClaseCard, {
@@ -790,6 +791,17 @@ const errorCancelacion = ref<string | null>(null)
 function handleCancelar(idClase: number) {
   const clase = clasesAgendadas.value.find((c) => c.id === idClase)
   if (clase) {
+    const estadoCanc = obtenerEstadoCancelacionReserva(
+      clase.fecha_inicio || clase.fechaSeleccionada,
+      clase.horario_inicio
+    )
+    if (!estadoCanc.puedeCancelar) {
+      toast.warning(
+        estadoCanc.mensajeBloqueo ||
+          'No es posible cancelar la reserva: faltan 2 horas o menos para el inicio de la clase.'
+      )
+      return
+    }
     claseACancelar.value = clase
     errorCancelacion.value = null
     modalCancelacionVisible.value = true
@@ -798,6 +810,19 @@ function handleCancelar(idClase: number) {
 
 async function confirmarCancelacion() {
   if (!claseACancelar.value) return
+
+  const estadoCanc = obtenerEstadoCancelacionReserva(
+    claseACancelar.value.fecha_inicio || claseACancelar.value.fechaSeleccionada,
+    claseACancelar.value.horario_inicio
+  )
+  if (!estadoCanc.puedeCancelar) {
+    errorCancelacion.value =
+      estadoCanc.mensajeBloqueo ||
+      'No es posible cancelar la reserva: faltan 2 horas o menos para el inicio de la clase.'
+    toast.warning(errorCancelacion.value)
+    return
+  }
+
   const idReserva =
     claseACancelar.value.idReserva ||
     misReservas.value.find(
@@ -1392,10 +1417,20 @@ async function confirmarEliminacion() {
           : ''
       "
     >
-      <p class="text-slate-600 mb-4">
+      <p class="text-slate-600 mb-3">
         Si cancelas, liberarás tu lugar. Tené en cuenta que si querés volver a
         anotarte, estarás sujeto a la disponibilidad de cupos en ese momento.
       </p>
+
+      <div
+        class="bg-amber-50 text-amber-800 text-xs rounded-xl p-3 border border-amber-200 mb-4 flex items-center gap-2"
+      >
+        <PhClock :size="16" weight="bold" class="text-amber-600 shrink-0" />
+        <span>
+          <strong>Regla RF-07:</strong> Las reservas solo pueden ser canceladas
+          hasta 2 horas antes del inicio de la clase.
+        </span>
+      </div>
 
       <div
         v-if="errorCancelacion"

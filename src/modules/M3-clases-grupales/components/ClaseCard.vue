@@ -19,6 +19,7 @@ import {
   formatearDiasSemana,
   formatearFechaDDMMAAAA,
   obtenerEstadoVentanaReserva,
+  obtenerEstadoCancelacionReserva,
 } from '@/common/utils/date-formatter'
 
 export interface ClaseCardProps {
@@ -104,6 +105,16 @@ const etiquetaPeriodicidad = computed(() => {
 
 const estadoVentana = computed(() => {
   return obtenerEstadoVentanaReserva(
+    props.clase.fecha_inicio ||
+      props.clase.fecha ||
+      props.clase.fechaSeleccionada ||
+      new Date(),
+    props.clase.horario_inicio
+  )
+})
+
+const estadoCancelacion = computed(() => {
+  return obtenerEstadoCancelacionReserva(
     props.clase.fecha_inicio ||
       props.clase.fecha ||
       props.clase.fechaSeleccionada ||
@@ -243,12 +254,29 @@ const estadoVentana = computed(() => {
 
     <!-- Botones de Acción -->
     <!-- 1. Si el usuario ya tiene reserva para esta clase -->
+    <!-- Si faltan más de 2 horas para el inicio de la clase (RF-07) -->
     <button
-      v-if="clase.estado === 'MISMA_RESERVA' && estadoVentana.puedeReservar"
-      class="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition-all active:scale-95 bg-white text-slate-700 hover:bg-slate-50 border-2 border-slate-200 shadow-sm"
+      v-if="clase.estado === 'MISMA_RESERVA' && estadoCancelacion.puedeCancelar"
+      class="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition-all active:scale-95 bg-white text-slate-700 hover:bg-slate-50 border-2 border-slate-200 shadow-sm cursor-pointer"
       @click="emit('cancelar', clase.id)"
     >
       Cancelar mi Reserva
+    </button>
+
+    <!-- Si faltan 2 horas o menos para el inicio de la clase (bloqueo por RF-07) -->
+    <button
+      v-else-if="
+        clase.estado === 'MISMA_RESERVA' && !estadoCancelacion.puedeCancelar
+      "
+      class="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed flex items-center justify-center gap-2 shadow-xs"
+      disabled
+      :title="
+        estadoCancelacion.mensajeBloqueo ||
+        'No es posible cancelar: faltan 2 horas o menos para el inicio de la clase (RF-07)'
+      "
+    >
+      <PhClock :size="18" weight="bold" class="text-slate-400" />
+      No cancelable (&le; 2 hs)
     </button>
 
     <!-- 2. Si el usuario ya está en lista de espera -->

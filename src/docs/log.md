@@ -1351,3 +1351,35 @@
   - `docs(log): actualizacion de bitacora`
   
   ---
+
+#### 15/11/2026
+#### Joaquín Ribarola | Rol: Desarrollador Frontend
+
+- **Tarea:** RF-07 — Reserva de clases: Reserva hasta 48 hs antes; el sistema decrementa el cupo. Cancelación sin penalidad hasta 2 hs antes.
+- **Actividades:**
+  - **Función utilitaria de control de cancelación (`date-formatter.ts`):** Creación de `obtenerEstadoCancelacionReserva(fecha, horario)` evaluando la diferencia temporal entre el momento actual y el inicio de la clase. Si faltan 2 horas o menos (o si la clase ya inició/pasó), bloquea la cancelación devolviendo `puedeCancelar: false`, `motivoBloqueo: 'LIMITE_2_HORAS'` y un mensaje claro para el socio.
+  - **Bloqueo interactivo en la tarjeta de clase (`ClaseCard.vue`):** Para clases reservadas (`clase.estado === 'MISMA_RESERVA'`), si faltan más de 2 horas se mantiene el botón habilitado "Cancelar mi Reserva". Si faltan 2 horas o menos, el botón pasa a estado deshabilitado (`disabled`, `cursor-not-allowed`) con la etiqueta "No cancelable (≤ 2 hs)" y tooltip explicativo de la política de cancelación.
+  - **Guardias defensivas en la vista de agenda (`ClasesView.vue`):** En `handleCancelar(idClase)` y en `confirmarCancelacion()`, se verifica defensivamente el cumplimiento de la ventana de cancelación antes de abrir el modal o invocar el endpoint `cancelarReserva(idReserva)`. En caso de intento inválido, se notifica con `toast.warning`.
+  - **Aviso informativo en modal de cancelación (`ClasesView.vue`):** Incorporación de una nota explicativa dentro del modal recordando al socio la regla RF-07.
+  - **Cobertura de pruebas unitarias (`date-formatter.spec.ts` y `clases-rf-07-cancelacion.spec.ts`):** Validación exhaustiva con `vi.useFakeTimers()` para clases con más de 2 hs, exactamente 2 hs, menos de 2 hs y clases ya pasadas, certificando el bloqueo tanto en tarjeta como en vista y llamadas a servicio.
+- **Decisiones:**
+  - Deshabilitar el botón y bloquear la acción en frontend cuando falten 2 horas o menos para el inicio de la clase, cumpliendo estrictamente con la regla RF-07 sin requerir por el momento un sistema de penalizaciones punitivas.
+  - Proteger tanto la interfaz de usuario como la ejecución del servicio mediante validaciones preventivas multinivel.
+- **Dificultades:** Ninguna.
+- **Verificación:** Pipeline de validación completo exitoso: formateo (`npm run format`), linter (`npm run lint`), tipado (`npm run typecheck`), compilación de producción (`npm run build`) y tests (`npm run test`) con 16 suites y 117 pruebas aprobadas al 100%.
+
+#### 15/11/2026
+#### Joaquín Ribarola | Rol: Desarrollador Frontend
+
+- **Tarea:** RF-07 — Reserva de clases: Reserva hasta 48 hs antes; el sistema decrementa el cupo. Cancelación sin penalidad hasta 2 hs antes.
+- **Actividades:**
+  - **Función utilitaria de control de cancelación (`date-formatter.ts`):** Creación de `obtenerEstadoCancelacionReserva(fecha, horario)` evaluando la diferencia temporal entre el momento actual y el inicio de la clase. Si faltan 2 horas o menos (o si la clase ya inició/pasó), bloquea la cancelación devolviendo `puedeCancelar: false`, `motivoBloqueo: 'LIMITE_2_HORAS'` y un mensaje claro para el socio.
+  - **Bloqueo interactivo en la tarjeta de clase (`ClaseCard.vue`):** Para clases reservadas (`clase.estado === 'MISMA_RESERVA'`), si faltan más de 2 horas se mantiene el botón habilitado "Cancelar mi Reserva". Si faltan 2 horas o menos, el botón pasa a estado deshabilitado (`disabled`, `cursor-not-allowed`) con la etiqueta "No cancelable (≤ 2 hs)" y tooltip explicativo de la política de cancelación.
+  - **Guardias defensivas en la vista de agenda (`ClasesView.vue`):** En `handleCancelar(idClase)` y en `confirmarCancelacion()`, se verifica defensivamente el cumplimiento de la ventana de cancelación antes de abrir el modal o invocar el endpoint `cancelarReserva(idReserva)`. En caso de intento inválido, se notifica con `toast.warning`.
+  - **Aviso informativo en modal de cancelación (`ClasesView.vue`):** Incorporación de una nota explicativa dentro del modal recordando al socio la regla RF-07.
+  - **Cobertura de pruebas unitarias (`date-formatter.spec.ts` y `clases-rf-07-cancelacion.spec.ts`):** Validación exhaustiva con `vi.useFakeTimers()` para clases con más de 2 hs, exactamente 2 hs, menos de 2 hs y clases ya pasadas, certificando el bloqueo tanto en tarjeta como en vista y llamadas a servicio.
+- **Decisiones:**
+  - Deshabilitar el botón y bloquear la acción en frontend cuando falten 2 horas o menos para el inicio de la clase, cumpliendo estrictamente con la regla RF-07 sin requerir por el momento un sistema de penalizaciones punitivas.
+  - Proteger tanto la interfaz de usuario como la ejecución del servicio mediante validaciones preventivas multinivel.
+- **Dificultades:** Ninguna.
+- **Verificación:** Pipeline de validación completo exitoso: formateo (`npm run format`), linter (`npm run lint`), tipado (`npm run typecheck`), compilación de producción (`npm run build`) y tests (`npm run test`) con 16 suites y 117 pruebas aprobadas al 100%.
