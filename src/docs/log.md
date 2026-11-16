@@ -1193,6 +1193,35 @@
 
 ---
 
+#### 12/11/2026
+#### Facundo Agüero | Rol: Desarrollador Frontend
+
+- **Tarea:** Horarios semanales de cada sede y orden de las rutas y accesos de gerencia, sedes y reportes (parte frontend).
+- **Actividades:**
+  - Pantalla `/gerencia/sedes/horarios`: el gerente elige la sede (la misma del selector del encabezado) y ve la semana de lunes a domingo. Cada día puede abrir (con hora de apertura y de cierre), estar cerrado o quedar sin horario cargado, que se marca con un aviso. Los cambios se guardan juntos con "Guardar cambios", con un pedido por día modificado (alta, modificación o baja de `/sedes/:idSede/horarios`), y se pueden deshacer por día o descartar.
+  - Validación con Zod de las horas de cada día que abre, compartida con las excepciones del calendario, que tenían la misma regla.
+  - Rutas de gerencia ordenadas y agrupadas como el panel: sedes (listado, horarios y calendario, ahora bajo `/gerencia/sedes`), socios y membresías, canchas y reportes. `/gerencia/calendario` redirige a `/gerencia/sedes/calendario`. Las rutas del directorio de usuarios y de gestión de canchas solo cambiaron de lugar en la lista.
+  - Panel del gerente: los accesos de "Administración" quedan agrupados por área (Sedes, Socios y membresías, Canchas y Reportes) y se suman Horarios semanales y el directorio de usuarios.
+  - Pestañas para moverse entre las pantallas de cada área (`PestanasGerencia`): Sedes, Horarios y Calendario, e Ingresos y Ocupación en reportes, que además pasa a usar el mismo encabezado que el resto de gerencia.
+  - Pruebas con Vitest: carga de la semana, días sin horario, guardado de cada caso (alta, modificación y baja), validaciones, deshacer y descartar, falla parcial, cambio de sede con cambios sin guardar y error de carga; accesos agrupados del panel, ítem activo del menú y redirección del calendario.
+- **Decisiones:**
+  - Guardar solo los días que cambiaron, en paralelo: cada pedido hace una o dos consultas en el backend y no hace falta una transacción. Si un día falla, los demás quedan guardados y ese día conserva lo editado con el mensaje del backend.
+  - Con cambios sin guardar no se puede elegir otra sede en la pantalla; si cambia desde el encabezado, se descartan y se avisa.
+  - Al pasar un día a "Abre", se propone el horario de otro día que abre, para no cargarlo de cero.
+  - Después de guardar se borran del store los horarios operativos en caché de esa sede, para que canchas y clases los vuelvan a pedir.
+  - Las pestañas usan nombres cortos para que entren en el celular; el título de cada pantalla da el detalle.
+- **Dificultades:**
+  - En `dev`, la prueba de acceso por rol al calendario fallaba: la ruta de inicio de la recepcionista (`/aforo`, según `rutaPorRol`) ahora es solo para el gerente, así que el guard entra en una redirección infinita cuando la recepcionista abre una ruta sin permiso. La prueba ahora verifica que ningún otro rol entre a gerencia, sin depender de adónde lo manda el guard. La ruta de inicio de cada rol no se tocó.
+  - En tablet la tabla de la semana no entraba al lado del menú; las filas pasan a formato de tarjeta hasta pantallas anchas.
+- **Verificación:** 22 archivos y 172 pruebas aprobadas (12 nuevas); typecheck, lint y build aprobados; cada commit compila y pasa sus pruebas. Recorrido visual en navegador con API simulada (escritorio, tablet y celular). Pendiente: recorrido con la cuenta de gerente contra el backend.
+- **Commits:**
+  - `refactor(gerencia): agrupar rutas y accesos de sedes y reportes`
+  - `feat(gerencia): agregar horarios semanales de cada sede`
+  - `test(gerencia): agregar pruebas de horarios semanales`
+  - `docs(log): registrar horarios semanales y orden de rutas de gerencia`
+
+---
+
 #### 27/10/2026 - 29/10/2026
 
 #### Matías Sillen | Rol: Desarrollador Frontend
@@ -1349,9 +1378,91 @@
   - `feat(M2): servicio para manejar validacion offline de qr`
   - `feat(M2): actualizacion egreso-ingreso, adicion de variables a appierror y a socioperfil`
   - `docs(log): actualizacion de bitacora`
+
+---
+
+#### 14/11/2026
+#### Angelina Vialle | Rol: Desarrolladora Frontend
+
+- **Actividades**:
+  - **Módulo M1 (Directorio de Usuarios - Paginación, Baja Lógica y Restauración)**:
+    - Implementación de baja lógica (*soft-delete*): incorporación de modal de confirmación (`modalEliminacionAbierto`) con llamado al endpoint `DELETE /usuarios/:id`, botón de acción con ícono `PhTrash` visible solo en usuarios activos y actualización optimista inmediata en la interfaz para remover al usuario del listado local y actualizar el contador.
+    - Flujo de restauración de cuentas inactivas: creación del método `restaurarUsuarioDirecto` que actualiza `id_usuario_estado` a `1` (`USER_STATUS.ACTIVO`) mediante `PATCH /usuarios/:id`, con un banner informativo y botón de restauración directa (`PhArrowCounterClockwise`) dentro del modal de edición cuando el usuario se encuentra desactivado.
+    - Paginación server-side y filtros dinámicos: adaptación de `cargarDirectorio` en `useDirectorioUsuarios.ts` para enviar parámetros de paginación (`page`, `limit`) y filtrado (`includeDeactivated`, `id_usuario_estado`, `id_sede`) a la API, procesando metadatos de respuesta (`totalPages`, `totalRegistros`) e integrando controles de paginación ("Anterior", "Siguiente") en la tabla.
+    - Actualización de filtros de estado en `DirectorioUsuariosView.vue`: redefinición de las opciones del selector ("Activos", "Desactivados", "Todos los Estados"), iniciando la visualización por defecto en usuarios activos.
+  - **Enrutamiento y Control de Navegación (`router/index.ts`)**:
+    - Ajuste en el guardia de la ruta raíz (`/`): exclusión del rol `gerente` de la redirección automática a `/recepcion`, limitándola exclusivamente al rol `recepcionista`.
+  - **Barra de Navegación Lateral (`Sidebar.vue`)**:
+    - Reorganización de visibilidad por roles en la sección de Operaciones: habilitación del acceso a "Dashboard" (`/inicio`) tanto para `socio` como para `gerente`, y acceso a "Recepción" (`/recepcion`) para roles `recepcionista` y `gerente`.
+  - **Módulos M1 y M5 (Sincronización de Roles y Tipado Seguro)**:
+    - Corrección en `MembresiaView.vue` y `ResultadoPagoView.vue`: incorporación de validación estricta (`authStore.usuario.id !== undefined`) antes de invocar `authStore.setPerfilInterno` en los bloques de captura de excepciones, garantizando la integridad de tipos en TypeScript.
+  - **Módulo M4 (Canchas - Formato)**:
+    - Ajustes de estilo y legibilidad en `DetalleReservaView.vue` para el formateo del cálculo del descuento por membresía.
+- **Decisiones**:
+  - **Actualización optimista de UI para bajas y restauraciones**: Se optó por reflejar de forma inmediata en el estado reactivo (`usuarios.value` y `totalRegistros`) la desactivación o restauración antes de aguardar la respuesta del backend, recargando el padrón únicamente en caso de que la petición HTTP falle para asegurar una experiencia de usuario rápida y fluida.
+  - **Migración a paginación y filtrado desde el servidor**: En lugar de filtrar la totalidad de los usuarios en memoria en el cliente, se trasladó el filtrado y paginado a la consulta al backend (`GET /usuarios?page=...&limit=...`), optimizando el rendimiento y el consumo de recursos de red.
+  - **Diferenciación de flujo de entrada según rol**: Mantener la redirección forzada a recepción únicamente para recepcionistas, permitiendo a los gerentes ingresar a las métricas del dashboard sin pasos intermedios.
+- **Dificultades**:
+  - **Coherencia reactiva entre filtros de estado y actualización optimista**: Al ejecutar una baja lógica o restauración estando activo un filtro específico (por ejemplo, "Activos" o "Desactivados"), fue necesario manejar la remoción del registro del array local o la mutación de su `id_usuario_estado` según el filtro vigente, evitando desfases visuales o contadores desactualizados sin forzar una recarga completa de red.
+  - **Restricciones de tipado estricto en Pinia**: `authStore.usuario.id` está declarado como opcional (`id?: number`), lo que generaba advertencias de TypeScript al intentar propagarlo en `setPerfilInterno` tras procesar pagos o activaciones de membresías. Se resolvió aplicando guards explícitas de existencia antes de actualizar el store.
+- **Commits**:
+  - `fix(index): redireccion de solo recepcionista`
+  - `style(M4): arreglo formato`
+  - `fix(M5 y M1): correcion para que este el id definido`
+  - `fix(components): organizacion SideBar`
+  - `feat(M1): implementacion de baja logica, restauracion y paginacion`
   
   ---
 
+
+#### 14/11/2026
+#### Matías Sillén Ríos | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Reorganización completa de `src/router/index.ts` agrupando rutas hijas de `MainLayout` por módulo, incorporando Lazy Loading (`() => import(...)`) en `PerfilView.vue`, completando `meta.roles` en rutas faltantes (`canchas/reservas/:id`), hidratando los datos completos del perfil en `beforeEach` y optimizando `LoginView.vue` para navegar directamente con `rutaPorRol`.
+  - Optimización del interceptor de peticiones en `src/common/api/http.ts` para leer el token activo desde Pinia antes de consultar `supabase.auth.getSession()`, y limpieza de sesión ante respuestas HTTP `401`.
+  - Eliminación del rol hardcodeado `roles: [4]` en `RegistroView.vue` y `CompletarPerfilView.vue`, agregando manejo de compensación ante fallos parciales entre Supabase Auth y el backend local, y persistencia del avatar de Google OAuth al completar el perfil.
+  - Actualización de `src/store/auth.ts`, `MainLayout.vue` y `Sidebar.vue`: eliminación del enlace duplicado `Mi Perfil` del menú lateral, implementación de menú desplegable de usuario en la Navbar mostrando nombre y apellido reales (nunca el correo), fotografía de perfil (Supabase Storage y fallback de Google OAuth con `referrerpolicy="no-referrer"`), iniciales ante error de carga y estado Skeleton.
+  - Ampliación de `PerfilView.vue` y `auth.service.ts`: incorporación de estado Skeleton, campos bloqueados (`email` y `dni`), edición validada con Zod de `nombre`, `apellido` y `telefono` sincronizada en tiempo real con Pinia/Navbar, carga y vista previa de fotografía de perfil (JPG, PNG o WEBP hasta 2 MB) y formulario independiente de cambio de contraseña con reautenticación previa (`reauthenticateWithPassword` + `updatePassword`) en Supabase Auth.
+  - Incorporación de pruebas automatizadas con Vitest en `src/router/__tests__/router.spec.ts` y `src/modules/M1-usuarios/views/__tests__/PerfilView.spec.ts`.
+- **Decisiones:**
+  - Centralizar el acceso a `/perfil` en un menú desplegable de usuario en la Navbar y retirarlo del Sidebar para evitar duplicación de navegación y mantener sincronizado visualmente el avatar y el nombre completo del usuario activo.
+  - Separar en `PerfilView.vue` el formulario de datos personales del formulario de cambio de contraseña, exigiendo reautenticación con la contraseña actual en Supabase Auth antes de aplicar `updateUser`.
+  - Utilizar `referrerpolicy="no-referrer"` y fallback a metadatos de sesión (`avatar_url` / `picture`) para garantizar la visualización confiable de avatares provenientes de cuentas de Google OAuth.
+- **Dificultades:**
+  - Al iniciar sesión con cuentas de Google OAuth, la foto de perfil no se visualizaba porque `CompletarPerfilView.vue` no persistía la URL externa cuando no se subía un archivo local y las etiquetas `<img>` carecían de `referrerpolicy="no-referrer"` frente a la CDN de Google; se resolvió persistiendo la URL en el alta y agregando fallback desde los metadatos de sesión.
+- **Commits:**
+  - `fix(router): reorganizar rutas con lazy loading y corregir navegacion`
+  - `fix(router): corregir advertencia deprecada de consultas de cliente`
+  - `fix(auth): asignar rol externo dinamicamente en el registro`
+  - `fix(navbar): mostrar nombre real y foto de perfil desde Supabase`
+  - `feat(profile): trasladar acceso a mi perfil desde el sidebar a la navbar`
+  - `feat(profile): ampliar vista mi perfil con edicion, avatar y cambio de contrasena`
+   - `test(auth): agregar pruebas unitarias y de integracion de auth y perfil`
+  - `fix(navbar): persistir y mostrar avatar de cuenta de Google OAuth`
+
+---
+
+#### 14/11/2026
+#### Matías Sillén Ríos | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Creación de la vista exclusiva del Dashboard del Socio (`SocioDashboardView.vue`) reutilizando el layout principal (`MainLayout.vue`), tarjetas, badges y componentes `Skeleton` existentes en `src/common/`, mostrando saludo personalizado, resumen de actividad, próximas reservas reales y accesos rápidos.
+  - Implementación de la vista de Historial de Reservas (`HistorialReservasView.vue`) con distinción visual entre reservas de canchas y clases grupales (`@phosphor-icons/vue`), visualización de fechas, horarios, sedes y estados reales persistidos, filtrado por tipo de actividad, paginación y ordenamiento descendente (más recientes primero).
+  - Integración de rutas con carga diferida (Lazy Loading) en `src/router/index.ts` y actualización de navegación en `Sidebar.vue` y `ruta-por-rol.ts`, habilitando el acceso exclusivo a usuarios con rol `socio` y bloqueando mediante `beforeEach` el ingreso directo de usuarios con rol `externo`.
+  - Implementación de estados de interfaz completos (carga con `Skeleton`, historial vacío cuando el socio no posee actividades registradas y manejo de errores de red con opción de reintento) junto con validación de contratos mediante interfaces TypeScript y Zod.
+  - Cobertura de pruebas automatizadas (Vitest / Cypress) validando control de acceso RBAC entre `socio` y `externo`, renderizado de estados visuales y visualización correcta de reservas de canchas y clases grupales.
+- **Decisiones:**
+  - Presentar una vista unificada de historial con filtros por categoría (`Todas`, `Canchas`, `Clases grupales`) e indicadores visuales diferenciados por tipo y estado real, evitando duplicar lógica de consulta y manteniendo consistencia visual en móvil y escritorio.
+  - Centralizar el control de acceso tanto en la visibilidad del menú lateral como en los guards de Vue Router conectados al rol real hidratado desde el backend en Pinia (`useAuthStore`).
+- **Dificultades:**
+  - Evitar saltos visuales o exposición momentánea de componentes del Dashboard antes de confirmar el rol real del usuario tras recargar la página; se resolvió condicionando la navegación a la hidratación previa del perfil en `router.beforeEach` y mostrando estados `Skeleton` durante la carga inicial.
+- **Commits:**
+  - `feat(router): registrar rutas de dashboard y historial del socio`
+  - `feat(dashboard): implementar vista de historial y dashboard del socio`
+`
+---
+  
 #### 15/11/2026
 #### Joaquín Ribarola | Rol: Desarrollador Frontend
 
@@ -1368,6 +1479,8 @@
 - **Dificultades:** Ninguna.
 - **Verificación:** Pipeline de validación completo exitoso: formateo (`npm run format`), linter (`npm run lint`), tipado (`npm run typecheck`), compilación de producción (`npm run build`) y tests (`npm run test`) con 16 suites y 117 pruebas aprobadas al 100%.
 
+---
+  
 #### 15/11/2026
 #### Joaquín Ribarola | Rol: Desarrollador Frontend
 
@@ -1383,3 +1496,5 @@
   - Proteger tanto la interfaz de usuario como la ejecución del servicio mediante validaciones preventivas multinivel.
 - **Dificultades:** Ninguna.
 - **Verificación:** Pipeline de validación completo exitoso: formateo (`npm run format`), linter (`npm run lint`), tipado (`npm run typecheck`), compilación de producción (`npm run build`) y tests (`npm run test`) con 16 suites y 117 pruebas aprobadas al 100%.
+
+---

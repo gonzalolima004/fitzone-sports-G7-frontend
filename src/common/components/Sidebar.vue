@@ -42,15 +42,21 @@ const todasLasSecciones: NavSection[] = [
     titulo: 'OPERACIONES',
     items: [
       {
+        nombre: 'Dashboard',
+        ruta: '/socio-dashboard',
+        icono: 'grid',
+        roles: ['socio', 'gerente'],
+      },
+      {
         nombre: 'Recepcion',
         ruta: '/recepcion',
         icono: 'recepcion-icon',
-        roles: ['recepcionista'],
+        roles: ['recepcionista', 'gerente'],
       },
       {
-        nombre: 'Dashboard',
-        ruta: '/inicio',
-        icono: 'grid',
+        nombre: 'Historial',
+        ruta: '/historial',
+        icono: 'calendar',
         roles: ['socio'],
       },
       {
@@ -111,17 +117,6 @@ const todasLasSecciones: NavSection[] = [
         ruta: '/gerencia',
         icono: 'chart',
         roles: ['gerente'],
-      },
-    ],
-  },
-  {
-    titulo: 'CUENTA',
-    items: [
-      {
-        nombre: 'Mi Perfil',
-        ruta: '/perfil',
-        icono: 'user',
-        roles: ['socio', 'externo', 'recepcionista', 'gerente'],
       },
     ],
   },

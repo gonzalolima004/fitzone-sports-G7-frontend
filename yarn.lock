@@ -1760,7 +1760,7 @@ qified@^0.10.1:
 
 qrcode.vue@^3.11.0:
   version "3.11.0"
-  resolved "https://registry.npmjs.org/qrcode.vue/-/qrcode.vue-3.11.0.tgz"
+  resolved "https://registry.yarnpkg.com/qrcode.vue/-/qrcode.vue-3.11.0.tgz#95c3e920dd10876ef6199a7e0129c6f31cec0e20"
   integrity sha512-PnaO9yqcEVsH9euUmo4Nn0JZMkNwk4u6fDUosKjDTXv2Cgv7rHZhr2D8Iq54clBvSycOESwgUE/rw/tBRBjIVg==
 
 require-from-string@^2.0.2:

@@ -153,6 +153,7 @@ const handleRegistro = async () => {
   }
 
   isLoading.value = true
+  let supabaseCreado = false
 
   try {
     // 1. Supabase
@@ -160,8 +161,9 @@ const handleRegistro = async () => {
       email: form.email,
       password: form.contrasenia,
     })
+    supabaseCreado = true
 
-    // 2. Backend local: Se asigna rígidamente rol de externo (4)
+    // 2. Backend local: El backend asigna dinámicamente el rol 'externo'
     const nuevoUsuario = await usuariosService.registrarUsuario({
       dni: form.dni,
       email: form.email,
@@ -169,7 +171,6 @@ const handleRegistro = async () => {
       apellido: form.apellido.trim(),
       telefono: form.telefono,
       id_sede: form.id_sede,
-      roles: [4],
     })
 
     if (nuevoUsuario.id_usuario && fotoFile.value) {
@@ -182,6 +183,14 @@ const handleRegistro = async () => {
     toast.success('¡Cuenta creada con éxito!')
     router.push('/login')
   } catch (error: unknown) {
+    if (supabaseCreado) {
+      toast.warning(
+        'Tu cuenta de acceso fue creada, pero no se completó el registro en el sistema. Por favor, inicia sesión para completar tu perfil.'
+      )
+      router.push('/completar-perfil')
+      return
+    }
+
     const err = error as {
       message?: string
       response?: { data?: { message?: string } }

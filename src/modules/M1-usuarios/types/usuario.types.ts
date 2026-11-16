@@ -38,7 +38,7 @@ export interface RegistroPayload {
   apellido: string
   telefono: string
   id_sede: string
-  foto_url?: string
+  foto_url?: string | null
   roles?: number[]
 }
 // Nueva interfaz extendida para la edición/gestión desde el panel
