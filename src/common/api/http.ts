@@ -1,6 +1,7 @@
 import axios from 'axios'
 import router from '../../router'
 import { supabase } from './supabase'
+import { useAuthStore } from '@/store/auth'
 
 export const http = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -12,8 +13,18 @@ export const http = axios.create({
 
 http.interceptors.request.use(
   async (config) => {
-    const { data } = await supabase.auth.getSession()
-    const token = data.session?.access_token
+    let token: string | null | undefined
+    try {
+      const authStore = useAuthStore()
+      token = authStore.token
+    } catch {
+      // pinia no listo aún
+    }
+
+    if (!token) {
+      const { data } = await supabase.auth.getSession()
+      token = data.session?.access_token
+    }
 
     if (token) {
       // CORRECCIÓN DE SEGURIDAD CRÍTICA: Prevenir el envío de tokens a dominios no confiables
@@ -57,7 +68,12 @@ http.interceptors.response.use(
     }
 
     if (status === 401) {
-      await supabase.auth.signOut()
+      try {
+        const authStore = useAuthStore()
+        await authStore.logout()
+      } catch {
+        await supabase.auth.signOut()
+      }
       if (router.currentRoute.value.path !== '/login') {
         router.push('/login')
       }

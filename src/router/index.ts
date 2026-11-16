@@ -3,7 +3,6 @@ import MainLayout from '../common/layouts/MainLayout.vue'
 import { useAuthStore, type RolUsuario } from '../store/auth'
 import { rutaPorRol } from '@/common/guards/ruta-por-rol'
 import { rutasLanding } from '@/modules/landing/routes'
-import PerfilView from '@/modules/M1-usuarios/views/PerfilView.vue'
 import { authService } from '@/modules/M1-usuarios/services/auth.service'
 
 declare module 'vue-router' {
@@ -13,17 +12,87 @@ declare module 'vue-router' {
   }
 }
 
+interface PerfilBackendResponse {
+  success?: boolean
+  user?: {
+    id_usuario: number
+    dni?: string
+    nombre?: string
+    apellido?: string
+    email?: string
+    telefono?: string | null
+    foto_url?: string | null
+    rol?: string
+    roles?: string[]
+    id_sede?: number
+    sede?: {
+      id_sede: number
+      nombre?: string
+      id_ciudad?: number
+    }
+  }
+}
+
 const routes: RouteRecordRaw[] = [
   ...rutasLanding,
+
+  {
+    path: '/login',
+    name: 'login',
+    component: () => import('../modules/M1-usuarios/views/LoginView.vue'),
+    meta: { requiresAuth: false },
+  },
+  {
+    path: '/registro',
+    name: 'registro',
+    component: () => import('@/modules/M1-usuarios/views/RegistroView.vue'),
+    meta: { requiresAuth: false },
+  },
+  {
+    path: '/cambiar-password',
+    name: 'cambiar-password',
+    component: () =>
+      import('@/modules/M1-usuarios/views/CambiarPasswordView.vue'),
+    meta: { requiresAuth: false },
+  },
+  {
+    path: '/completar-perfil',
+    name: 'completar-perfil',
+    component: () =>
+      import('@/modules/M1-usuarios/views/CompletarPerfilView.vue'),
+    meta: { requiresAuth: true },
+  },
+
   {
     path: '/',
     component: MainLayout,
     meta: { requiresAuth: true },
     children: [
       {
+        path: 'inicio',
+        name: 'home',
+        component: () => import('../common/views/HomeView.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['socio', 'recepcionista', 'gerente'],
+        },
+        beforeEnter: (_to, _from, next) => {
+          const authStore = useAuthStore()
+          if (
+            authStore.rol === 'recepcionista' ||
+            authStore.rol === 'gerente'
+          ) {
+            next({ name: 'recepcion' })
+          } else {
+            next()
+          }
+        },
+      },
+
+      {
         path: 'perfil',
         name: 'perfil',
-        component: PerfilView,
+        component: () => import('@/modules/M1-usuarios/views/PerfilView.vue'),
         meta: {
           requiresAuth: true,
           roles: ['socio', 'externo', 'recepcionista', 'gerente'],
@@ -39,26 +108,7 @@ const routes: RouteRecordRaw[] = [
           roles: ['socio', 'externo', 'recepcionista', 'gerente'],
         },
       },
-      {
-        path: 'inicio',
-        name: 'home',
 
-        component: () => import('../common/views/HomeView.vue'),
-        meta: {
-          requiresAuth: true,
-          roles: ['socio', 'recepcionista', 'gerente'],
-        },
-        beforeEnter: (_to, _from, next) => {
-          const authStore = useAuthStore()
-
-          // Si el rol es recepcionista, redirigimos a la vista de recepción
-          if (authStore.rol === 'recepcionista') {
-            next({ name: 'recepcion' })
-          } else {
-            next() // Los socios continúan hacia HomeView.vue
-          }
-        },
-      },
       {
         path: 'accesos',
         name: 'accesos',
@@ -70,6 +120,16 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: 'recepcion',
+        name: 'recepcion',
+        component: () =>
+          import('../modules/M2-accesos/views/RecepcionView.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['recepcionista', 'gerente'],
+        },
+      },
+      {
         path: 'aforo',
         name: 'aforo',
         component: () => import('../modules/M2-accesos/views/AforoView.vue'),
@@ -78,6 +138,7 @@ const routes: RouteRecordRaw[] = [
           roles: ['gerente'],
         },
       },
+
       {
         path: 'clases',
         name: 'clases',
@@ -88,6 +149,7 @@ const routes: RouteRecordRaw[] = [
           roles: ['socio', 'externo', 'recepcionista', 'gerente'],
         },
       },
+
       {
         path: 'canchas',
         name: 'canchas',
@@ -102,7 +164,12 @@ const routes: RouteRecordRaw[] = [
         name: 'canchas-detalle-reserva',
         component: () =>
           import('../modules/M4-canchas/views/DetalleReservaView.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['socio', 'externo', 'recepcionista', 'gerente'],
+        },
       },
+
       {
         path: 'pagos',
         name: 'pagos',
@@ -123,21 +190,12 @@ const routes: RouteRecordRaw[] = [
           roles: ['socio', 'externo', 'recepcionista', 'gerente'],
         },
       },
-      {
-        path: 'recepcion',
-        name: 'recepcion',
-        component: () =>
-          import('../modules/M2-accesos/views/RecepcionView.vue'),
-        meta: {
-          requiresAuth: true,
-          roles: ['recepcionista', 'gerente'],
-        },
-      },
+
       {
         path: 'gerencia',
         meta: {
           requiresAuth: true,
-          roles: ['gerente'], // Protege el prefijo /gerencia y todas sus rutas hijas
+          roles: ['gerente'],
         },
         // Mismo orden que el panel: sedes, socios y membresías, canchas y reportes.
         children: [
@@ -146,6 +204,18 @@ const routes: RouteRecordRaw[] = [
             name: 'gerencia',
             component: () =>
               import('../modules/gerencia/views/GerenciaDashboardView.vue'),
+          },
+          {
+            path: 'directorio-usuarios',
+            name: 'directorio-usuarios',
+            component: () =>
+              import('@/modules/M1-usuarios/views/DirectorioUsuariosView.vue'),
+          },
+          {
+            path: 'canchas',
+            name: 'gerencia-canchas',
+            component: () =>
+              import('../modules/M4-canchas/views/GerenciaCanchasView.vue'),
           },
           // Sedes: listado, horario semanal y calendario de feriados y excepciones
           {
@@ -226,7 +296,7 @@ const routes: RouteRecordRaw[] = [
           },
         ],
       },
-      // Redirecciones de retrocompatibilidad para /reportes
+
       {
         path: 'reportes',
         redirect: '/gerencia/reportes',
@@ -237,32 +307,7 @@ const routes: RouteRecordRaw[] = [
       },
     ],
   },
-  {
-    path: '/login',
-    name: 'login',
-    component: () => import('../modules/M1-usuarios/views/LoginView.vue'),
-    meta: { requiresAuth: false },
-  },
-  {
-    path: '/registro',
-    name: 'registro',
-    component: () => import('@/modules/M1-usuarios/views/RegistroView.vue'),
-    meta: { requiresAuth: false },
-  },
-  {
-    path: '/cambiar-password',
-    name: 'cambiar-password',
-    component: () =>
-      import('@/modules/M1-usuarios/views/CambiarPasswordView.vue'),
-    meta: { requiresAuth: false },
-  },
-  {
-    path: '/completar-perfil',
-    name: 'completar-perfil',
-    component: () =>
-      import('@/modules/M1-usuarios/views/CompletarPerfilView.vue'),
-    meta: { requiresAuth: true },
-  },
+
   {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
@@ -275,17 +320,13 @@ export const router = createRouter({
   routes,
 })
 
-// Guard de navegación global con RBAC
 router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
 
-  // 1. Aseguramos que Supabase haya leído la URL (vital para Google OAuth)
   if (!authStore.isInitialized) {
     await authStore.initialize()
   }
 
-  // CORRECCIÓN DE SEGURIDAD CRÍTICA Y RENDIMIENTO: Sanitización de URL post-OAuth
-  // Usamos window.history.state para no romper el historial de Vue Router y evitar latencia
   if (window.location.hash.includes('access_token=')) {
     window.history.replaceState(
       window.history.state,
@@ -296,50 +337,50 @@ router.beforeEach(async (to, _from, next) => {
 
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
 
-  // 2. Sin sesión en ruta privada -> login
   if (requiresAuth && !authStore.isAuthenticated) {
     return next({ name: 'login' })
   }
 
-  // 3. VERIFICACIÓN PROACTIVA: obtiene perfil interno y ROL real desde el backend
   if (
     authStore.isAuthenticated &&
     to.path !== '/completar-perfil' &&
     (requiresAuth || to.name === 'login' || to.name === 'registro')
   ) {
-    // Solo consultamos si todavía no cargamos el perfil de esta sesión
-    if (!authStore.usuario?.rol) {
+    if (!authStore.perfilVerificado) {
       try {
-        const respuesta = await authService.verifyLocalProfile()
+        const respuesta =
+          (await authService.verifyLocalProfile()) as PerfilBackendResponse
         const u = respuesta?.user
         if (u) {
           const rolBackend = String(
-            u.rol ?? u.roles?.[0] ?? 'socio'
+            u.rol ?? u.roles?.[0] ?? 'externo'
           ).toLowerCase() as RolUsuario
+
           authStore.setPerfilInterno({
             id: u.id_usuario,
+            dni: u.dni,
             nombre: u.nombre,
             apellido: u.apellido,
             email: u.email,
+            telefono: u.telefono ?? undefined,
+            foto_url: u.foto_url ?? undefined,
             rol: rolBackend,
             id_sede: u.id_sede,
             sede: u.sede,
           })
+          authStore.marcarPerfilVerificado(true)
         }
       } catch (error) {
         const err = error as { response?: { status?: number } }
-        // Si el backend arrojó 403, el interceptor (http.ts) ya redirigió a /completar-perfil.
         if (err.response?.status === 403) {
           return
         }
-        // Otro error grave: limpiamos sesión por seguridad.
         await authStore.logout()
         return next({ name: 'login' })
       }
     }
   }
 
-  // 4. Ya logueado y quiere ir a login/registro -> a su ruta por rol
   if (
     (to.name === 'login' || to.name === 'registro') &&
     authStore.isAuthenticated
@@ -347,7 +388,6 @@ router.beforeEach(async (to, _from, next) => {
     return next(rutaPorRol(authStore.rol))
   }
 
-  // 5. Control de acceso por roles (RBAC)
   if (authStore.isAuthenticated) {
     const rolActual = authStore.rol
     const tienePermiso = to.matched.every((record) => {

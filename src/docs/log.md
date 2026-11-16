@@ -1413,3 +1413,32 @@
   - `feat(M1): implementacion de baja logica, restauracion y paginacion`
   
   ---
+
+#### 14/11/2026
+
+#### Matías Sillén Ríos | Rol: Arquitecto de Software - Desarrollador Full Stack
+
+- **Actividades:**
+  - Reorganización completa de `src/router/index.ts` agrupando rutas hijas de `MainLayout` por módulo, incorporando Lazy Loading (`() => import(...)`) en `PerfilView.vue`, completando `meta.roles` en rutas faltantes (`canchas/reservas/:id`), hidratando los datos completos del perfil en `beforeEach` y optimizando `LoginView.vue` para navegar directamente con `rutaPorRol`.
+  - Optimización del interceptor de peticiones en `src/common/api/http.ts` para leer el token activo desde Pinia antes de consultar `supabase.auth.getSession()`, y limpieza de sesión ante respuestas HTTP `401`.
+  - Eliminación del rol hardcodeado `roles: [4]` en `RegistroView.vue` y `CompletarPerfilView.vue`, agregando manejo de compensación ante fallos parciales entre Supabase Auth y el backend local, y persistencia del avatar de Google OAuth al completar el perfil.
+  - Actualización de `src/store/auth.ts`, `MainLayout.vue` y `Sidebar.vue`: eliminación del enlace duplicado `Mi Perfil` del menú lateral, implementación de menú desplegable de usuario en la Navbar mostrando nombre y apellido reales (nunca el correo), fotografía de perfil (Supabase Storage y fallback de Google OAuth con `referrerpolicy="no-referrer"`), iniciales ante error de carga y estado Skeleton.
+  - Ampliación de `PerfilView.vue` y `auth.service.ts`: incorporación de estado Skeleton, campos bloqueados (`email` y `dni`), edición validada con Zod de `nombre`, `apellido` y `telefono` sincronizada en tiempo real con Pinia/Navbar, carga y vista previa de fotografía de perfil (JPG, PNG o WEBP hasta 2 MB) y formulario independiente de cambio de contraseña con reautenticación previa (`reauthenticateWithPassword` + `updatePassword`) en Supabase Auth.
+  - Incorporación de pruebas automatizadas con Vitest en `src/router/__tests__/router.spec.ts` y `src/modules/M1-usuarios/views/__tests__/PerfilView.spec.ts`.
+- **Decisiones:**
+  - Centralizar el acceso a `/perfil` en un menú desplegable de usuario en la Navbar y retirarlo del Sidebar para evitar duplicación de navegación y mantener sincronizado visualmente el avatar y el nombre completo del usuario activo.
+  - Separar en `PerfilView.vue` el formulario de datos personales del formulario de cambio de contraseña, exigiendo reautenticación con la contraseña actual en Supabase Auth antes de aplicar `updateUser`.
+  - Utilizar `referrerpolicy="no-referrer"` y fallback a metadatos de sesión (`avatar_url` / `picture`) para garantizar la visualización confiable de avatares provenientes de cuentas de Google OAuth.
+- **Dificultades:**
+  - Al iniciar sesión con cuentas de Google OAuth, la foto de perfil no se visualizaba porque `CompletarPerfilView.vue` no persistía la URL externa cuando no se subía un archivo local y las etiquetas `<img>` carecían de `referrerpolicy="no-referrer"` frente a la CDN de Google; se resolvió persistiendo la URL en el alta y agregando fallback desde los metadatos de sesión.
+- **Commits:**
+  - `fix(router): reorganizar rutas con lazy loading y corregir navegacion`
+  - `fix(router): corregir advertencia deprecada de consultas de cliente`
+  - `fix(auth): asignar rol externo dinamicamente en el registro`
+  - `fix(navbar): mostrar nombre real y foto de perfil desde Supabase`
+  - `feat(profile): trasladar acceso a mi perfil desde el sidebar a la navbar`
+  - `feat(profile): ampliar vista mi perfil con edicion, avatar y cambio de contrasena`
+   - `test(auth): agregar pruebas unitarias y de integracion de auth y perfil`
+  - `fix(navbar): persistir y mostrar avatar de cuenta de Google OAuth`
+
+---

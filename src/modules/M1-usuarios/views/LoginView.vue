@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { z } from 'zod'
 import { useAuthStore } from '@/store/auth'
+import { rutaPorRol } from '@/common/guards/ruta-por-rol'
 import BaseInput from '@/common/components/BaseInput.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import { authService } from '../services/auth.service'
@@ -46,9 +47,13 @@ const handleLogin = async () => {
 
   try {
     await authStore.login({ email: email.value, password: password.value })
-    router.push({ name: 'home' })
+    await authStore.cargarPerfilLocal()
+    await router.push(rutaPorRol(authStore.rol))
   } catch (error: unknown) {
-    const err = error as { message?: string }
+    const err = error as { message?: string; response?: { status?: number } }
+    if (err.response?.status === 403) {
+      return
+    }
     const mensajeReal = err.message
       ? traducirErrorSupabase(err.message)
       : 'Error de conexión.'
