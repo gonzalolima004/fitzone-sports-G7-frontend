@@ -1,0 +1,236 @@
+### Matías Sillen Ríos - Frontend Developer
+- **Actividades:** Definición de la estructura de directorios del Frontend (Vue.js) aplicando un enfoque "Feature-Driven", creacion del archivo LOG.md y estandarización del flujo de trabajo colaborativo en Git (Git Flow simplificado y reglas para Pull Requests).
+- **Decisiones:** Se decidió alinear los nombres de los módulos del Frontend (ej. `M1-usuarios`) de forma idéntica al Backend (NestJS) para mantener un Lenguaje Ubicuo. Además, se estableció mantener la lógica transversal (interceptores, utilidades, composables) estrictamente dentro de `src/common`.
+- **Commits vinculados:** `bf9c804` (Organice la estructura del pryecto por modulos, tal como se solicitó en la catedra).
+
+----
+
+#### 03/10/2026 - 05/10/2026
+#### Matías Sillen | Rol: Desarrollador Frontend
+
+* **Actividades:**
+* Maquetado e implementación de la pantalla de inicio de sesión (`LoginView.vue`) con validaciones visuales.
+* Configuración del estado global de la sesión utilizando Pinia y protección de rutas privadas mediante Navigation Guards en Vue Router.
+* Implementación de la conexión HTTP configurando Axios con interceptores para adjuntar automáticamente el token JWT.
+
+
+* **Decisiones:**
+* Mantener la sintaxis de Composition API (Setup Store) en Pinia para conservar la lógica previa de roles y persistencia en `localStorage`.
+* Formatear e interceptar los errores de validación devueltos por NestJS (en formato array) para mostrarlos como cadenas de texto limpias en la interfaz del usuario.
+* Redirigir al usuario autenticado directamente a la ruta raíz (`home`) tras un login exitoso, adaptándose a la estructura del `MainLayout` existente.
+
+
+* **Dificultades:**
+* Problemas iniciales de conexión (errores 404) debido a variables de entorno no configuradas (`VITE_API_URL`) y a que la ruta de login no existía inicialmente en el servidor.
+* Advertencias del compilador de TypeScript por el uso de promesas nativas y Vite, solucionadas actualizando el `tsconfig.json` a `ES2022`.
+
+
+* **Commits:**
+* `feat(usuarios): crear servicio http para inicio de sesión`
+* `feat(auth): integrar login con api manteniendo estructura de pinia setup`
+* `feat(usuarios): maquetar pantalla de inicio de sesión con validaciones`
+* `feat(router): proteger rutas del MainLayout con guard de autenticación`
+* `fix(login): corregir redireccion a ruta home tras inicio de sesion`
+* `fix(login): formatear correctamente los mensajes de error de validacion del array de nestjs`
+
+----
+
+#### 05/10/2026
+#### Matías Sillen | Rol: Desarrollador Frontend
+
+* **Actividades:**
+* Maquetado e implementación de las pantallas de `RegistroView.vue` y `PerfilView.vue` siguiendo la identidad visual (azul noche y coral).
+* Integración del servicio de API (Axios) para registrar nuevos usuarios, subir fotos de perfil en formato `FormData` y editar datos personales.
+* Refactorización de las vistas para utilizar los componentes UI compartidos del equipo (`BaseInput`, `BaseButton`, `BaseModal`) y notificaciones mediante `Toastify`.
+* Configuración del Vue Router para exponer la ruta pública de registro y la ruta privada de edición de perfil.
+
+
+* **Decisiones:**
+* Asignar automáticamente el rol `[1]` (Socio) o `[]` (Cliente Externo) según la selección visual del usuario en el formulario.
+* Enviar el valor `"pendiente"` de forma temporal en el campo `foto_url` al crear el usuario para cumplir con las exigencias de validación del backend, para luego reemplazarlo al subir la imagen con el ID generado.
+
+
+* **Dificultades:**
+* El guard de navegación de Vue Router generaba un bloqueo de renderizado al intentar cargar el registro público dentro del `MainLayout` (que exige autenticación); se resolvió extrayendo la ruta `/registro` al nivel raíz.
+* El DTO del backend rechazaba el registro por tipado estricto, obligando a mapear el `id_sede` como `string` y dividir el nombre completo en el frontend antes de enviar la petición.
+
+
+* **Commits:**
+* `feat(usuarios): crear servicio para registro, edicion y carga de fotos de perfil`
+* `feat(usuarios): maquetar e implementar pantalla de registro aplicando identidad visual`
+* `feat(usuarios): crear pantalla de edicion de perfil de usuario`
+* `feat(router): registrar rutas publica de registro y privada de perfil`
+* `fix(router): extraer ruta de registro del mainlayout para evitar bloqueo del guard y errores de renderizado`
+* `fix(usuarios): agregar foto_url temporal y tipar id_sede como string para cumplir con validacion del DTO`
+* `refactor(usuarios): migrar PerfilView a componentes BaseInput, BaseButton y Toastify`
+* `refactor(usuarios): aplicar shared components e integrar toastify en RegistroView`
+
+----
+
+#### 07/10/2026
+#### Matías Sillen | Rol: Desarrollador Frontend
+
+* **Actividades:**
+* Creación de la rama `refactor/login-ui-tailwind` para aislar los cambios de la interfaz.
+* Refactorización completa de la vista de inicio de sesión (`LoginView.vue`), eliminando el bloque de estilos CSS puro (`scoped`) y migrando la estructura a Tailwind CSS.
+* Implementación de los componentes reutilizables de la UI base (`BaseInput` y `BaseButton`) en el formulario de login para estandarizar el diseño con el resto de la plataforma.
+* Sustitución de los mensajes de error en línea por el sistema de notificaciones globales utilizando `vue3-toastify`.
+
+
+* **Decisiones:**
+* Aislar esta refactorización en una rama nueva para mantener un historial de control de versiones limpio y estructurado, separando el desarrollo funcional original de las mejoras visuales.
+* Aplicar directamente los colores hexadecimales de la identidad visual oficial (`#202759` y `#F96167`) mediante clases utilitarias de Tailwind para asegurar la consistencia total con las pantallas de Registro y Perfil.
+
+
+* **Dificultades:**
+* Ninguna significativa. La adaptación de la estructura HTML que dependía de clases locales al uso de los nuevos componentes atómicos y utilidades de Tailwind se realizó de forma fluida.
+
+
+* **Commits:**
+* `refactor(login): migrar UI a tailwind, implementar BaseInput/BaseButton e integrar toastify`
+
+----
+
+#### 07/10/2026 - 13/10/2026
+#### Matías Sillen | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Refactorización completa de MembresiaView.vue para asegurar un uso estricto de Tailwind CSS, eliminando etiquetas <style scoped> y animaciones @keyframes.
+  - Reemplazo de la animación custom por el componente <Transition> nativo de Vue combinado con utilidades de Tailwind para el efecto fade-in.
+  - Corrección del paso de propiedades en PlanCard.vue hacia CheckoutModal.vue, emitiendo el objeto completo del plan para asegurar la visualización del precio correcto.
+  - Inyección manual del token JWT desde Pinia (authStore) hacia el pagosService para resolver errores de autorización 401 en endpoints protegidos.
+  - Modificación del layout principal (Layout.vue) ajustando el contenedor general a h-screen overflow-hidden para mantener la barra lateral fija y habilitar el scroll independiente del área de contenido.
+- **Decisiones:**
+  - Pasar el objeto completo del plan desde la tarjeta al modal (en lugar de emitir únicamente el ID) para hacer el componente más robusto frente a posibles cambios o filtrados de claves del lado del backend.
+  - Mantener la responsabilidad del inicio de pago enviando el payload correcto, pero delegar el manejo del webhook y la confirmación final a la Épica 6 correspondiente al módulo de pagos.
+- **Dificultades:**
+  - Problemas de renderizado de precios debido a que el ID del plan llegaba como undefined, causando que el frontend siempre seleccionara el primer plan por defecto. Se resolvió enviando la entidad completa.
+  - El componente de layout inicial generaba un scroll a nivel de página entera que arrastraba el menú lateral; requirió un reajuste de las clases flexbox y overflow de Tailwind.
+- **Commits:**
+  -  `feat(membresias): mapear endpoints de planes y verificacion de estado`
+  -  `feat(pagos): agregar servicio HTTP para iniciar preferencia de pago`
+  -  `feat(membresias): crear componente reutilizable PlanCard`
+  -  `feat(pagos): maquetar modal de checkout seguro con integracion de metodos`
+  -  `refactor(ui): reemplazar svgs en duro por componentes de phosphor icons en PlanCard.vue`
+  -  `feat(membresias): implementar pantalla de membresías integrando estados, mora y retorno de checkout`
+  -  `fix(membresias): unificar id_membresia_plan en UI y adjuntar token JWT en servicio de pagos`
+  -  `fix(membresias): pasar objeto plan completo al modal para garantizar la visualización del precio correcto`
+  -  `refactor(membresias): enviar objeto plan completo al modal, eliminar css custom y aplicar tailwind estricto`
+  -  `fix(layout): cambiar min-h-screen por h-screen para mantener sidebar fijo y habilitar scroll interno`
+
+----
+
+#### 17/10/2026 - 22/10/2026
+
+#### Matías Sillen | Rol: Desarrollador Frontend
+
+* **Actividades:**
+* Integración del inicio de sesión con Google OAuth a través de Supabase en las vistas de Login y Registro.
+* Implementación de un interceptor HTTP global para capturar errores `403` y redirigir a los usuarios logueados con Google sin cuenta local.
+* Creación de la vista `CompletarPerfilView.vue` para recolectar datos de negocio obligatorios (DNI, Teléfono, Sede) de usuarios provenientes de Google OAuth.
+* Actualización del guard global en el Vue Router para realizar una verificación proactiva (`/auth/me`) del perfil local antes de permitir el acceso al Dashboard.
+* Asignación dinámica del rol "externo" (`id_rol: 4`) en los flujos de registro local y de Google.
+* Extensión de los permisos de visualización en la barra de navegación lateral (`Sidebar.vue`) para incluir al rol `gerente`.
+* Aplicación de políticas estrictas de seguridad en contraseñas usando expresiones regulares con Zod en los formularios de registro y recuperación.
+* Refactorización del componente reutilizable `BaseInput.vue` para incluir un botón dinámico (toggle) de visibilidad de contraseña utilizando Phosphor Icons.
+
+
+* **Decisiones:**
+* Implementar una verificación de perfil "proactiva" en el Router en lugar de "reactiva" para evitar el efecto de "limbo de autenticación" donde un usuario de Google quedaba atrapado en el Dashboard sin datos locales.
+* Configurar el parámetro `prompt: 'select_account'` en la solicitud OAuth para forzar al proveedor a mostrar siempre el selector de cuentas de Google, incluso si ya existe una sesión activa en el navegador.
+* Agregar un botón explícito de cancelación en la vista de completar perfil para forzar el cierre síncrono de la sesión en Supabase y evitar bucles de redirección infinitos.
+
+
+* **Dificultades:**
+* Sincronización de estado (condición de carrera) entre la recarga rápida de la URL con el token de Google y la lectura de `isAuthenticated` en Pinia por parte de Vue Router.
+* Manejo del bucle infinito de rutas cuando el usuario se arrepentía de completar el perfil de Google y quería regresar al login normal.
+
+
+* **Commits:**
+* `chore(auth): configurar cliente global de Supabase`
+* `feat(auth): migrar auth.service a Supabase SDK`
+* `feat(auth): integrar Pinia con onAuthStateChange de Supabase`
+* `fix(api): interceptor HTTP utiliza sesión activa de Supabase`
+* `feat(auth): flujo de registro unificado con foto opcional en Supabase`
+* `feat(auth): login integrado con Supabase y enlace a cambio de password`
+* `feat(auth): vista de cambio de contraseña`
+* `fix(router): agregar ruta de cambio de contraseña y aplicar lazy loading a registro`
+* `fix(auth): restaurar enlace a registro en UI de login`
+* `fix(auth): forzar asignación síncrona de sesión en Pinia para evitar condición de carrera en el router`
+* `fix(auth): forzar cierre de sesión síncrono en Pinia para arreglar bloqueo del router`
+* `fix(sidebar): hacer el cierre de sesión asíncrono para prevenir errores de navegación`
+* `fix(auth): traducir errores de Supabase al español en login`
+* `feat(auth): aplicar validación Zod estricta (regex) y traducir errores de Supabase en registro`
+* `fix(auth): traducir errores de Supabase al español en recuperación de contraseña`
+* `fix(router): agregar ruta de cambio de contraseña y aplicar lazy loading a registro`
+* `feat(auth): agregar soporte para signInWithOAuth mediante Google`
+* `feat(api): interceptar error 403 de cuenta no asociada y redirigir a completar perfil`
+* `feat(auth): vista para completar datos de perfil (DNI, Sede) tras login con Google`
+* `chore(router): agregar ruta de completar-perfil para Google OAuth`
+* `feat(auth): agregar botón y lógica de integración visual para login con Google`
+* `feat(auth): añadir verifyLocalProfile para comprobación proactiva de perfil`
+* `fix(router): implementar verificación proactiva de perfil antes de acceder al dashboard`
+* `fix(auth): agregar botón cancelar para abortar registro y purgar sesión de Supabase`
+* `fix(auth): asignar id_rol 4 a perfiles de clientes externos en lugar de dejarlos sin rol`
+* `feat(roles): extender permisos de administrador al rol gerente en vistas y rutas`
+* `feat(auth): aplicar política estricta de contraseñas seguras con Zod`
+* `feat(ui): agregar toggle de visibilidad de contraseña global en BaseInput`
+
+----
+
+#### 26/10/2026
+
+#### Matías Sillen | Rol: Desarrollador Frontend
+
+* **Actividades:**
+* Separación de los campos de identidad en los formularios de registro y completado de perfil, diferenciando explícitamente `nombre` y `apellido` bajo validaciones estrictas de Zod.
+* Implementación de la funcionalidad completa de gestión de fotos de perfil (carga local, previsualización en miniatura circular, botón de cambio y opción de eliminación) tanto en `RegistroView.vue` como en `CompletarPerfilView.vue`.
+* Eliminación del selector de tipos de perfil en las vistas públicas, forzando la asignación automática y estricta del rol de "cliente externo" (`id_rol: 4`).
+* Unificación y mejora del layout visual en las pantallas de autenticación, configurando un panel izquierdo fijo con el logo centrado y un panel derecho con scroll vertical independiente (`h-screen overflow-hidden` y `overflow-y-auto`).
+* Adición de un indicador dinámico de fuerza de contraseña en tiempo real y un botón de retroceso hacia el inicio de sesión.
+* Corrección en la sanitización de URLs post-OAuth en `src/router/index.ts`, pasando de un estado nulo a preservar `window.history.state` al limpiar los tokens de Supabase del hash.
+
+
+* **Decisiones:**
+* Preservar el estado actual del historial del navegador (`window.history.state`) al ejecutar `replaceState` para evitar la pérdida de referencias de Vue Router, eliminando así los warnings de consola y la latencia al hacer clic en los ítems del menú.
+* Precompletar automáticamente los campos de nombre y apellido dividiendo el `full_name` devuelto por los metadatos de Google OAuth al completar el perfil.
+
+
+* **Dificultades:**
+* Retrasos intermitentes en la transición de rutas del menú lateral provocados por la eliminación drástica del historial al remover los tokens de la barra de direcciones de forma insegura, lo cual se resolvió correctamente manteniendo el contexto del router.
+
+
+* **Commits:**
+* `fix(auth): corregir cursor de botones interactivos`
+* `fix(auth): mejorar errores, separar campos y retirar opcion de socio`
+* `fix(auth): proteger tokens en interceptor y sanitizar URL de redireccion`
+* `fix(auth): separar nombre/apellido, agregar volver, scroll de panel y medidor de contraseña`
+* `style(auth): centrar logo de FitZone y unificar layout de scroll con registro`
+* `fix(auth): separar campos nombre/apellido y forzar rol externo en autocompletado`
+* `fix(router): preservar history state al limpiar url para evitar demoras en navegacion`
+
+----
+
+#### 27/10/2026 - 29/10/2026
+
+#### Matías Sillen | Rol: Desarrollador Frontend
+
+* **Actividades:**
+* Restauración y unificación completa del sistema de enrutamiento en `src/router/index.ts`, reintegrando el control de acceso basado en roles (RBAC), las rutas anidadas del módulo de gerencia y las landing pages.
+* Corrección de la sanitización de URLs post-OAuth de Supabase, reemplazando el paso de un estado nulo por la preservación de `window.history.state` en la API de History del navegador.
+* Reintegración de la lógica de mapeo de rol del backend (`authStore.setPerfilInterno`) dentro del bloque de Verificación Proactiva del Guard global.
+
+
+* **Decisiones:**
+* Preservar el objeto de estado interno (`window.history.state`) al momento de limpiar el token de la barra de direcciones (`replaceState`). Esto permite mantener la URL segura sin destruir las referencias de navegación internas que utiliza Vue Router.
+* Mantener la inicialización de Supabase centralizada y controlada en el Store para evitar la creación de múltiples instancias de `GoTrueClient` que generaban cuellos de botella en el almacenamiento local.
+
+
+* **Dificultades:**
+* Al limpiar el fragmento de la URL (`#access_token=...`) para evitar la exposición de credenciales, Vue Router perdía su historial de estado, lo que provocaba advertencias en consola (`history.state seems to have been manually replaced`) y generaba una latencia notoria al navegar entre las distintas pantallas del menú lateral.
+
+
+* **Commits:**
+* `fix(router): restaurar rbac, roles de rutas anidadas e inyectar fix de seguridad y performance`
+
+----
