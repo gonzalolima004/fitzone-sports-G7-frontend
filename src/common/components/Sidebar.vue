@@ -42,16 +42,16 @@ const todasLasSecciones: NavSection[] = [
     titulo: 'OPERACIONES',
     items: [
       {
-        nombre: 'Recepcion',
-        ruta: '/recepcion',
-        icono: 'recepcion-icon',
-        roles: ['recepcionista'],
-      },
-      {
         nombre: 'Dashboard',
         ruta: '/socio-dashboard',
         icono: 'grid',
-        roles: ['socio'],
+        roles: ['socio', 'gerente'],
+      },
+      {
+        nombre: 'Recepcion',
+        ruta: '/recepcion',
+        icono: 'recepcion-icon',
+        roles: ['recepcionista', 'gerente'],
       },
       {
         nombre: 'Historial',

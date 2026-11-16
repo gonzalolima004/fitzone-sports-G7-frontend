@@ -1193,6 +1193,35 @@
 
 ---
 
+#### 12/11/2026
+#### Facundo Agüero | Rol: Desarrollador Frontend
+
+- **Tarea:** Horarios semanales de cada sede y orden de las rutas y accesos de gerencia, sedes y reportes (parte frontend).
+- **Actividades:**
+  - Pantalla `/gerencia/sedes/horarios`: el gerente elige la sede (la misma del selector del encabezado) y ve la semana de lunes a domingo. Cada día puede abrir (con hora de apertura y de cierre), estar cerrado o quedar sin horario cargado, que se marca con un aviso. Los cambios se guardan juntos con "Guardar cambios", con un pedido por día modificado (alta, modificación o baja de `/sedes/:idSede/horarios`), y se pueden deshacer por día o descartar.
+  - Validación con Zod de las horas de cada día que abre, compartida con las excepciones del calendario, que tenían la misma regla.
+  - Rutas de gerencia ordenadas y agrupadas como el panel: sedes (listado, horarios y calendario, ahora bajo `/gerencia/sedes`), socios y membresías, canchas y reportes. `/gerencia/calendario` redirige a `/gerencia/sedes/calendario`. Las rutas del directorio de usuarios y de gestión de canchas solo cambiaron de lugar en la lista.
+  - Panel del gerente: los accesos de "Administración" quedan agrupados por área (Sedes, Socios y membresías, Canchas y Reportes) y se suman Horarios semanales y el directorio de usuarios.
+  - Pestañas para moverse entre las pantallas de cada área (`PestanasGerencia`): Sedes, Horarios y Calendario, e Ingresos y Ocupación en reportes, que además pasa a usar el mismo encabezado que el resto de gerencia.
+  - Pruebas con Vitest: carga de la semana, días sin horario, guardado de cada caso (alta, modificación y baja), validaciones, deshacer y descartar, falla parcial, cambio de sede con cambios sin guardar y error de carga; accesos agrupados del panel, ítem activo del menú y redirección del calendario.
+- **Decisiones:**
+  - Guardar solo los días que cambiaron, en paralelo: cada pedido hace una o dos consultas en el backend y no hace falta una transacción. Si un día falla, los demás quedan guardados y ese día conserva lo editado con el mensaje del backend.
+  - Con cambios sin guardar no se puede elegir otra sede en la pantalla; si cambia desde el encabezado, se descartan y se avisa.
+  - Al pasar un día a "Abre", se propone el horario de otro día que abre, para no cargarlo de cero.
+  - Después de guardar se borran del store los horarios operativos en caché de esa sede, para que canchas y clases los vuelvan a pedir.
+  - Las pestañas usan nombres cortos para que entren en el celular; el título de cada pantalla da el detalle.
+- **Dificultades:**
+  - En `dev`, la prueba de acceso por rol al calendario fallaba: la ruta de inicio de la recepcionista (`/aforo`, según `rutaPorRol`) ahora es solo para el gerente, así que el guard entra en una redirección infinita cuando la recepcionista abre una ruta sin permiso. La prueba ahora verifica que ningún otro rol entre a gerencia, sin depender de adónde lo manda el guard. La ruta de inicio de cada rol no se tocó.
+  - En tablet la tabla de la semana no entraba al lado del menú; las filas pasan a formato de tarjeta hasta pantallas anchas.
+- **Verificación:** 22 archivos y 172 pruebas aprobadas (12 nuevas); typecheck, lint y build aprobados; cada commit compila y pasa sus pruebas. Recorrido visual en navegador con API simulada (escritorio, tablet y celular). Pendiente: recorrido con la cuenta de gerente contra el backend.
+- **Commits:**
+  - `refactor(gerencia): agrupar rutas y accesos de sedes y reportes`
+  - `feat(gerencia): agregar horarios semanales de cada sede`
+  - `test(gerencia): agregar pruebas de horarios semanales`
+  - `docs(log): registrar horarios semanales y orden de rutas de gerencia`
+
+---
+
 #### 27/10/2026 - 29/10/2026
 
 #### Matías Sillen | Rol: Desarrollador Frontend
@@ -1349,6 +1378,39 @@
   - `feat(M2): servicio para manejar validacion offline de qr`
   - `feat(M2): actualizacion egreso-ingreso, adicion de variables a appierror y a socioperfil`
   - `docs(log): actualizacion de bitacora`
+
+---
+
+#### 14/11/2026
+#### Angelina Vialle | Rol: Desarrolladora Frontend
+
+- **Actividades**:
+  - **Módulo M1 (Directorio de Usuarios - Paginación, Baja Lógica y Restauración)**:
+    - Implementación de baja lógica (*soft-delete*): incorporación de modal de confirmación (`modalEliminacionAbierto`) con llamado al endpoint `DELETE /usuarios/:id`, botón de acción con ícono `PhTrash` visible solo en usuarios activos y actualización optimista inmediata en la interfaz para remover al usuario del listado local y actualizar el contador.
+    - Flujo de restauración de cuentas inactivas: creación del método `restaurarUsuarioDirecto` que actualiza `id_usuario_estado` a `1` (`USER_STATUS.ACTIVO`) mediante `PATCH /usuarios/:id`, con un banner informativo y botón de restauración directa (`PhArrowCounterClockwise`) dentro del modal de edición cuando el usuario se encuentra desactivado.
+    - Paginación server-side y filtros dinámicos: adaptación de `cargarDirectorio` en `useDirectorioUsuarios.ts` para enviar parámetros de paginación (`page`, `limit`) y filtrado (`includeDeactivated`, `id_usuario_estado`, `id_sede`) a la API, procesando metadatos de respuesta (`totalPages`, `totalRegistros`) e integrando controles de paginación ("Anterior", "Siguiente") en la tabla.
+    - Actualización de filtros de estado en `DirectorioUsuariosView.vue`: redefinición de las opciones del selector ("Activos", "Desactivados", "Todos los Estados"), iniciando la visualización por defecto en usuarios activos.
+  - **Enrutamiento y Control de Navegación (`router/index.ts`)**:
+    - Ajuste en el guardia de la ruta raíz (`/`): exclusión del rol `gerente` de la redirección automática a `/recepcion`, limitándola exclusivamente al rol `recepcionista`.
+  - **Barra de Navegación Lateral (`Sidebar.vue`)**:
+    - Reorganización de visibilidad por roles en la sección de Operaciones: habilitación del acceso a "Dashboard" (`/inicio`) tanto para `socio` como para `gerente`, y acceso a "Recepción" (`/recepcion`) para roles `recepcionista` y `gerente`.
+  - **Módulos M1 y M5 (Sincronización de Roles y Tipado Seguro)**:
+    - Corrección en `MembresiaView.vue` y `ResultadoPagoView.vue`: incorporación de validación estricta (`authStore.usuario.id !== undefined`) antes de invocar `authStore.setPerfilInterno` en los bloques de captura de excepciones, garantizando la integridad de tipos en TypeScript.
+  - **Módulo M4 (Canchas - Formato)**:
+    - Ajustes de estilo y legibilidad en `DetalleReservaView.vue` para el formateo del cálculo del descuento por membresía.
+- **Decisiones**:
+  - **Actualización optimista de UI para bajas y restauraciones**: Se optó por reflejar de forma inmediata en el estado reactivo (`usuarios.value` y `totalRegistros`) la desactivación o restauración antes de aguardar la respuesta del backend, recargando el padrón únicamente en caso de que la petición HTTP falle para asegurar una experiencia de usuario rápida y fluida.
+  - **Migración a paginación y filtrado desde el servidor**: En lugar de filtrar la totalidad de los usuarios en memoria en el cliente, se trasladó el filtrado y paginado a la consulta al backend (`GET /usuarios?page=...&limit=...`), optimizando el rendimiento y el consumo de recursos de red.
+  - **Diferenciación de flujo de entrada según rol**: Mantener la redirección forzada a recepción únicamente para recepcionistas, permitiendo a los gerentes ingresar a las métricas del dashboard sin pasos intermedios.
+- **Dificultades**:
+  - **Coherencia reactiva entre filtros de estado y actualización optimista**: Al ejecutar una baja lógica o restauración estando activo un filtro específico (por ejemplo, "Activos" o "Desactivados"), fue necesario manejar la remoción del registro del array local o la mutación de su `id_usuario_estado` según el filtro vigente, evitando desfases visuales o contadores desactualizados sin forzar una recarga completa de red.
+  - **Restricciones de tipado estricto en Pinia**: `authStore.usuario.id` está declarado como opcional (`id?: number`), lo que generaba advertencias de TypeScript al intentar propagarlo en `setPerfilInterno` tras procesar pagos o activaciones de membresías. Se resolvió aplicando guards explícitas de existencia antes de actualizar el store.
+- **Commits**:
+  - `fix(index): redireccion de solo recepcionista`
+  - `style(M4): arreglo formato`
+  - `fix(M5 y M1): correcion para que este el id definido`
+  - `fix(components): organizacion SideBar`
+  - `feat(M1): implementacion de baja logica, restauracion y paginacion`
   
   ---
 
