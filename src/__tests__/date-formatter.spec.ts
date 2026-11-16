@@ -12,6 +12,7 @@ import {
   formatearDiasSemana,
   coincideFechaClase,
   obtenerEstadoVentanaReserva,
+  obtenerEstadoCancelacionReserva,
 } from '@/common/utils/date-formatter'
 
 describe('Módulo utilitario date-formatter (E12-T2)', () => {
@@ -150,6 +151,74 @@ describe('Módulo utilitario date-formatter (E12-T2)', () => {
       // Ayer 20/10 a las 18:00
       const resAyer = obtenerEstadoVentanaReserva('2026-10-20', '18:00')
       expect(resAyer.puedeReservar).toBe(false)
+      expect(resAyer.motivoBloqueo).toBe('PASADO')
+    })
+  })
+
+  describe('obtenerEstadoCancelacionReserva (RF-07 — Cancelación hasta 2 hs antes)', () => {
+    beforeEach(() => {
+      // Fijar hora del sistema: Miércoles 21/10/2026 a las 10:00:00
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date(2026, 9, 21, 10, 0, 0))
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('permite cancelar la reserva si faltan más de 2 horas para el inicio', () => {
+      // Mismo día a las 14:00 (faltan 4 horas)
+      const resCuatroHoras = obtenerEstadoCancelacionReserva(
+        '2026-10-21',
+        '14:00'
+      )
+      expect(resCuatroHoras.puedeCancelar).toBe(true)
+
+      // Mismo día a las 12:01 (faltan 2 horas y 1 minuto)
+      const resMasDeDosHoras = obtenerEstadoCancelacionReserva(
+        '2026-10-21',
+        '12:01'
+      )
+      expect(resMasDeDosHoras.puedeCancelar).toBe(true)
+
+      // Mañana a las 10:00 (faltan 24 horas)
+      const resManana = obtenerEstadoCancelacionReserva('2026-10-22', '10:00')
+      expect(resManana.puedeCancelar).toBe(true)
+    })
+
+    it('bloquea la cancelación si faltan exactamente 2 horas o menos para el inicio', () => {
+      // Mismo día a las 12:00 (faltan exactamente 2 horas)
+      const resExacto = obtenerEstadoCancelacionReserva('2026-10-21', '12:00')
+      expect(resExacto.puedeCancelar).toBe(false)
+      expect(resExacto.motivoBloqueo).toBe('LIMITE_2_HORAS')
+      expect(resExacto.mensajeBloqueo).toContain('2 horas o menos')
+
+      // Mismo día a las 11:30 (falta 1 hora y media)
+      const resUnaHoraYMedia = obtenerEstadoCancelacionReserva(
+        '2026-10-21',
+        '11:30'
+      )
+      expect(resUnaHoraYMedia.puedeCancelar).toBe(false)
+      expect(resUnaHoraYMedia.motivoBloqueo).toBe('LIMITE_2_HORAS')
+
+      // Mismo día a las 10:15 (faltan 15 minutos)
+      const resQuinceMin = obtenerEstadoCancelacionReserva(
+        '2026-10-21',
+        '10:15'
+      )
+      expect(resQuinceMin.puedeCancelar).toBe(false)
+      expect(resQuinceMin.motivoBloqueo).toBe('LIMITE_2_HORAS')
+    })
+
+    it('bloquea la cancelación si la clase ya inició o ya finalizó en el pasado', () => {
+      // Mismo día a las 09:00 (inició hace 1 hora)
+      const resIniciada = obtenerEstadoCancelacionReserva('2026-10-21', '09:00')
+      expect(resIniciada.puedeCancelar).toBe(false)
+      expect(resIniciada.motivoBloqueo).toBe('PASADO')
+
+      // Ayer 20/10 a las 18:00
+      const resAyer = obtenerEstadoCancelacionReserva('2026-10-20', '18:00')
+      expect(resAyer.puedeCancelar).toBe(false)
       expect(resAyer.motivoBloqueo).toBe('PASADO')
     })
   })
