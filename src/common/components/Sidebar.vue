@@ -43,7 +43,7 @@ const todasLasSecciones: NavSection[] = [
     items: [
       {
         nombre: 'Dashboard',
-        ruta: '/inicio',
+        ruta: '/socio-dashboard',
         icono: 'grid',
         roles: ['socio', 'gerente'],
       },
@@ -52,6 +52,12 @@ const todasLasSecciones: NavSection[] = [
         ruta: '/recepcion',
         icono: 'recepcion-icon',
         roles: ['recepcionista', 'gerente'],
+      },
+      {
+        nombre: 'Historial',
+        ruta: '/historial',
+        icono: 'calendar',
+        roles: ['socio'],
       },
       {
         nombre: 'Clases Grupales',

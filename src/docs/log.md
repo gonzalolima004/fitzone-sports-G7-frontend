@@ -1416,7 +1416,7 @@
 
 #### 14/11/2026
 
-#### Matías Sillén Ríos | Rol: Arquitecto de Software - Desarrollador Full Stack
+#### Matías Sillén Ríos | Rol: Desarrollador Frontend
 
 - **Actividades:**
   - Reorganización completa de `src/router/index.ts` agrupando rutas hijas de `MainLayout` por módulo, incorporando Lazy Loading (`() => import(...)`) en `PerfilView.vue`, completando `meta.roles` en rutas faltantes (`canchas/reservas/:id`), hidratando los datos completos del perfil en `beforeEach` y optimizando `LoginView.vue` para navegar directamente con `rutaPorRol`.
@@ -1441,4 +1441,25 @@
    - `test(auth): agregar pruebas unitarias y de integracion de auth y perfil`
   - `fix(navbar): persistir y mostrar avatar de cuenta de Google OAuth`
 
+---
+
+#### 14/11/2026
+
+#### Matías Sillén Ríos | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Creación de la vista exclusiva del Dashboard del Socio (`SocioDashboardView.vue`) reutilizando el layout principal (`MainLayout.vue`), tarjetas, badges y componentes `Skeleton` existentes en `src/common/`, mostrando saludo personalizado, resumen de actividad, próximas reservas reales y accesos rápidos.
+  - Implementación de la vista de Historial de Reservas (`HistorialReservasView.vue`) con distinción visual entre reservas de canchas y clases grupales (`@phosphor-icons/vue`), visualización de fechas, horarios, sedes y estados reales persistidos, filtrado por tipo de actividad, paginación y ordenamiento descendente (más recientes primero).
+  - Integración de rutas con carga diferida (Lazy Loading) en `src/router/index.ts` y actualización de navegación en `Sidebar.vue` y `ruta-por-rol.ts`, habilitando el acceso exclusivo a usuarios con rol `socio` y bloqueando mediante `beforeEach` el ingreso directo de usuarios con rol `externo`.
+  - Implementación de estados de interfaz completos (carga con `Skeleton`, historial vacío cuando el socio no posee actividades registradas y manejo de errores de red con opción de reintento) junto con validación de contratos mediante interfaces TypeScript y Zod.
+  - Cobertura de pruebas automatizadas (Vitest / Cypress) validando control de acceso RBAC entre `socio` y `externo`, renderizado de estados visuales y visualización correcta de reservas de canchas y clases grupales.
+- **Decisiones:**
+  - Presentar una vista unificada de historial con filtros por categoría (`Todas`, `Canchas`, `Clases grupales`) e indicadores visuales diferenciados por tipo y estado real, evitando duplicar lógica de consulta y manteniendo consistencia visual en móvil y escritorio.
+  - Centralizar el control de acceso tanto en la visibilidad del menú lateral como en los guards de Vue Router conectados al rol real hidratado desde el backend en Pinia (`useAuthStore`).
+- **Dificultades:**
+  - Evitar saltos visuales o exposición momentánea de componentes del Dashboard antes de confirmar el rol real del usuario tras recargar la página; se resolvió condicionando la navegación a la hidratación previa del perfil en `router.beforeEach` y mostrando estados `Skeleton` durante la carga inicial.
+- **Commits:**
+  - `feat(router): registrar rutas de dashboard y historial del socio`
+  - `feat(dashboard): implementar vista de historial y dashboard del socio`
+`
 ---
