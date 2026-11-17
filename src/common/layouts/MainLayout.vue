@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { RouterView, RouterLink, useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 import { useAuthStore } from '../../store/auth'
 import { useSedeStore } from '../../store/sede'
+import { obtenerFechaHoyLocal } from '../utils/date'
 import { PhUser, PhSignOut, PhCaretDown } from '@phosphor-icons/vue'
 
 const authStore = useAuthStore()
@@ -20,6 +21,26 @@ onMounted(() => {
   sedeStore.cargarSedes()
   document.addEventListener('click', handleClickOutside)
 })
+
+watch(
+  [
+    () => sedeStore.sedeSeleccionada?.id_sede,
+    () => sedeStore.fechaReferenciaHorario,
+  ],
+  async ([idSede, fechaRef]) => {
+    if (!idSede) return
+    const fecha = fechaRef || obtenerFechaHoyLocal()
+    const key = `${idSede}_${fecha}`
+    if (!sedeStore.horariosCache[key]) {
+      try {
+        await sedeStore.obtenerHorarioOperativo(idSede, fecha)
+      } catch {
+        // Silencioso en el header global si falla la consulta de horario
+      }
+    }
+  },
+  { immediate: true }
+)
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
@@ -116,8 +137,75 @@ async function handleLogout() {
           >
         </div>
 
-        <!-- Lado derecho: Perfil de usuario -->
+        <!-- Lado derecho: Badge de Sede + Horario Operativo + Perfil de usuario -->
         <div class="flex items-center gap-3">
+          <!-- Indicador de sede activa y horario de apertura/cierre -->
+          <div
+            v-if="sedeStore.sedeSeleccionada"
+            class="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-100 border border-slate-200/80 rounded-full text-xs font-medium text-slate-600"
+            title="Sede activa y horario operativo"
+          >
+            <div class="flex items-center gap-1.5">
+              <svg
+                class="w-3.5 h-3.5 text-[#202759] shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+              <strong
+                class="font-bold text-[#202759] max-w-[160px] sm:max-w-[220px] truncate"
+              >
+                {{ sedeStore.sedeSeleccionada.nombre }}
+              </strong>
+            </div>
+
+            <template v-if="sedeStore.horarioOperativoActual">
+              <span class="text-slate-300 hidden sm:inline">|</span>
+              <div class="hidden sm:flex items-center gap-1.5">
+                <template
+                  v-if="
+                    sedeStore.horarioOperativoActual.abierto ||
+                    sedeStore.horarioOperativoActual.es_horario_especial
+                  "
+                >
+                  <span
+                    :class="[
+                      'font-semibold font-mono tabular-nums text-xs',
+                      sedeStore.horarioOperativoActual.es_horario_especial
+                        ? 'text-amber-800'
+                        : 'text-emerald-700',
+                    ]"
+                  >
+                    {{ sedeStore.horarioOperativoActual.hora_apertura }} a
+                    {{ sedeStore.horarioOperativoActual.hora_cierre }} hs
+                  </span>
+                  <span
+                    v-if="sedeStore.horarioOperativoActual.es_horario_especial"
+                    class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300"
+                  >
+                    Horario Especial
+                  </span>
+                </template>
+                <span v-else class="text-[#F96167] font-bold">
+                  Sede Cerrada
+                </span>
+              </div>
+            </template>
+          </div>
+
           <!-- Estado Skeleton mientras carga el perfil inicial -->
           <div
             v-if="authStore.cargandoPerfil && !authStore.usuario?.nombre"
