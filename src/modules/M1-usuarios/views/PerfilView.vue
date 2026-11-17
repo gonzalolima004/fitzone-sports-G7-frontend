@@ -13,6 +13,7 @@ import { usuariosService } from '../services/usuarios.service'
 import { authService } from '../services/auth.service'
 import BaseInput from '@/common/components/BaseInput.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
+import SelectorDeSede from '../components/SelectorDeSede.vue'
 import { toast } from '@/common/utils/toast'
 
 const authStore = useAuthStore()
@@ -448,7 +449,10 @@ const iniciales = computed(() => {
         </div>
       </section>
 
-      <!-- 2. SECCIÓN: DATOS PERSONALES -->
+      <!-- 2. SECCIÓN: SELECTOR DE SEDE -->
+      <SelectorDeSede />
+
+      <!-- 3. SECCIÓN: DATOS PERSONALES -->
       <section class="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-2xs">
         <h2 class="text-lg font-bold text-[#202759] mb-4 flex items-center gap-2">
           <PhUser :size="20" weight="bold" class="text-[#F96167]" />
@@ -516,7 +520,9 @@ const iniciales = computed(() => {
               variant="secondary"
               :loading="isGuardandoPerfil"
             >
-              <PhFloppyDisk :size="18" weight="bold" class="mr-2" />
+              <template #icon>
+                <PhFloppyDisk :size="18" weight="bold" class="shrink-0" />
+              </template>
               Guardar Cambios
             </BaseButton>
           </div>
@@ -530,7 +536,7 @@ const iniciales = computed(() => {
           <span>Seguridad y Contraseña</span>
         </h2>
 
-        <form class="space-y-4 max-w-xl" @submit.prevent="handleCambiarPassword">
+        <form class="space-y-4 w-full" @submit.prevent="handleCambiarPassword">
           <!-- Contraseña actual -->
           <BaseInput
             id="current-password"
@@ -589,7 +595,9 @@ const iniciales = computed(() => {
               variant="primary"
               :loading="isCambiandoPassword"
             >
-              <PhShieldCheck :size="18" weight="bold" class="mr-2" />
+              <template #icon>
+                <PhShieldCheck :size="18" weight="bold" class="shrink-0" />
+              </template>
               Actualizar Contraseña
             </BaseButton>
           </div>

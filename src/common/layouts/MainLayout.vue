@@ -34,11 +34,6 @@ function handleClickOutside(event: MouseEvent) {
   }
 }
 
-function onCambioSede(event: Event) {
-  const target = event.target as HTMLSelectElement
-  sedeStore.seleccionarSede(Number(target.value))
-}
-
 const nombreCompleto = computed(() => {
   const nombre = authStore.usuario?.nombre?.trim()
   const apellido = authStore.usuario?.apellido?.trim()
@@ -121,64 +116,8 @@ async function handleLogout() {
           >
         </div>
 
-        <!-- Lado derecho: Selector de Sede + Perfil de usuario -->
+        <!-- Lado derecho: Perfil de usuario -->
         <div class="flex items-center gap-3">
-          <!-- Selector interactivo de Sede (conectado a la API y Pinia) -->
-          <div
-            class="inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-full text-xs sm:text-sm font-semibold text-[#202759] transition-colors shadow-2xs"
-          >
-            <svg
-              class="w-4 h-4 text-[#202759] flex-shrink-0"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-              />
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-            </svg>
-
-            <!-- Estado de carga -->
-            <span
-              v-if="sedeStore.cargando"
-              class="text-xs text-slate-500 font-normal"
-            >
-              Cargando sedes...
-            </span>
-
-            <!-- Selector desplegable de sedes reales -->
-            <select
-              v-else-if="sedeStore.sedes.length > 0"
-              :value="sedeStore.idSedeSeleccionada"
-              class="bg-transparent text-[#202759] font-bold text-xs sm:text-sm focus:outline-none cursor-pointer pr-1"
-              title="Cambiar sede activa"
-              @change="onCambioSede"
-            >
-              <option
-                v-for="sede in sedeStore.sedes"
-                :key="sede.id_sede"
-                :value="sede.id_sede"
-                class="text-slate-800"
-              >
-                {{ sede.nombre }}
-              </option>
-            </select>
-
-            <!-- Fallback en caso de que no haya sedes o error -->
-            <span v-else class="text-xs text-slate-500 font-normal">
-              {{ sedeStore.error ? 'Error de sedes' : 'Sin sedes' }}
-            </span>
-          </div>
-
           <!-- Estado Skeleton mientras carga el perfil inicial -->
           <div
             v-if="authStore.cargandoPerfil && !authStore.usuario?.nombre"
