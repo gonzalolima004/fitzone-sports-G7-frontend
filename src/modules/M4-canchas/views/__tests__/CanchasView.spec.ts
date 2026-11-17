@@ -323,4 +323,31 @@ describe('CanchasView.vue - Manejo de Colisiones Concurrentes y Concurrencia 409
     expect(textoVista).not.toContain('Fútbol 5')
     expect(textoVista).toContain('Cancha Básquet 1')
   })
+
+  it('formatea las fechas en formato dd/mm/aa, permite navegar por días con botones rápidos y deseleccionar un turno al volver a hacer clic', async () => {
+    const wrapper = mount(CanchasView)
+    await flushPromises()
+
+    // 1. Verifica que la fecha inicial (2026-11-20) se muestre formateada como 20/11/26
+    expect(wrapper.text()).toContain('20/11/26')
+
+    // 2. Seleccionar un turno y verificar que al volver a hacer clic en el mismo casillero se deselecciona
+    const grilla = wrapper.findComponent(GrillaTurnos)
+    const botonSlot = grilla.find('button[type="button"]')
+    await botonSlot.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).toContain('Turno Seleccionado')
+    expect(wrapper.text()).toContain('20/11/26')
+
+    await botonSlot.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).not.toContain('Turno Seleccionado')
+
+    // 3. Avanzar al día siguiente con el botón rápido y verificar formato 21/11/26
+    const btnSiguiente = wrapper.find('button[aria-label="Día siguiente"]')
+    expect(btnSiguiente.exists()).toBe(true)
+    await btnSiguiente.trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('21/11/26')
+  })
 })
