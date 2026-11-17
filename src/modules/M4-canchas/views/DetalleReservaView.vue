@@ -239,13 +239,6 @@ onMounted(cargarDetalleReserva)
           Volver a Canchas
         </span>
       </BaseButton>
-
-      <BaseButton variant="outline" size="sm" @click="irAPagos">
-        <span class="inline-flex items-center gap-1.5 text-slate-700">
-          <PhCreditCard :size="16" weight="bold" />
-          Ver en Pagos
-        </span>
-      </BaseButton>
     </div>
 
     <!-- Estado de carga con BaseSkeleton -->
@@ -303,10 +296,10 @@ onMounted(cargarDetalleReserva)
             <span
               class="text-xs uppercase font-extrabold text-[#F96167] tracking-wider"
             >
-              Comprobante de Turno · Reserva #{{ reserva.id_cancha_reserva }}
+              Comprobante de Turno
             </span>
             <h1 class="text-2xl sm:text-3xl font-black text-[#202759] m-0">
-              {{ reserva.nombre_cancha || 'Cancha Deportiva' }}
+              Reserva #{{ reserva.id_cancha_reserva }}
             </h1>
           </div>
 
@@ -378,7 +371,7 @@ onMounted(cargarDetalleReserva)
             </p>
           </div>
 
-          <!-- Deporte / Tipo -->
+          <!-- Cancha y Disciplina -->
           <div
             class="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1"
           >
@@ -386,13 +379,21 @@ onMounted(cargarDetalleReserva)
               class="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-wider"
             >
               <PhSoccerBall :size="16" weight="bold" class="text-[#202759]" />
-              Disciplina
+              Cancha
             </div>
-            <p class="text-base font-bold text-[#202759] m-0 capitalize">
-              {{ reserva.tipo_cancha || 'Pádel' }}
+            <p class="text-base font-bold text-[#202759] m-0">
+              {{
+                reserva.nombre_cancha ||
+                reserva.cancha?.nombre ||
+                'Cancha Deportiva'
+              }}
             </p>
-            <p class="text-xs text-slate-500 m-0">
-              Césped sintético y reglamentario
+            <p class="text-xs text-slate-500 m-0 capitalize">
+              {{
+                reserva.tipo_cancha ||
+                reserva.cancha?.cancha_tipo?.descripcion ||
+                'Disciplina deportiva'
+              }}
             </p>
           </div>
 
@@ -570,14 +571,7 @@ onMounted(cargarDetalleReserva)
           <!-- Si la reserva está pendiente de pago -->
           <template v-else>
             <div class="text-xs text-slate-500">
-              Podés pagar ahora mismo o gestionarlo luego desde
-              <button
-                type="button"
-                class="text-[#202759] font-bold underline hover:text-[#F96167] cursor-pointer"
-                @click="irAPagos"
-              >
-                Pagos Pendientes</button
-              >.
+              Podés abonar tu reserva ahora mismo o hacerlo más tarde.
             </div>
 
             <div class="flex items-center gap-3 w-full sm:w-auto">
