@@ -102,7 +102,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/modules/M1-usuarios/views/HistorialReservasView.vue'),
         meta: {
           requiresAuth: true,
-          roles: ['socio'],
+          roles: ['socio', 'externo'],
         },
       },
 

@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { computed, ref, watch, type Component } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import {
@@ -104,7 +104,7 @@ const seccionesEstandar: NavGrupo[] = [
     items: [
       { nombre: 'Dashboard', ruta: '/socio-dashboard', icono: PhSquaresFour, roles: ['socio'] },
       { nombre: 'Recepcion', ruta: '/recepcion', icono: PhUserCheck, roles: ['recepcionista'] },
-      { nombre: 'Historial', ruta: '/historial', icono: PhCalendar, roles: ['socio'] },
+      { nombre: 'Historial', ruta: '/historial', icono: PhCalendar, roles: ['socio', 'externo'] },
       { nombre: 'Clases Grupales', ruta: '/clases', icono: PhCalendar, roles: ['socio', 'externo', 'recepcionista'] },
       { nombre: 'Canchas', ruta: '/canchas', icono: PhCourtBasketball, roles: ['socio', 'externo', 'recepcionista'] },
       { nombre: 'Accesos y QR', ruta: '/accesos', icono: PhQrCode, roles: ['socio', 'recepcionista'] },
