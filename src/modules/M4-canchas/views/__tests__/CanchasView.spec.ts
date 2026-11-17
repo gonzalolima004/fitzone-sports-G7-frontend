@@ -266,4 +266,61 @@ describe('CanchasView.vue - Manejo de Colisiones Concurrentes y Concurrencia 409
     >
     expect(mapaDisponibilidad[1][0].estado).toBe('RESERVADO')
   })
+
+  it('muestra en el filtro de Disciplina Deportiva únicamente los tipos de cancha que existen en la sede seleccionada y selecciona automáticamente el disponible', async () => {
+    vi.mocked(http.get).mockImplementation(async (url: string) => {
+      if (url === '/canchas/tipos') {
+        return {
+          data: [
+            { id_cancha_tipo: 1, descripcion: 'Pádel', activo: true },
+            { id_cancha_tipo: 2, descripcion: 'Fútbol 5', activo: true },
+            { id_cancha_tipo: 3, descripcion: 'Básquet', activo: true },
+          ],
+        }
+      }
+      if (url.startsWith('/canchas?sedeId=')) {
+        return {
+          data: [
+            {
+              id_cancha: 10,
+              id_sede: 1,
+              id_cancha_tipo: 3,
+              nombre: 'Cancha Básquet 1',
+              costo_base: 12000,
+              disponible: true,
+              activo: true,
+            },
+          ],
+        }
+      }
+      if (url === '/canchas/disponibilidad') {
+        return {
+          data: {
+            horario: {
+              abierto: true,
+              hora_apertura: '08:00',
+              hora_cierre: '22:00',
+            },
+            canchas: [
+              {
+                id_cancha: 10,
+                costo_base: 12000,
+                slots: [SLOT_DISPONIBLE],
+              },
+            ],
+          },
+        }
+      }
+      return { data: [] }
+    })
+
+    const wrapper = mount(CanchasView)
+    await flushPromises()
+
+    const textoVista = wrapper.text()
+    expect(textoVista).toContain('Básquet')
+    expect(textoVista).not.toContain('Pádel')
+    expect(textoVista).not.toContain('Fútbol 5')
+    expect(textoVista).toContain('Cancha Básquet 1')
+  })
 })

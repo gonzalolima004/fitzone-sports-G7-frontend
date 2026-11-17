@@ -64,6 +64,48 @@ const canchasFiltradas = computed(() => {
   )
 })
 
+// Disciplinas deportivas que efectivamente tienen canchas activas cargadas en la sede seleccionada
+const tiposCanchaSede = computed<CanchaTipo[]>(() => {
+  const canchasActivas = todasLasCanchasSede.value.filter(
+    (c) => c.activo !== false
+  )
+  const idsTiposEnSede = new Set(canchasActivas.map((c) => c.id_cancha_tipo))
+  const desdeCatalogo = tiposCancha.value.filter((t) =>
+    idsTiposEnSede.has(t.id_cancha_tipo)
+  )
+
+  if (desdeCatalogo.length === idsTiposEnSede.size) {
+    return desdeCatalogo
+  }
+
+  const idsIncluidos = new Set(desdeCatalogo.map((t) => t.id_cancha_tipo))
+  const adicionales: CanchaTipo[] = []
+  for (const cancha of canchasActivas) {
+    if (
+      !idsIncluidos.has(cancha.id_cancha_tipo) &&
+      cancha.cancha_tipo?.descripcion
+    ) {
+      idsIncluidos.add(cancha.id_cancha_tipo)
+      adicionales.push({
+        id_cancha_tipo: cancha.id_cancha_tipo,
+        descripcion: cancha.cancha_tipo.descripcion,
+        activo: cancha.cancha_tipo.activo,
+      })
+    }
+  }
+  return [...desdeCatalogo, ...adicionales]
+})
+
+function sincronizarDeporteSeleccionado() {
+  const disponibles = tiposCanchaSede.value
+  if (
+    disponibles.length > 0 &&
+    !disponibles.some((t) => t.id_cancha_tipo === deporteSeleccionadoId.value)
+  ) {
+    deporteSeleccionadoId.value = disponibles[0].id_cancha_tipo
+  }
+}
+
 /**
  * Consulta la disponibilidad de todas las canchas filtradas.
  * Consume de forma óptima la respuesta de GET /canchas/disponibilidad (que unifica
@@ -139,18 +181,13 @@ async function inicializarDatos() {
     ])
 
     tiposCancha.value = tipos
-    if (
-      tipos.length > 0 &&
-      !tipos.some((t) => t.id_cancha_tipo === deporteSeleccionadoId.value)
-    ) {
-      deporteSeleccionadoId.value = tipos[0].id_cancha_tipo
-    }
 
-    // 2. Con la sede activa y filtros listos, cargar canchas y disponibilidad una sola vez
+    // 2. Con la sede activa y filtros listos, cargar canchas, sincronizar disciplina y consultar disponibilidad una sola vez
     if (sedeStore.sedeSeleccionada) {
       todasLasCanchasSede.value = await canchasService.getCanchasPorSede(
         sedeStore.sedeSeleccionada.id_sede
       )
+      sincronizarDeporteSeleccionado()
       await cargarDisponibilidad()
     }
   } catch (error) {
@@ -268,7 +305,11 @@ watch(
     if (!inicializado.value || !nuevoId || nuevoId === anteriorId) return
 
     todasLasCanchasSede.value = await canchasService.getCanchasPorSede(nuevoId)
-    await cargarDisponibilidad()
+    const deporteAnterior = deporteSeleccionadoId.value
+    sincronizarDeporteSeleccionado()
+    if (deporteSeleccionadoId.value === deporteAnterior) {
+      await cargarDisponibilidad()
+    }
     toast.info(`Cargando canchas de ${sedeStore.sedeSeleccionada?.nombre}`)
   }
 )
@@ -378,10 +419,11 @@ onMounted(() => {
           Disciplina Deportiva
         </label>
         <div
+          v-if="tiposCanchaSede.length > 0"
           class="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200/80"
         >
           <button
-            v-for="tipo in tiposCancha"
+            v-for="tipo in tiposCanchaSede"
             :key="tipo.id_cancha_tipo"
             type="button"
             :class="[
@@ -394,6 +436,12 @@ onMounted(() => {
           >
             {{ tipo.descripcion }}
           </button>
+        </div>
+        <div
+          v-else
+          class="py-2 px-3 text-xs font-medium text-slate-500 bg-slate-100 rounded-xl border border-slate-200/80"
+        >
+          Sin disciplinas cargadas en esta sede
         </div>
       </div>
 
