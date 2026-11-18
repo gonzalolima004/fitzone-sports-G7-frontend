@@ -1,0 +1,36 @@
+%% Autor: Marcos Caraballo | Fecha: 2026-11-17 | Versión: 2.1
+flowchart TB
+    classDef person fill:#08427b,stroke:#052e56,color:#ffffff,rx:8,ry:8
+    classDef container fill:#438dd5,stroke:#2e6295,color:#ffffff,rx:6,ry:6
+    classDef db fill:#2f6690,stroke:#1d425e,color:#ffffff,rx:6,ry:6
+    classDef ext fill:#666666,stroke:#444444,color:#ffffff,rx:6,ry:6
+
+    usuarios["<b>Usuarios del Sistema</b><br/><i>[Personas]</i><br/>Socios, Clientes Externos, Recepcionistas y Gerentes"]:::person
+
+    subgraph fitzone_boundary ["FitZone Sports"]
+        direction TB
+        spa_web["<b>Aplicación Web SPA & Terminal de Sede</b><br/><i>[Container: Vue 3, Vite, Pinia, TypeScript]</i><br/>Unifica Portal del Socio, Consola de Gerencia y Terminal de Recepción.<br/>Incluye validación QR offline y cola de sincronización en localStorage"]:::container
+
+        api_backend["<b>API Backend Monolítica Modular</b><br/><i>[Container: NestJS, TypeScript, Prisma ORM]</i><br/>API REST (M0 Sedes, M1 Usuarios, M2 Accesos, M3 Clases,<br/>M4 Canchas, M5 Pagos, M6 Reportes) con bloqueo transaccional y GoF"]:::container
+
+        db_postgres[("<b>Base de Datos Relacional</b><br/><i>[Container: PostgreSQL en Supabase]</i><br/>Almacena sedes, usuarios, membresías, accesos, clases,<br/>reservas, pagos y métricas en 25 tablas transaccionales")]:::db
+    end
+
+    supabase_services["<b>Supabase Auth, Storage & Realtime</b><br/><i>[Sistema Externo: Cloud BaaS]</i><br/>Sesiones OAuth/JWT, bucket fitzonepublic y canales Broadcast"]:::ext
+    mercadopago["<b>Mercado Pago API</b><br/><i>[Sistema Externo: Pasarela de Pagos]</i><br/>Checkout Pro, consulta de transacciones y Webhooks/IPN"]:::ext
+    mapas["<b>Servicios de Mapas (OSM/Leaflet)</b><br/><i>[Sistema Externo: Cartografía Web]</i><br/>Teselas cartográficas para ubicación geográfica de sedes"]:::ext
+
+    usuarios -->|"Opera web y terminal en<br/>[HTTPS]"| spa_web
+
+    spa_web -->|"Consume API con Bearer JWT en<br/>[JSON/HTTPS]"| api_backend
+    spa_web -->|"Autentica sesiones en<br/>[JSON/HTTPS]"| supabase_services
+    spa_web -->|"Suscribe a canales Broadcast con<br/>[WebSocket]"| supabase_services
+    supabase_services -->|"Empuja eventos en tiempo real hacia<br/>[WebSocket]"| spa_web
+    spa_web -->|"Redirige a Checkout Pro en<br/>[HTTPS]"| mercadopago
+    spa_web -->|"Obtiene teselas cartográficas desde<br/>[HTTPS]"| mapas
+
+    api_backend -->|"Lee y escribe con FOR UPDATE en<br/>[SQL/TCP]"| db_postgres
+    api_backend -->|"Valida JWT y sube avatares en<br/>[JSON/HTTPS]"| supabase_services
+    api_backend -->|"Publica eventos Broadcast hacia<br/>[WebSocket]"| supabase_services
+    api_backend -->|"Crea y consulta pagos en<br/>[JSON/HTTPS]"| mercadopago
+    mercadopago -->|"Envía Webhooks HMAC hacia<br/>[JSON/HTTPS]"| api_backend

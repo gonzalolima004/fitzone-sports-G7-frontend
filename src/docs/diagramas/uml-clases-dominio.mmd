@@ -1,0 +1,268 @@
+%% Autor: Marcos Caraballo | Fecha: 2026-11-17 | Versión: 2.1
+classDiagram
+    direction TB
+
+    %% ================= ENTIDADES DEL DOMINIO (schema.prisma) =================
+    class Ciudad {
+        +Int id_ciudad
+        +String nombre
+        +Boolean activo
+    }
+
+    class Sede {
+        +Int id_sede
+        +String nombre
+        +String direccion
+        +Int aforo_maximo
+        +Boolean activo
+    }
+
+    class sede_horario {
+        +Int id_sede_horario
+        +Int dia_semana
+        +String hora_apertura
+        +String hora_cierre
+        +Boolean abierto
+    }
+
+    class calendario_sede {
+        +Int id_calendario_sede
+        +Boolean cerrado
+        +String motivo
+    }
+
+    class Rol {
+        +Int id_rol
+        +String nombre
+    }
+
+    class Usuario {
+        +Int id_usuario
+        +String dni
+        +String email
+        +String nombre
+        +String apellido
+        +String foto_url
+    }
+
+    class MembresiaPlan {
+        +Int id_membresia_plan
+        +String nombre
+        +Int duracion_dias
+        +Decimal precio
+    }
+
+    class Membresia {
+        +Int id_membresia
+        +DateTime fecha_inicio
+        +DateTime fecha_fin
+        +Boolean renovacion_automatica
+    }
+
+    class RegistroAcceso {
+        +Int id_registro_acceso
+        +DateTime fecha_ingreso
+        +DateTime fecha_egreso
+    }
+
+    class CanchaTipo {
+        +Int id_cancha_tipo
+        +String descripcion
+    }
+
+    class Cancha {
+        +Int id_cancha
+        +String nombre
+        +Decimal costo_base
+        +Boolean activo
+    }
+
+    class CanchaMantenimiento {
+        +Int id_cancha_mantenimiento
+        +DateTime fecha_inicio
+        +DateTime fecha_fin
+        +String motivo
+    }
+
+    class CanchaReserva {
+        +Int id_cancha_reserva
+        +DateTime fecha_inicio
+        +DateTime fecha_fin
+        +Decimal descuento_porcentaje
+        +Boolean es_horario_pico
+        +Decimal precio_congelado
+    }
+
+    class Clase {
+        +Int id_clase
+        +String nombre
+        +Int capacidad_maxima
+        +String horario_inicio
+        +String horario_fin
+        +String profesor
+    }
+
+    class ClaseReserva {
+        +Int id_clase_reserva
+        +DateTime fecha_inicio
+        +DateTime fecha_fin
+    }
+
+    class ClaseListaEspera {
+        +Int id_clase_lista_espera
+        +DateTime fecha_solicitud
+    }
+
+    class Pago {
+        +Int id_pago
+        +Decimal monto
+        +DateTime fecha_pago
+        +String token_transaccion
+    }
+
+    %% Relaciones de Dominio
+    Ciudad "1" -- "*" Sede : agrupa
+    Sede "1" -- "*" sede_horario : define
+    Sede "1" -- "*" calendario_sede : personaliza
+    Sede "1" -- "*" Usuario : aloja
+    Sede "1" -- "*" RegistroAcceso : registra
+    Sede "1" -- "*" Cancha : posee
+    Sede "1" -- "*" Clase : dicta
+    Usuario "*" -- "*" Rol : tiene
+    Usuario "1" -- "*" Membresia : contrata
+    MembresiaPlan "1" -- "*" Membresia : parametriza
+    Usuario "1" -- "*" RegistroAcceso : realiza
+    CanchaTipo "1" -- "*" Cancha : categoriza
+    Cancha "1" -- "*" CanchaMantenimiento : programa
+    Cancha "1" -- "*" CanchaReserva : asignada
+    Usuario "1" -- "*" CanchaReserva : reserva
+    Clase "1" -- "*" ClaseReserva : tiene
+    Usuario "1" -- "*" ClaseReserva : inscribe
+    Clase "1" -- "*" ClaseListaEspera : encola
+    Usuario "1" -- "*" ClaseListaEspera : espera
+    CanchaReserva "0..1" -- "*" Pago : liquida
+    Membresia "0..1" -- "*" Pago : liquida
+
+    %% ================= SERVICIOS DE NEGOCIO Y REPOSITORY =================
+    class AccesosService {
+        +validarYRegistrarIngreso() AccesoResponseDto
+        +registrarEgreso() EgresoResponseDto
+        +sincronizarAccesoOffline() SyncResponse
+    }
+
+    class QrService {
+        +generarQrDinamico() QrDinamicoResponseDto
+        +validarTokenEfimero() boolean
+    }
+
+    class AccesosRepository {
+        +crearIngreso() RegistroAcceso
+        +ejecutarTransaccionIngreso() T
+    }
+
+    class PagosService {
+        +crearPreferenciaPago() PreferenciaPagoResponseDto
+        +procesarWebhook() WebhookResult
+    }
+
+    class PagosRepository {
+        +confirmarPagoTransaccional() Pago
+    }
+
+    AccesosService --> QrService : valida QR
+    AccesosService --> AccesosRepository : persiste
+    AccesosRepository ..> RegistroAcceso : gestiona
+    PagosService --> PagosRepository : persiste
+    PagosRepository ..> Pago : gestiona
+
+    %% ================= PATRÓN OBSERVER (M3 LISTA DE ESPERA) =================
+    class ReservasClasesService {
+        +crearReserva() ClaseReserva
+        +cancelarReserva() CancelarReservaResponseDto
+    }
+
+    class ReservasClasesRepository {
+        +contarReservasConfirmadas() number
+        +crearReserva() ClaseReserva
+    }
+
+    class ListaEsperaSubjectInterface {
+        <<interface>>
+        +attach(observer) void
+        +detach(observer) void
+        +notify(evento) void
+    }
+
+    class ListaEsperaObserver {
+        <<interface>>
+        +update(evento) void
+    }
+
+    class ListaEsperaSubject {
+        -ListaEsperaObserver[] observers
+        +notify(evento) void
+    }
+
+    class NotificacionRealtimeObserver {
+        +onModuleInit() void
+        +update(evento) void
+    }
+
+    ReservasClasesService --> ReservasClasesRepository : persiste
+    ReservasClasesRepository ..> ClaseReserva : gestiona
+    ReservasClasesService --> ListaEsperaSubjectInterface : notifica baja
+    ReservasClasesService ..> ClaseListaEspera : promueve
+    ListaEsperaSubjectInterface <|.. ListaEsperaSubject : implementa
+    ListaEsperaObserver <|.. NotificacionRealtimeObserver : implementa
+    ListaEsperaSubject o--> "*" ListaEsperaObserver : notifica
+
+    %% ================= PATRÓN STRATEGY Y FACADE (M4 CANCHAS) =================
+    class CanchasService {
+        +obtenerDisponibilidadPorSede() DisponibilidadSedeResponse
+        +cotizarTurno() CotizacionResponseDto
+    }
+
+    class CanchasDisponibilidadService {
+        +calcularSlotsEnMemoria() DisponibilidadSlotResponseDto[]
+    }
+
+    class ReservasCanchasService {
+        +crearReserva() CanchaReserva
+    }
+
+    class ReservasCanchasRepository {
+        +crearReservaTransaccional() CanchaReserva
+    }
+
+    class PrecioContextService {
+        +calcularPrecioFinal() ResultadoPrecio
+        +calcularCotizacion() CotizacionResponseDto
+    }
+
+    class PrecioStrategy {
+        <<interface>>
+        +calcular(costoBase, context) ResultadoPrecio
+    }
+
+    class PrecioEstandarStrategy {
+        +calcular(costoBase, context) ResultadoPrecio
+    }
+
+    class DescuentoSocioStrategy {
+        +calcular(costoBase, context) ResultadoPrecio
+    }
+
+    class HorarioPicoStrategy {
+        +calcular(costoBase, context) ResultadoPrecio
+    }
+
+    CanchasService --> CanchasDisponibilidadService : delega Facade
+    ReservasCanchasService --> CanchasService : cotiza turno
+    ReservasCanchasService --> ReservasCanchasRepository : persiste FOR UPDATE
+    ReservasCanchasRepository ..> CanchaReserva : gestiona
+    CanchasService --> PrecioContextService : delega calculo
+    PrecioContextService o--> PrecioStrategy : compone
+    PrecioStrategy <|.. PrecioEstandarStrategy : implementa
+    PrecioStrategy <|.. DescuentoSocioStrategy : implementa
+    PrecioStrategy <|.. HorarioPicoStrategy : implementa
+    DescuentoSocioStrategy ..> Membresia : verifica vigencia
