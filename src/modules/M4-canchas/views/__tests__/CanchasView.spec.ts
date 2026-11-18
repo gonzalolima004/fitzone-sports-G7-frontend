@@ -266,4 +266,88 @@ describe('CanchasView.vue - Manejo de Colisiones Concurrentes y Concurrencia 409
     >
     expect(mapaDisponibilidad[1][0].estado).toBe('RESERVADO')
   })
+
+  it('muestra en el filtro de Disciplina Deportiva únicamente los tipos de cancha que existen en la sede seleccionada y selecciona automáticamente el disponible', async () => {
+    vi.mocked(http.get).mockImplementation(async (url: string) => {
+      if (url === '/canchas/tipos') {
+        return {
+          data: [
+            { id_cancha_tipo: 1, descripcion: 'Pádel', activo: true },
+            { id_cancha_tipo: 2, descripcion: 'Fútbol 5', activo: true },
+            { id_cancha_tipo: 3, descripcion: 'Básquet', activo: true },
+          ],
+        }
+      }
+      if (url.startsWith('/canchas?sedeId=')) {
+        return {
+          data: [
+            {
+              id_cancha: 10,
+              id_sede: 1,
+              id_cancha_tipo: 3,
+              nombre: 'Cancha Básquet 1',
+              costo_base: 12000,
+              disponible: true,
+              activo: true,
+            },
+          ],
+        }
+      }
+      if (url === '/canchas/disponibilidad') {
+        return {
+          data: {
+            horario: {
+              abierto: true,
+              hora_apertura: '08:00',
+              hora_cierre: '22:00',
+            },
+            canchas: [
+              {
+                id_cancha: 10,
+                costo_base: 12000,
+                slots: [SLOT_DISPONIBLE],
+              },
+            ],
+          },
+        }
+      }
+      return { data: [] }
+    })
+
+    const wrapper = mount(CanchasView)
+    await flushPromises()
+
+    const textoVista = wrapper.text()
+    expect(textoVista).toContain('Básquet')
+    expect(textoVista).not.toContain('Pádel')
+    expect(textoVista).not.toContain('Fútbol 5')
+    expect(textoVista).toContain('Cancha Básquet 1')
+  })
+
+  it('formatea las fechas en formato dd/mm/aa, permite navegar por días con botones rápidos y deseleccionar un turno al volver a hacer clic', async () => {
+    const wrapper = mount(CanchasView)
+    await flushPromises()
+
+    // 1. Verifica que la fecha inicial (2026-11-20) se muestre formateada como 20/11/26
+    expect(wrapper.text()).toContain('20/11/26')
+
+    // 2. Seleccionar un turno y verificar que al volver a hacer clic en el mismo casillero se deselecciona
+    const grilla = wrapper.findComponent(GrillaTurnos)
+    const botonSlot = grilla.find('button[type="button"]')
+    await botonSlot.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).toContain('Turno Seleccionado')
+    expect(wrapper.text()).toContain('20/11/26')
+
+    await botonSlot.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).not.toContain('Turno Seleccionado')
+
+    // 3. Avanzar al día siguiente con el botón rápido y verificar formato 21/11/26
+    const btnSiguiente = wrapper.find('button[aria-label="Día siguiente"]')
+    expect(btnSiguiente.exists()).toBe(true)
+    await btnSiguiente.trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('21/11/26')
+  })
 })

@@ -1,75 +1,60 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
+import { RouterLink } from 'vue-router'
 import {
   PhCalendar,
   PhCourtBasketball,
   PhWarningCircle,
+  PhClock,
 } from '@phosphor-icons/vue'
-import {
-  clasesService,
-  type MiReservaClaseResponse,
-} from '@/modules/M3-clases-grupales/services/clases.service'
+import { clasesService, type MiReservaClaseResponse,} from '@/modules/M3-clases-grupales/services/clases.service'
 import { reservasService } from '@/modules/M4-canchas/services/reservas.service'
 import type { DetalleReservaCancha } from '@/modules/M4-canchas/types/canchas.types'
+import { useSedeStore } from '@/store/sede'
+import { usuariosService, type ItemHistorial, type TipoActividadHistorial,} from '../services/usuarios.service'
 import BaseSkeleton from '@/common/components/BaseSkeleton.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import { toast } from '@/common/utils/toast'
 
 type FiltroTipo = 'Todas' | 'Canchas' | 'Clases'
-const filtro = ref<FiltroTipo>('Todas')
-const isLoading = ref(true)
-const errorMessage = ref<string | null>(null)
 
-const misClases = ref<MiReservaClaseResponse[]>([])
-const misCanchas = ref<DetalleReservaCancha[]>([])
-
-type Actividad = {
-  id: string
-  tipo: 'Cancha' | 'Clase'
-  titulo: string
-  fecha: string
-  sede: string
-  estado: string
+const MAP_FILTRO_TIPO: Record<FiltroTipo, TipoActividadHistorial> = {
+  Todas: 'todas',
+  Canchas: 'canchas',
+  Clases: 'clases',
 }
 
-const actividades = computed<Actividad[]>(() => {
-  const c = misClases.value.map((cl) => ({
-    id: `clase-${cl.id_clase_reserva}`,
-    tipo: 'Clase' as const,
-    titulo: cl.nombre_clase || 'Clase Grupal',
-    fecha: cl.fecha_inicio,
-    sede: 'Sede FitZone',
-    estado: cl.estado || 'Confirmada',
-  }))
-  const can = misCanchas.value.map((ca) => ({
-    id: `cancha-${ca.id_cancha_reserva}`,
-    tipo: 'Cancha' as const,
-    titulo: ca.nombre_cancha || 'Reserva Cancha',
-    fecha: ca.fecha_inicio,
-    sede: ca.nombre_sede || 'Sede FitZone',
-    estado: ca.estado_nombre || 'Confirmada',
-  }))
+const sedeStore = useSedeStore()
 
-  const todas = [...c, ...can].sort(
-    (a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
-  )
+const filtro = ref<FiltroTipo>('Todas')
+const page = ref(1)
+const limit = 10
+const totalPaginas = ref(1)
+const totalRegistros = ref(0)
 
-  if (filtro.value === 'Todas') return todas
-  const tipoBuscado: Actividad['tipo'] =
-    filtro.value === 'Canchas' ? 'Cancha' : 'Clase'
-  return todas.filter((a) => a.tipo === tipoBuscado)
-})
+const isLoading = ref(true)
+const errorMessage = ref<string | null>(null)
+const actividades = ref<ItemHistorial[]>([])
 
 async function cargarHistorial() {
   isLoading.value = true
   errorMessage.value = null
   try {
-    const [c, can] = await Promise.all([
-      clasesService.obtenerMisReservas().catch(() => []),
-      reservasService.obtenerMisReservasCanchas().catch(() => []),
-    ])
-    misClases.value = c
-    misCanchas.value = can
+    const idSede =
+      sedeStore.sedeSeleccionada?.id_sede ??
+      sedeStore.idSedeSeleccionada ??
+      undefined
+
+    const respuesta = await usuariosService.obtenerHistorial({
+      page: page.value,
+      limit,
+      tipo: MAP_FILTRO_TIPO[filtro.value],
+      ...(idSede ? { id_sede: idSede } : {}),
+    })
+
+    actividades.value = respuesta.items
+    totalPaginas.value = respuesta.meta.total_paginas
+    totalRegistros.value = respuesta.meta.total
   } catch {
     errorMessage.value = 'Error al cargar el historial.'
     toast.error('No se pudo cargar el historial de reservas.')
@@ -78,7 +63,81 @@ async function cargarHistorial() {
   }
 }
 
-onMounted(cargarHistorial)
+function seleccionarFiltro(nuevoFiltro: FiltroTipo) {
+  if (filtro.value === nuevoFiltro) return
+  filtro.value = nuevoFiltro
+  page.value = 1
+  cargarHistorial()
+}
+
+function cambiarPagina(nuevaPagina: number) {
+  if (nuevaPagina < 1 || nuevaPagina > totalPaginas.value) return
+  page.value = nuevaPagina
+  cargarHistorial()
+}
+
+function claseBadgeEstado(estado: string): string {
+  const normalizado = estado.toLowerCase()
+  if (normalizado.includes('cancel')) return 'bg-red-50 text-red-700'
+  if (normalizado.includes('pendiente')) return 'bg-amber-50 text-amber-700'
+  if (normalizado.includes('confirm')) return 'bg-emerald-50 text-emerald-700'
+  return 'bg-slate-100 text-[#202759]'
+}
+
+function formatearFechaReserva(fecha: string): string {
+  const d = new Date(fecha)
+  const dia = d.toLocaleDateString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+  })
+  const hora = d.toLocaleTimeString('es-AR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+  return `${dia} ${hora}`
+}
+
+function formatearFechaHora(fechaInicio: string, fechaFin: string): string {
+  const inicio = new Date(fechaInicio)
+  const fin = new Date(fechaFin)
+  const fecha = inicio.toLocaleDateString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+  const horaInicio = inicio.toLocaleTimeString('es-AR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+  const horaFin = fin.toLocaleTimeString('es-AR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+  return `${fecha} · ${horaInicio} - ${horaFin}`
+}
+
+let inicializado = false
+
+watch(
+  () => [sedeStore.idSedeSeleccionada, sedeStore.versionContexto],
+  () => {
+    if (!inicializado) return
+    page.value = 1
+    cargarHistorial()
+  }
+)
+
+onMounted(async () => {
+  if (sedeStore.sedes.length === 0) {
+    await sedeStore.cargarSedes()
+  }
+  inicializado = true
+  await cargarHistorial()
+})
 </script>
 
 <template>
@@ -86,18 +145,29 @@ onMounted(cargarHistorial)
     <header
       class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
     >
-      <h1 class="text-2xl font-bold text-[#202759]">Historial de Reservas</h1>
+      <div>
+        <h1 class="text-2xl font-bold text-[#202759]">Historial de Reservas</h1>
+        <p
+          v-if="sedeStore.sedeSeleccionada"
+          class="text-sm text-slate-500 mt-0.5"
+        >
+          Sede seleccionada:
+          <strong class="text-[#202759]">{{
+            sedeStore.sedeSeleccionada.nombre
+          }}</strong>
+        </p>
+      </div>
       <div class="flex bg-slate-100 p-1 rounded-xl">
         <button
-          v-for="f in ['Todas', 'Canchas', 'Clases']"
+          v-for="f in ['Todas', 'Canchas', 'Clases'] as FiltroTipo[]"
           :key="f"
           :class="[
-            'px-4 py-2 text-sm font-bold rounded-lg transition-all',
+            'px-4 py-2 text-sm font-bold rounded-lg transition-all cursor-pointer',
             filtro === f
               ? 'bg-white text-[#202759] shadow-sm'
               : 'text-slate-500 hover:text-[#202759]',
           ]"
-          @click="filtro = f as FiltroTipo"
+          @click="seleccionarFiltro(f)"
         >
           {{ f }}
         </button>
@@ -118,23 +188,63 @@ onMounted(cargarHistorial)
 
     <div
       v-else-if="actividades.length === 0"
-      class="text-center py-10 text-slate-500"
+      class="bg-white rounded-2xl border border-slate-200 shadow-sm px-6 py-12 text-center"
     >
-      No tienes reservas registradas en este momento.
+      <div
+        class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4 text-[#202759]"
+      >
+        <PhCourtBasketball
+          v-if="filtro === 'Canchas'"
+          :size="28"
+          weight="bold"
+          class="text-[#F96167]"
+        />
+        <PhCalendar v-else :size="28" weight="bold" />
+      </div>
+      <h2 class="text-lg font-bold text-[#202759]">Sin reservas registradas</h2>
+      <p class="text-sm text-slate-500 mt-1 max-w-md mx-auto">
+        No tenés reservas
+        <span v-if="filtro !== 'Todas'">de {{ filtro.toLowerCase() }}</span>
+        en
+        <strong class="text-slate-700">{{
+          sedeStore.sedeSeleccionada?.nombre || 'esta sede'
+        }}</strong
+        >.
+      </p>
+      <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <BaseButton
+          v-if="filtro !== 'Todas'"
+          variant="outline"
+          size="sm"
+          @click="seleccionarFiltro('Todas')"
+        >
+          Ver todas
+        </BaseButton>
+        <RouterLink v-if="filtro !== 'Clases'" to="/canchas">
+          <BaseButton variant="primary" size="sm" class="cursor-pointer">
+            Reservar cancha
+          </BaseButton>
+        </RouterLink>
+        <RouterLink v-if="filtro !== 'Canchas'" to="/clases">
+          <BaseButton variant="outline" size="sm" class="cursor-pointer">
+            Explorar clases
+          </BaseButton>
+        </RouterLink>
+      </div>
     </div>
 
     <div v-else class="space-y-3">
       <div
         v-for="act in actividades"
         :key="act.id"
-        class="bg-white p-4 rounded-xl border border-slate-200 flex items-center justify-between shadow-sm"
+        class="bg-white p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm"
       >
         <div class="flex items-center gap-4">
           <div
-            class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-[#202759]"
+            class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-[#202759] shrink-0"
           >
             <PhCourtBasketball
-              v-if="act.tipo === 'Cancha'"
+              v-if="act.tipo === 'cancha'"
               :size="24"
               weight="bold"
               class="text-[#F96167]"
@@ -142,17 +252,82 @@ onMounted(cargarHistorial)
             <PhCalendar v-else :size="24" weight="bold" />
           </div>
           <div>
-            <h3 class="font-bold text-[#202759]">{{ act.titulo }}</h3>
-            <p class="text-xs text-slate-500">
-              📅 {{ new Date(act.fecha).toLocaleString() }} · {{ act.sede }}
+            <div class="flex flex-wrap items-center gap-2">
+              <h3 class="text-base font-bold text-[#202759]">
+                {{ act.titulo }}
+              </h3>
+              <span
+                class="px-2 py-0.5 rounded-md text-[11px] font-semibold uppercase tracking-wide bg-slate-100 text-slate-600"
+              >
+                {{ act.tipo === 'cancha' ? 'Cancha' : 'Clase' }}
+              </span>
+            </div>
+            <p
+              v-if="act.subtitulo"
+              class="text-sm font-medium text-slate-700 mt-0.5"
+            >
+              {{ act.subtitulo }}
+            </p>
+            <p
+              class="inline-flex items-center gap-1.5 text-sm text-slate-600 mt-1.5"
+            >
+              <PhClock :size="15" class="text-slate-400 shrink-0" />
+              {{ formatearFechaHora(act.fecha_inicio, act.fecha_fin) }}
             </p>
           </div>
         </div>
+
+        <div class="flex flex-col sm:items-end gap-1 shrink-0 pl-16 sm:pl-0">
+          <div class="flex items-center gap-2">
+            <span
+              v-if="act.precio != null"
+              class="text-sm font-bold text-[#202759]"
+            >
+              ${{ act.precio.toLocaleString('es-AR') }}
+            </span>
+            <span
+              :class="[
+                'px-3 py-1 rounded-full text-xs font-bold',
+                claseBadgeEstado(act.estado),
+              ]"
+            >
+              {{ act.estado }}
+            </span>
+          </div>
+          <span v-if="act.fecha_creacion" class="text-xs text-slate-400">
+            Reservada {{ formatearFechaReserva(act.fecha_creacion) }}
+          </span>
+        </div>
+      </div>
+
+      <div
+        v-if="totalPaginas > 1"
+        class="flex items-center justify-between pt-4 border-t border-slate-200 text-sm text-slate-600"
+      >
         <span
-          class="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-[#202759]"
+          >Página {{ page }} de {{ totalPaginas }} ({{
+            totalRegistros
+          }}
+          reservas)</span
         >
-          {{ act.estado }}
-        </span>
+        <div class="flex gap-2">
+          <BaseButton
+            variant="outline"
+            size="sm"
+            :disabled="page <= 1"
+            @click="cambiarPagina(page - 1)"
+          >
+            Anterior
+          </BaseButton>
+          <BaseButton
+            variant="outline"
+            size="sm"
+            :disabled="page >= totalPaginas"
+            @click="cambiarPagina(page + 1)"
+          >
+            Siguiente
+          </BaseButton>
+        </div>
       </div>
     </div>
   </div>

@@ -22,8 +22,30 @@ const mockAuthStore = vi.hoisted(() => ({
   actualizarDatosUsuario: vi.fn(),
 }))
 
+const mockSedeStore = vi.hoisted(() => ({
+  sedes: [
+    { id_sede: 1, nombre: 'Sede Centro', id_ciudad: 1 },
+    { id_sede: 2, nombre: 'Sede Norte', id_ciudad: 2 },
+  ],
+  ciudades: [
+    { id_ciudad: 1, nombre: 'Paraná' },
+    { id_ciudad: 2, nombre: 'Concordia' },
+  ],
+  idSedeSeleccionada: 1,
+  sedeSeleccionada: { id_sede: 1, nombre: 'Sede Centro', id_ciudad: 1 },
+  cargando: false,
+  error: null,
+  cargarSedes: vi.fn(async () => {}),
+  cargarCiudades: vi.fn(async () => {}),
+  seleccionarSede: vi.fn(),
+}))
+
 vi.mock('@/store/auth', () => ({
   useAuthStore: () => mockAuthStore,
+}))
+
+vi.mock('@/store/sede', () => ({
+  useSedeStore: () => mockSedeStore,
 }))
 
 vi.mock('../../services/usuarios.service', () => ({

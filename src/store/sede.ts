@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import axios from 'axios'
 import http from '../common/api/http'
+import { obtenerFechaHoyLocal } from '../common/utils/date'
 
 export interface Ciudad {
   id_ciudad: number
@@ -43,6 +44,17 @@ export const useSedeStore = defineStore('sede', () => {
 
   // Caché en memoria para horarios operativos indexado por "idSede_YYYY-MM-DD"
   const horariosCache = ref<Record<string, HorarioOperativo>>({})
+
+  // Fecha de referencia para mostrar el horario operativo de la sede activa en el header principal
+  const fechaReferenciaHorario = ref<string>(obtenerFechaHoyLocal())
+
+  // Horario operativo actual de la sede seleccionada para la fecha de referencia
+  const horarioOperativoActual = computed<HorarioOperativo | null>(() => {
+    if (!sedeSeleccionada.value) return null
+    const fecha = fechaReferenciaHorario.value || obtenerFechaHoyLocal()
+    const key = `${sedeSeleccionada.value.id_sede}_${fecha}`
+    return horariosCache.value[key] ?? null
+  })
 
   // Sede seleccionada activa
   const sedeSeleccionada = computed<Sede | null>(() => {
@@ -222,6 +234,8 @@ export const useSedeStore = defineStore('sede', () => {
     error,
     versionContexto,
     horariosCache,
+    fechaReferenciaHorario,
+    horarioOperativoActual,
     cargarSedes,
     cargarCiudades,
     seleccionarSede,

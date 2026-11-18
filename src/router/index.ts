@@ -107,7 +107,7 @@ const routes: RouteRecordRaw[] = [
           import('@/modules/M1-usuarios/views/HistorialReservasView.vue'),
         meta: {
           requiresAuth: true,
-          roles: ['socio'],
+          roles: ['socio', 'externo'],
         },
       },
 
@@ -226,18 +226,6 @@ const routes: RouteRecordRaw[] = [
             name: 'gerencia',
             component: () =>
               import('../modules/gerencia/views/GerenciaDashboardView.vue'),
-          },
-          {
-            path: 'directorio-usuarios',
-            name: 'directorio-usuarios',
-            component: () =>
-              import('@/modules/M1-usuarios/views/DirectorioUsuariosView.vue'),
-          },
-          {
-            path: 'canchas',
-            name: 'gerencia-canchas',
-            component: () =>
-              import('../modules/M4-canchas/views/GerenciaCanchasView.vue'),
           },
           // Sedes: listado, horario semanal y calendario de feriados y excepciones
           {

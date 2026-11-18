@@ -13,7 +13,7 @@ app.use(pinia)
 app.use(router)
 app.use(Vue3Toastify, {
   autoClose: 3000,
-  position: 'top-right',
+  position: 'bottom-right',
   theme: 'light',
   clearOnUrlChange: false,
 } as ToastContainerOptions)
