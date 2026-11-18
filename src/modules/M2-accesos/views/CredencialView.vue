@@ -48,25 +48,45 @@ const inicialesSocio = computed<string>(() => {
     : partes[0][0]?.toUpperCase() || 'S'
 })
 
+const poblarSocioDesdeLocal = (): void => {
+  const usuarioLocal = authStore.usuario
+  socio.value = {
+    socioId: usuarioLocal?.id ?? 1,
+    nombre: usuarioLocal?.nombre
+      ? `${usuarioLocal.nombre} ${usuarioLocal.apellido || ''}`.trim()
+      : 'Socio FitZone',
+    dni: usuarioLocal?.dni || 'N/A',
+    iniciales: usuarioLocal?.nombre
+      ? usuarioLocal.nombre[0].toUpperCase()
+      : 'SF',
+    foto_url: usuarioLocal?.foto_url || null,
+    id_ciudad: usuarioLocal?.id_ciudad,
+    membresia: {
+      membresia_estado: {
+        descripcion: String(
+          usuarioLocal?.estadoMembresia || 'Inactiva'
+        ).toUpperCase(),
+      },
+    },
+  }
+}
+
 const cargarPerfil = async (): Promise<void> => {
   try {
     isPerfilLoading.value = true
     perfilError.value = null
-    const userId = authStore.usuario?.id ?? 1
-    const data = await accesosService.obtenerPerfilSocio(userId)
 
-    const perfilParaGuardar = {
-      id: Number(data.socioId),
-      nombre: data.nombre,
-      correo: data.email,
-      dni: data.dni,
-      estadoMembresia: data.membresia?.membresia_estado?.descripcion,
-      foto: data.foto_url,
-      id_ciudad: data.id_ciudad,
+    if (
+      typeof navigator !== 'undefined' &&
+      !navigator.onLine &&
+      authStore.usuario
+    ) {
+      poblarSocioDesdeLocal()
+      return
     }
 
-    // Actualizamos el store y el storage local
-    authStore.setPerfilInterno(perfilParaGuardar)
+    const userId = authStore.usuario?.id ?? 1
+    const data = await accesosService.obtenerPerfilSocio(userId)
 
     const listaMembresias = Array.isArray(data.membresia)
       ? data.membresia
@@ -75,8 +95,9 @@ const cargarPerfil = async (): Promise<void> => {
         : []
     const membresiaActiva = listaMembresias.find(
       (m: unknown) =>
-        (m as { membresia_estado?: { descripcion?: string } })?.membresia_estado
-          ?.descripcion === 'Activa'
+        (
+          m as { membresia_estado?: { descripcion?: string } }
+        )?.membresia_estado?.descripcion?.toUpperCase() === 'ACTIVA'
     )
 
     const descripcionEstado = membresiaActiva
@@ -85,44 +106,33 @@ const cargarPerfil = async (): Promise<void> => {
         'INACTIVA'
 
     const tieneMembresiaActiva = !!membresiaActiva
+    const baseUsuario = authStore.usuario
+
+    authStore.setPerfilInterno({
+      ...baseUsuario,
+      id: Number(data.socioId) || baseUsuario?.id || userId,
+      nombre: data.nombre || baseUsuario?.nombre,
+      apellido: data.apellido ?? baseUsuario?.apellido,
+      email: data.email || baseUsuario?.email,
+      dni: data.dni || baseUsuario?.dni,
+      foto_url: data.foto_url || baseUsuario?.foto_url,
+      id_ciudad: data.id_ciudad ?? baseUsuario?.id_ciudad,
+      estadoMembresia: descripcionEstado,
+      enMora: !tieneMembresiaActiva,
+    })
 
     socio.value = {
       ...data,
-      nombre: data.nombre || authStore.usuario?.nombre || 'Socio FitZone',
+      nombre: data.nombre || baseUsuario?.nombre || 'Socio FitZone',
       socioId: data.socioId || userId,
       dni: data.dni || 'Sin especificar',
       membresia: { membresia_estado: { descripcion: descripcionEstado } },
       foto_url: data.foto_url || null,
     }
-
-    if (authStore.usuario) {
-      authStore.setPerfilInterno({
-        ...authStore.usuario,
-        estadoMembresia: descripcionEstado,
-        enMora: !tieneMembresiaActiva,
-      })
-    }
   } catch (error) {
     console.error('Error al cargar perfil:', error)
     // Si no hay red, leemos del store local los datos reales almacenados al iniciar sesión
-    const usuarioLocal = authStore.usuario
-    socio.value = {
-      socioId: usuarioLocal?.id ?? 1,
-      nombre: usuarioLocal?.nombre
-        ? `${usuarioLocal.nombre} ${usuarioLocal.apellido || ''}`
-        : 'Socio de Prueba',
-      dni: usuarioLocal?.dni || 'N/A',
-      iniciales: usuarioLocal?.nombre
-        ? usuarioLocal.nombre[0].toUpperCase()
-        : 'SP',
-      foto_url: null,
-      id_ciudad: usuarioLocal?.id_ciudad,
-      membresia: {
-        membresia_estado: {
-          descripcion: String(usuarioLocal?.estadoMembresia || 'Inactiva'),
-        },
-      },
-    }
+    poblarSocioDesdeLocal()
   } finally {
     isPerfilLoading.value = false
   }
@@ -160,7 +170,7 @@ const gestionarCargaQr = async (): Promise<void> => {
 const reintentarTodo = async (): Promise<void> => {
   await sedeStore.cargarSedes()
   await cargarPerfil()
-  await cargarQr()
+  await gestionarCargaQr()
 }
 
 onMounted(async () => {

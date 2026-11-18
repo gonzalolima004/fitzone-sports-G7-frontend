@@ -80,7 +80,10 @@ const routes: RouteRecordRaw[] = [
           const authStore = useAuthStore()
           if (authStore.rol === 'socio') {
             next({ name: 'socio-dashboard' })
-          } else if (authStore.rol === 'recepcionista' || authStore.rol === 'gerente') {
+          } else if (
+            authStore.rol === 'recepcionista' ||
+            authStore.rol === 'gerente'
+          ) {
             next({ name: 'recepcion' })
           } else {
             next()
@@ -90,7 +93,8 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'socio-dashboard',
         name: 'socio-dashboard',
-        component: () => import('@/modules/M1-usuarios/views/SocioDashboardView.vue'),
+        component: () =>
+          import('@/modules/M1-usuarios/views/SocioDashboardView.vue'),
         meta: {
           requiresAuth: true,
           roles: ['socio'],
@@ -99,10 +103,11 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'historial',
         name: 'historial',
-        component: () => import('@/modules/M1-usuarios/views/HistorialReservasView.vue'),
+        component: () =>
+          import('@/modules/M1-usuarios/views/HistorialReservasView.vue'),
         meta: {
           requiresAuth: true,
-          roles: ['socio'],
+          roles: ['socio', 'externo'],
         },
       },
 
@@ -221,18 +226,6 @@ const routes: RouteRecordRaw[] = [
             name: 'gerencia',
             component: () =>
               import('../modules/gerencia/views/GerenciaDashboardView.vue'),
-          },
-          {
-            path: 'directorio-usuarios',
-            name: 'directorio-usuarios',
-            component: () =>
-              import('@/modules/M1-usuarios/views/DirectorioUsuariosView.vue'),
-          },
-          {
-            path: 'canchas',
-            name: 'gerencia-canchas',
-            component: () =>
-              import('../modules/M4-canchas/views/GerenciaCanchasView.vue'),
           },
           // Sedes: listado, horario semanal y calendario de feriados y excepciones
           {
@@ -364,36 +357,55 @@ router.beforeEach(async (to, _from, next) => {
     (requiresAuth || to.name === 'login' || to.name === 'registro')
   ) {
     if (!authStore.perfilVerificado) {
-      try {
-        const respuesta =
-          (await authService.verifyLocalProfile()) as PerfilBackendResponse
-        const u = respuesta?.user
-        if (u) {
-          const rolBackend = String(
-            u.rol ?? u.roles?.[0] ?? 'externo'
-          ).toLowerCase() as RolUsuario
+      const tienePerfilLocal = Boolean(
+        authStore.usuario?.id && authStore.usuario?.rol
+      )
+      const estaOnline =
+        typeof navigator === 'undefined' ? true : navigator.onLine
 
-          authStore.setPerfilInterno({
-            id: u.id_usuario,
-            dni: u.dni,
-            nombre: u.nombre,
-            apellido: u.apellido,
-            email: u.email,
-            telefono: u.telefono ?? undefined,
-            foto_url: u.foto_url ?? undefined,
-            rol: rolBackend,
-            id_sede: u.id_sede,
-            sede: u.sede,
-          })
-          authStore.marcarPerfilVerificado(true)
+      if (estaOnline || !tienePerfilLocal) {
+        try {
+          const respuesta =
+            (await authService.verifyLocalProfile()) as PerfilBackendResponse
+          const u = respuesta?.user
+          if (u) {
+            const rolBackend = String(
+              u.rol ?? u.roles?.[0] ?? 'externo'
+            ).toLowerCase() as RolUsuario
+
+            authStore.setPerfilInterno({
+              id: u.id_usuario,
+              dni: u.dni,
+              nombre: u.nombre,
+              apellido: u.apellido,
+              email: u.email,
+              telefono: u.telefono ?? undefined,
+              foto_url: u.foto_url ?? undefined,
+              rol: rolBackend,
+              id_sede: u.id_sede,
+              sede: u.sede,
+              id_ciudad: u.sede?.id_ciudad,
+            })
+            authStore.marcarPerfilVerificado(true)
+          }
+        } catch (error) {
+          const err = error as {
+            response?: { status?: number }
+            code?: string
+            message?: string
+          }
+          if (err.response?.status === 403) {
+            return
+          }
+          const esErrorRed =
+            !err.response ||
+            err.code === 'ERR_NETWORK' ||
+            err.message?.includes('Network Error')
+          if (!esErrorRed || !tienePerfilLocal) {
+            await authStore.logout()
+            return next({ name: 'login' })
+          }
         }
-      } catch (error) {
-        const err = error as { response?: { status?: number } }
-        if (err.response?.status === 403) {
-          return
-        }
-        await authStore.logout()
-        return next({ name: 'login' })
       }
     }
   }

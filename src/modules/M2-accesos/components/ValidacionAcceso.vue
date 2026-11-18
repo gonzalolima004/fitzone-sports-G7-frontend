@@ -57,6 +57,41 @@ const cambiarTipoOperacion = async (tipo: 'ingreso' | 'egreso') => {
   limpiarEstados()
 }
 
+async function procesarIngresoOffline(
+  token: string,
+  idSede: number
+): Promise<void> {
+  const sedeActual = sedeStore.sedeSeleccionada as {
+    id_sede?: number
+    id_ciudad?: number
+  } | null
+  const idCiudadSedeActual = sedeActual?.id_ciudad
+  const resultadoLocal = await OfflineValidator.validarTokenLocal(
+    token,
+    Number(idCiudadSedeActual)
+  )
+
+  if (resultadoLocal.valido) {
+    resultadoValidacion.value = {
+      exito: true,
+      mensaje: `¡Acceso Aprobado [MODO OFFLINE SUCURSAL - ${idCiudadSedeActual}]!`,
+      socio: {
+        id: Number(resultadoLocal.userId),
+        nombre: 'Socio (Validado Offline)',
+        apellido: '',
+        dni: 'Verificado localmente',
+      },
+    }
+    accesosService.encolarAccesoOffline(
+      'INGRESO',
+      Number(resultadoLocal.userId),
+      idSede
+    )
+  } else {
+    errorMensaje.value = `[Offline] ${resultadoLocal.mensaje}`
+  }
+}
+
 // Acción de Validar Ingreso (soporta QR o DNI)
 const handleIngreso = async (tokenAValidar?: string): Promise<void> => {
   const isDniMode = metodoManual.value === 'dni' && !tokenAValidar
@@ -74,10 +109,16 @@ const handleIngreso = async (tokenAValidar?: string): Promise<void> => {
   isLoading.value = true
   limpiarEstados()
 
+  const idSede = sedeStore.idSedeSeleccionada
+
   try {
-    const idSede = sedeStore.idSedeSeleccionada
     if (idSede == null)
       throw new Error('No se ha seleccionado una sede válida.')
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine && !isDniMode) {
+      await procesarIngresoOffline(valorFinal.trim(), idSede)
+      return
+    }
 
     // 1. Intentar primero la validación online normal contra la API
     const payload = isDniMode
@@ -91,40 +132,9 @@ const handleIngreso = async (tokenAValidar?: string): Promise<void> => {
       axios.isAxiosError(error) &&
       (!error.response || error.code === 'ERR_NETWORK')
 
-    if (isNetworkError && !isDniMode) {
-      const sedeActual = sedeStore.sedeSeleccionada as {
-        id_sede?: number
-        id_ciudad?: number
-      }
-      const idCiudadSedeActual = sedeActual?.id_ciudad
-      const resultadoLocal = await OfflineValidator.validarTokenLocal(
-        valorFinal.trim(),
-        Number(idCiudadSedeActual)
-      )
-
-      if (resultadoLocal.valido) {
-        // Simulamos la respuesta respetando estrictamente las propiedades del DTO de socio
-        resultadoValidacion.value = {
-          exito: true,
-          mensaje:
-            '¡Acceso Aprobado [MODO OFFLINE SUCURSAL] - ${idCiudadSedeActual}]!',
-          socio: {
-            id: Number(resultadoLocal.userId),
-            nombre: 'Socio (Validado Offline)',
-            apellido: '',
-            dni: 'Verificado localmente',
-          },
-        }
-        guardarIngresoPendienteSincronizacion({
-          userId: resultadoLocal.userId,
-          fecha: new Date(),
-          sede: sedeStore.idSedeSeleccionada,
-        })
-        return
-      } else {
-        errorMensaje.value = `[Offline] ${resultadoLocal.mensaje}`
-        return
-      }
+    if (isNetworkError && !isDniMode && idSede != null) {
+      await procesarIngresoOffline(valorFinal.trim(), idSede)
+      return
     }
 
     // Si no fue error de red, mostramos el error normal de la API (ej. 403 Mora)
@@ -151,15 +161,6 @@ const handleIngreso = async (tokenAValidar?: string): Promise<void> => {
   } finally {
     isLoading.value = false
   }
-}
-
-// Función auxiliar para almacenar ingresos locales pendientes
-function guardarIngresoPendienteSincronizacion(datos: unknown) {
-  const pendientes = JSON.parse(
-    localStorage.getItem('ingresos_pendientes_sync') || '[]'
-  )
-  pendientes.push(datos)
-  localStorage.setItem('ingresos_pendientes_sync', JSON.stringify(pendientes))
 }
 
 // Acción de Registrar Egreso (soporta QR o DNI)

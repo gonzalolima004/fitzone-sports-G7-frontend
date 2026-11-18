@@ -257,10 +257,10 @@
   resolved "https://registry.npmjs.org/@phosphor-icons/vue/-/vue-2.2.1.tgz"
   integrity sha512-3RNg1utc2Z5RwPKWFkW3eXI/0BfQAwXgtFxPUPeSzi55jGYUq16b+UqcgbKLazWFlwg5R92OCLKjDiJjeiJcnA==
 
-"@rolldown/binding-linux-x64-gnu@1.2.14":
+"@rolldown/binding-win32-x64-msvc@1.2.14":
   version "1.2.14"
-  resolved "https://registry.npmjs.org/@rolldown/binding-linux-x64-gnu/-/binding-linux-x64-gnu-1.2.14.tgz"
-  integrity sha512-WxalXzgrLVpKC93xfpaJ3gCXUWzeCr+FRCbDVD2mUAy4L6Vo3lNVz0epUEUpxPWJkLNYUwM4OSIikv36OJ9mLg==
+  resolved "https://registry.npmjs.org/@rolldown/binding-win32-x64-msvc/-/binding-win32-x64-msvc-1.2.14.tgz"
+  integrity sha512-9mE94bf2GZUaR/fUSXCMpBoWkctu421Mi0ORpm4zqfbkjKep7RxzPFa5etcGs5h+2KApoWBOA/hAJa/7saGgEQ==
 
 "@rolldown/pluginutils@^1.0.0", "@rolldown/pluginutils@^1.0.1":
   version "1.0.1"
@@ -338,10 +338,10 @@
     source-map-js "^1.2.1"
     tailwindcss "4.3.3"
 
-"@tailwindcss/oxide-linux-x64-gnu@4.3.3":
+"@tailwindcss/oxide-win32-x64-msvc@4.3.3":
   version "4.3.3"
-  resolved "https://registry.npmjs.org/@tailwindcss/oxide-linux-x64-gnu/-/oxide-linux-x64-gnu-4.3.3.tgz"
-  integrity sha512-tx7us1muwOKAKWao2v/GaafFeQboE6aj88vC6ziN2NCGcRm8gWUhwjzg+YdVB1e4boAtdtma4L43onunI6NS4w==
+  resolved "https://registry.npmjs.org/@tailwindcss/oxide-win32-x64-msvc/-/oxide-win32-x64-msvc-4.3.3.tgz"
+  integrity sha512-yJ0pwIVc/nYeGoV02WtsN8KYyLQv7kyI2wDnkezyJlGGjkd4QLwDGAwl47YpPJeuI0M0ObaXGSPjvWDPeTPggw==
 
 "@tailwindcss/oxide@4.3.3":
   version "4.3.3"
@@ -1469,15 +1469,15 @@ levn@^0.4.1:
     prelude-ls "^1.2.1"
     type-check "~0.4.0"
 
-lightningcss-linux-x64-gnu@1.32.0:
+lightningcss-win32-x64-msvc@1.32.0:
   version "1.32.0"
-  resolved "https://registry.npmjs.org/lightningcss-linux-x64-gnu/-/lightningcss-linux-x64-gnu-1.32.0.tgz"
-  integrity sha512-V7Qr52IhZmdKPVr+Vtw8o+WLsQJYCTd8loIfpDaMRWGUZfBOYEJeyJIkqGIDMZPwPx24pUMfwSxxI8phr/MbOA==
+  resolved "https://registry.npmjs.org/lightningcss-win32-x64-msvc/-/lightningcss-win32-x64-msvc-1.32.0.tgz"
+  integrity sha512-Amq9B/SoZYdDi1kFrojnoqPLxYhQ4Wo5XiL8EVJrVsB8ARoC1PWW6VGtT0WKCemjy8aC+louJnjS7U18x3b06Q==
 
-lightningcss-linux-x64-gnu@1.33.0:
+lightningcss-win32-x64-msvc@1.33.0:
   version "1.33.0"
-  resolved "https://registry.npmjs.org/lightningcss-linux-x64-gnu/-/lightningcss-linux-x64-gnu-1.33.0.tgz"
-  integrity sha512-ar+Ju7LmcN0Jo4FpL4hpFybwNG9/3A/Br5KW2n2jyODg3MEZXaDYADdemoNS+BDNfMgKvylJLj4S5tyRActuAg==
+  resolved "https://registry.npmjs.org/lightningcss-win32-x64-msvc/-/lightningcss-win32-x64-msvc-1.33.0.tgz"
+  integrity sha512-OlEICDx/Xl0FqSp4bry8zFnCvGpig3Gl4gCquvYwHuqJKEC1+n9NgDniFvqHGmMv1ZkqDJrDqKKSykTDX+ehuA==
 
 lightningcss@^1.33.0:
   version "1.33.0"
@@ -1760,7 +1760,7 @@ qified@^0.10.1:
 
 qrcode.vue@^3.11.0:
   version "3.11.0"
-  resolved "https://registry.yarnpkg.com/qrcode.vue/-/qrcode.vue-3.11.0.tgz#95c3e920dd10876ef6199a7e0129c6f31cec0e20"
+  resolved "https://registry.npmjs.org/qrcode.vue/-/qrcode.vue-3.11.0.tgz"
   integrity sha512-PnaO9yqcEVsH9euUmo4Nn0JZMkNwk4u6fDUosKjDTXv2Cgv7rHZhr2D8Iq54clBvSycOESwgUE/rw/tBRBjIVg==
 
 require-from-string@^2.0.2:

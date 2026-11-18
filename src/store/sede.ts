@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import axios from 'axios'
 import http from '../common/api/http'
+import { obtenerFechaHoyLocal } from '../common/utils/date'
 
 export interface Ciudad {
   id_ciudad: number
@@ -44,6 +45,17 @@ export const useSedeStore = defineStore('sede', () => {
   // Caché en memoria para horarios operativos indexado por "idSede_YYYY-MM-DD"
   const horariosCache = ref<Record<string, HorarioOperativo>>({})
 
+  // Fecha de referencia para mostrar el horario operativo de la sede activa en el header principal
+  const fechaReferenciaHorario = ref<string>(obtenerFechaHoyLocal())
+
+  // Horario operativo actual de la sede seleccionada para la fecha de referencia
+  const horarioOperativoActual = computed<HorarioOperativo | null>(() => {
+    if (!sedeSeleccionada.value) return null
+    const fecha = fechaReferenciaHorario.value || obtenerFechaHoyLocal()
+    const key = `${sedeSeleccionada.value.id_sede}_${fecha}`
+    return horariosCache.value[key] ?? null
+  })
+
   // Sede seleccionada activa
   const sedeSeleccionada = computed<Sede | null>(() => {
     if (sedes.value.length === 0) return null
@@ -59,10 +71,36 @@ export const useSedeStore = defineStore('sede', () => {
   let peticionCiudadesEnCurso: Promise<void> | null = null
   const peticionesHorarioEnCurso = new Map<string, Promise<HorarioOperativo>>()
 
+  function restaurarSedesDeCache(): boolean {
+    try {
+      const raw = localStorage.getItem('fitzone_sedes_cache')
+      if (!raw) return false
+      const parsed = JSON.parse(raw) as Sede[]
+      if (!Array.isArray(parsed) || parsed.length === 0) return false
+      sedes.value = parsed
+      const existe = sedes.value.some(
+        (s) => s.id_sede === idSedeSeleccionada.value
+      )
+      if (!existe || idSedeSeleccionada.value === null) {
+        seleccionarSede(sedes.value[0].id_sede)
+      }
+      return true
+    } catch {
+      return false
+    }
+  }
+
   // Consultar sedes activas desde la API del backend
   async function cargarSedes(forzar = false) {
     if (!forzar && sedes.value.length > 0) return
     if (peticionSedesEnCurso) return peticionSedesEnCurso
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      if (sedes.value.length === 0) {
+        restaurarSedesDeCache()
+      }
+      return
+    }
 
     peticionSedesEnCurso = (async () => {
       cargando.value = true
@@ -71,8 +109,17 @@ export const useSedeStore = defineStore('sede', () => {
         const respuesta = await http.get<Sede[]>('/sedes')
         sedes.value = Array.isArray(respuesta.data) ? respuesta.data : []
 
-        // Si hay sedes y ninguna seleccionada previamente, seleccionamos la primera
         if (sedes.value.length > 0) {
+          try {
+            localStorage.setItem(
+              'fitzone_sedes_cache',
+              JSON.stringify(sedes.value)
+            )
+          } catch {
+            // Ignorar error de cuota de storage
+          }
+
+          // Si hay sedes y ninguna seleccionada previamente, seleccionamos la primera
           const existe = sedes.value.some(
             (s) => s.id_sede === idSedeSeleccionada.value
           )
@@ -81,6 +128,9 @@ export const useSedeStore = defineStore('sede', () => {
           }
         }
       } catch (err: unknown) {
+        if (sedes.value.length === 0 && restaurarSedesDeCache()) {
+          return
+        }
         if (axios.isAxiosError(err)) {
           error.value =
             (err.response?.data as { message?: string } | undefined)?.message ||
@@ -184,6 +234,8 @@ export const useSedeStore = defineStore('sede', () => {
     error,
     versionContexto,
     horariosCache,
+    fechaReferenciaHorario,
+    horarioOperativoActual,
     cargarSedes,
     cargarCiudades,
     seleccionarSede,

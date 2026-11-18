@@ -12,14 +12,17 @@ vi.mock('@/common/api/supabase', () => ({
             user: {
               id: 'sup-1',
               user_metadata: {
-                avatar_url: 'https://lh3.googleusercontent.com/a-/google-avatar.jpg',
+                avatar_url:
+                  'https://lh3.googleusercontent.com/a-/google-avatar.jpg',
               },
             },
             access_token: 'fake-token',
           },
         },
       })),
-      onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+      onAuthStateChange: vi.fn(() => ({
+        data: { subscription: { unsubscribe: vi.fn() } },
+      })),
     },
   },
 }))
@@ -42,6 +45,8 @@ describe('auth.ts - Store & Google Avatar Fallback', () => {
       foto_url: undefined,
     })
 
-    expect(store.usuario?.foto_url).toBe('https://lh3.googleusercontent.com/a-/google-avatar.jpg')
+    expect(store.usuario?.foto_url).toBe(
+      'https://lh3.googleusercontent.com/a-/google-avatar.jpg'
+    )
   })
 })

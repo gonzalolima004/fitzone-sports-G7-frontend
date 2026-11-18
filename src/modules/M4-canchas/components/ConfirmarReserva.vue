@@ -5,7 +5,7 @@ import BaseButton from '@/common/components/BaseButton.vue'
 import { toast } from '@/common/utils/toast'
 import { useAuthStore } from '@/store/auth'
 import reservasService from '@/modules/M4-canchas/services/reservas.service'
-import { obtenerFechaHoyLocal } from '@/common/utils/date'
+import { obtenerFechaHoyLocal, formatearFechaDDMMAA } from '@/common/utils/date'
 import {
   calcularEsSlotPasado,
   formatoMoneda,
@@ -218,7 +218,9 @@ const handleConfirmar = confirmarReserva
         </div>
         <div class="flex justify-between py-1 border-b border-slate-200/60">
           <span class="text-slate-500 font-medium">Fecha:</span>
-          <span class="font-bold text-[#202759]">{{ turno.fecha }}</span>
+          <span class="font-bold text-[#202759]">{{
+            formatearFechaDDMMAA(turno.fecha)
+          }}</span>
         </div>
         <div class="flex justify-between py-1">
           <span class="text-slate-500 font-medium">Horario:</span>
