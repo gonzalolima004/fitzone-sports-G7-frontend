@@ -366,3 +366,32 @@ Verificación: 22 archivos y 172 pruebas aprobadas (12 nuevas); typecheck, lint 
 - `2acfa97` docs(log): registrar horarios semanales y orden de rutas de gerencia
 
 ---
+
+## Sprint 8 — Cierre — Semana del 2026-11-16
+
+### 2026-11-18 · <horas> h
+<!-- PARA COMPLETAR: arreglo que pidió el líder técnico, sin tarjeta en Trello. Borrar este comentario. -->
+
+**Actividad**
+Tarea: arreglar los dos errores del panel de gerencia que informó el líder técnico (parte frontend).
+- El panel pide los socios activos a `GET /reportes/socios-activos` con la fecha de hoy, en lugar de traer todas las membresías y todos los usuarios para cruzarlos en el navegador.
+- El aforo sale de `GET /reportes/aforo` en un solo pedido, en lugar de uno por sede, y se carga en paralelo con el resto: ya no espera a la lista de sedes.
+- La pantalla de membresías lee el listado paginado de `GET /usuarios`: pide la primera página de 100 usuarios y, si hay más, el resto en paralelo.
+- Quité `sedesService.obtenerAforo` y el tipo `AforoSede`, que ya no se usan.
+- Pruebas con Vitest: las respuestas simuladas tienen ahora la forma real de la API. El panel hace siete pedidos sin importar cuántas sedes haya, y las fallas del aforo y de los socios activos se muestran por separado. La pantalla de membresías junta todas las páginas de usuarios.
+
+Verificación: 26 archivos y 195 pruebas aprobadas; typecheck, lint y build aprobados; cada commit compila y pasa sus pruebas.
+
+**Decisión**
+- Cada indicador sigue cargando por separado: si falla el aforo, los socios activos y el resto se muestran igual.
+- En membresías mantuve el filtrado en el navegador y junté las páginas, porque la pantalla necesita todos los socios para el resumen por estado. Con 100 usuarios por pedido alcanzan pocos pedidos.
+
+**Problema o bloqueo**
+- El error de socios activos venía del cambio de `GET /usuarios` a un listado paginado el 14/11: `listarUsuarios` esperaba un arreglo y fallaba, tanto en el panel como en la pantalla de membresías. Las pruebas no lo mostraban porque simulaban la respuesta anterior.
+- Quedó pendiente probarlo con la cuenta de gerente contra el backend con los endpoints nuevos.
+
+**Commits**
+- `19d0243` fix(gerencia): pedir socios activos y aforo al backend en una consulta
+- `5f8a3c1` fix(gerencia): leer el listado paginado de usuarios en membresias
+
+---
