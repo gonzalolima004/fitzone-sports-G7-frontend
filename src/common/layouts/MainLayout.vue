@@ -20,6 +20,21 @@ const avatarError = ref(false)
 onMounted(() => {
   sedeStore.cargarSedes()
   document.addEventListener('click', handleClickOutside)
+
+  if (typeof navigator === 'undefined' || navigator.onLine) {
+    if (['socio', 'recepcionista', 'gerente'].includes(authStore.rol)) {
+      void import('@/modules/M2-accesos/views/CredencialView.vue').catch(
+        () => {}
+      )
+    }
+    if (
+      authStore.rol === 'socio' &&
+      authStore.usuario?.id &&
+      !authStore.usuario?.estadoMembresia
+    ) {
+      void authStore.sincronizarPerfilSocio?.()
+    }
+  }
 })
 
 watch(

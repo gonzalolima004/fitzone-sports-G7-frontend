@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import {
   PhCalendar,
@@ -7,12 +7,11 @@ import {
   PhWarningCircle,
   PhClock,
 } from '@phosphor-icons/vue'
+import { clasesService, type MiReservaClaseResponse,} from '@/modules/M3-clases-grupales/services/clases.service'
+import { reservasService } from '@/modules/M4-canchas/services/reservas.service'
+import type { DetalleReservaCancha } from '@/modules/M4-canchas/types/canchas.types'
 import { useSedeStore } from '@/store/sede'
-import {
-  usuariosService,
-  type ItemHistorial,
-  type TipoActividadHistorial,
-} from '../services/usuarios.service'
+import { usuariosService, type ItemHistorial, type TipoActividadHistorial,} from '../services/usuarios.service'
 import BaseSkeleton from '@/common/components/BaseSkeleton.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
 import { toast } from '@/common/utils/toast'

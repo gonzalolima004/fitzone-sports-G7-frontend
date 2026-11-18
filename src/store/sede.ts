@@ -71,10 +71,36 @@ export const useSedeStore = defineStore('sede', () => {
   let peticionCiudadesEnCurso: Promise<void> | null = null
   const peticionesHorarioEnCurso = new Map<string, Promise<HorarioOperativo>>()
 
+  function restaurarSedesDeCache(): boolean {
+    try {
+      const raw = localStorage.getItem('fitzone_sedes_cache')
+      if (!raw) return false
+      const parsed = JSON.parse(raw) as Sede[]
+      if (!Array.isArray(parsed) || parsed.length === 0) return false
+      sedes.value = parsed
+      const existe = sedes.value.some(
+        (s) => s.id_sede === idSedeSeleccionada.value
+      )
+      if (!existe || idSedeSeleccionada.value === null) {
+        seleccionarSede(sedes.value[0].id_sede)
+      }
+      return true
+    } catch {
+      return false
+    }
+  }
+
   // Consultar sedes activas desde la API del backend
   async function cargarSedes(forzar = false) {
     if (!forzar && sedes.value.length > 0) return
     if (peticionSedesEnCurso) return peticionSedesEnCurso
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      if (sedes.value.length === 0) {
+        restaurarSedesDeCache()
+      }
+      return
+    }
 
     peticionSedesEnCurso = (async () => {
       cargando.value = true
@@ -83,8 +109,17 @@ export const useSedeStore = defineStore('sede', () => {
         const respuesta = await http.get<Sede[]>('/sedes')
         sedes.value = Array.isArray(respuesta.data) ? respuesta.data : []
 
-        // Si hay sedes y ninguna seleccionada previamente, seleccionamos la primera
         if (sedes.value.length > 0) {
+          try {
+            localStorage.setItem(
+              'fitzone_sedes_cache',
+              JSON.stringify(sedes.value)
+            )
+          } catch {
+            // Ignorar error de cuota de storage
+          }
+
+          // Si hay sedes y ninguna seleccionada previamente, seleccionamos la primera
           const existe = sedes.value.some(
             (s) => s.id_sede === idSedeSeleccionada.value
           )
@@ -93,6 +128,9 @@ export const useSedeStore = defineStore('sede', () => {
           }
         }
       } catch (err: unknown) {
+        if (sedes.value.length === 0 && restaurarSedesDeCache()) {
+          return
+        }
         if (axios.isAxiosError(err)) {
           error.value =
             (err.response?.data as { message?: string } | undefined)?.message ||

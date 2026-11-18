@@ -1,6 +1,8 @@
 export class OfflineValidator {
-  private static readonly OFFLINE_SECRET = import.meta.env
-    .VITE_QR_OFFLINE_SECRET
+  private static readonly OFFLINE_SECRET =
+    (import.meta.env.VITE_QR_OFFLINE_SECRET as string | undefined) ||
+    (import.meta.env.VITE_QR_TOKEN_SECRET as string | undefined) ||
+    ''
   private static readonly EXPIRATION_SECONDS = 60
 
   /**
@@ -68,6 +70,14 @@ export class OfflineValidator {
         segundosTranscurridos > this.EXPIRATION_SECONDS + 5
       ) {
         return { valido: false, mensaje: 'El código QR ha expirado' }
+      }
+
+      if (!this.OFFLINE_SECRET) {
+        return {
+          valido: false,
+          mensaje:
+            'Falta configurar VITE_QR_OFFLINE_SECRET en el entorno para validar QR offline.',
+        }
       }
 
       // Reconstruir la firma HMAC SHA-256 idéntica al backend

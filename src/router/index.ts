@@ -357,36 +357,55 @@ router.beforeEach(async (to, _from, next) => {
     (requiresAuth || to.name === 'login' || to.name === 'registro')
   ) {
     if (!authStore.perfilVerificado) {
-      try {
-        const respuesta =
-          (await authService.verifyLocalProfile()) as PerfilBackendResponse
-        const u = respuesta?.user
-        if (u) {
-          const rolBackend = String(
-            u.rol ?? u.roles?.[0] ?? 'externo'
-          ).toLowerCase() as RolUsuario
+      const tienePerfilLocal = Boolean(
+        authStore.usuario?.id && authStore.usuario?.rol
+      )
+      const estaOnline =
+        typeof navigator === 'undefined' ? true : navigator.onLine
 
-          authStore.setPerfilInterno({
-            id: u.id_usuario,
-            dni: u.dni,
-            nombre: u.nombre,
-            apellido: u.apellido,
-            email: u.email,
-            telefono: u.telefono ?? undefined,
-            foto_url: u.foto_url ?? undefined,
-            rol: rolBackend,
-            id_sede: u.id_sede,
-            sede: u.sede,
-          })
-          authStore.marcarPerfilVerificado(true)
+      if (estaOnline || !tienePerfilLocal) {
+        try {
+          const respuesta =
+            (await authService.verifyLocalProfile()) as PerfilBackendResponse
+          const u = respuesta?.user
+          if (u) {
+            const rolBackend = String(
+              u.rol ?? u.roles?.[0] ?? 'externo'
+            ).toLowerCase() as RolUsuario
+
+            authStore.setPerfilInterno({
+              id: u.id_usuario,
+              dni: u.dni,
+              nombre: u.nombre,
+              apellido: u.apellido,
+              email: u.email,
+              telefono: u.telefono ?? undefined,
+              foto_url: u.foto_url ?? undefined,
+              rol: rolBackend,
+              id_sede: u.id_sede,
+              sede: u.sede,
+              id_ciudad: u.sede?.id_ciudad,
+            })
+            authStore.marcarPerfilVerificado(true)
+          }
+        } catch (error) {
+          const err = error as {
+            response?: { status?: number }
+            code?: string
+            message?: string
+          }
+          if (err.response?.status === 403) {
+            return
+          }
+          const esErrorRed =
+            !err.response ||
+            err.code === 'ERR_NETWORK' ||
+            err.message?.includes('Network Error')
+          if (!esErrorRed || !tienePerfilLocal) {
+            await authStore.logout()
+            return next({ name: 'login' })
+          }
         }
-      } catch (error) {
-        const err = error as { response?: { status?: number } }
-        if (err.response?.status === 403) {
-          return
-        }
-        await authStore.logout()
-        return next({ name: 'login' })
       }
     }
   }

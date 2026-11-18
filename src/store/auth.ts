@@ -31,36 +31,44 @@ export interface Usuario {
   id_ciudad?: number | string
 }
 
+let sincronizandoCola = false
+
 export async function sincronizarColaOffline() {
+  if (sincronizandoCola) return
   const colaRaw = localStorage.getItem('fitzone_offline_queue')
   if (!colaRaw) return
 
   const cola = JSON.parse(colaRaw) as unknown[]
   if (!Array.isArray(cola) || cola.length === 0) return
 
-  const pendientes: unknown[] = []
-  for (const item of cola) {
-    try {
-      const registro = item as {
-        tipo?: string
-        data?: { id_usuario?: number; id_sede?: number }
-        timestamp?: string
+  sincronizandoCola = true
+  try {
+    const pendientes: unknown[] = []
+    for (const item of cola) {
+      try {
+        const registro = item as {
+          tipo?: string
+          data?: { id_usuario?: number; id_sede?: number }
+          timestamp?: string
+        }
+
+        if (!registro.tipo || !registro.data || !registro.timestamp) continue
+
+        await http.post('/accesos/sincronizar-offline', {
+          id_usuario: registro.data.id_usuario,
+          id_sede: registro.data.id_sede,
+          tipo: registro.tipo,
+          timestamp: registro.timestamp,
+        })
+      } catch {
+        pendientes.push(item)
       }
-
-      if (!registro.tipo || !registro.data || !registro.timestamp) continue
-
-      await http.post('/accesos/sincronizar-offline', {
-        id_usuario: registro.data.id_usuario,
-        id_sede: registro.data.id_sede,
-        tipo: registro.tipo,
-        timestamp: registro.timestamp,
-      })
-    } catch {
-      pendientes.push(item)
     }
-  }
 
-  localStorage.setItem('fitzone_offline_queue', JSON.stringify(pendientes))
+    localStorage.setItem('fitzone_offline_queue', JSON.stringify(pendientes))
+  } finally {
+    sincronizandoCola = false
+  }
 }
 
 // Escuchar cuando el navegador recupera la red
@@ -116,13 +124,19 @@ export const useAuthStore = defineStore('auth', () => {
             ? [perfilData.membresia]
             : []
 
-        const membresiaActiva =
-          listaMembresias.find(
-            (m: unknown) =>
-              (m as { membresia_estado?: { descripcion?: string } })
-                ?.membresia_estado?.descripcion === 'Activa'
-          ) || listaMembresias[0]
-        const descripcionEstado = membresiaActiva ? 'Activa' : 'Inactiva'
+        const membresiaActiva = listaMembresias.find(
+          (m: unknown) =>
+            (
+              m as { membresia_estado?: { descripcion?: string } }
+            )?.membresia_estado?.descripcion?.toUpperCase() === 'ACTIVA'
+        )
+        const estadoFallback = (
+          listaMembresias[0] as
+            { membresia_estado?: { descripcion?: string } } | undefined
+        )?.membresia_estado?.descripcion?.toUpperCase()
+        const descripcionEstado = membresiaActiva
+          ? 'ACTIVA'
+          : estadoFallback || 'INACTIVA'
 
         const datosActuales = usuario.value ?? ({} as Partial<Usuario>)
 
@@ -137,6 +151,7 @@ export const useAuthStore = defineStore('auth', () => {
             (perfilData.foto_url ?? datosActuales.foto_url) || undefined,
           rol: datosActuales.rol,
           estadoMembresia: descripcionEstado,
+          enMora: !membresiaActiva,
           dni: perfilData.dni ?? datosActuales.dni,
           id_ciudad: Number(perfilData.id_ciudad) || datosActuales.id_ciudad,
         })
@@ -226,7 +241,9 @@ export const useAuthStore = defineStore('auth', () => {
           // ignore error
         }
       }
-      sincronizarPerfilSocio()
+      if (typeof navigator === 'undefined' || navigator.onLine) {
+        sincronizarPerfilSocio()
+      }
     }
 
     supabase.auth.onAuthStateChange((_event, newSession) => {
@@ -262,8 +279,18 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function setPerfilInterno(perfil: Usuario) {
+    const previo = usuario.value
+    const mismoUsuario = previo?.id === perfil.id
     const perfilNormalizado: Usuario = {
       ...perfil,
+      id_ciudad:
+        perfil.id_ciudad ??
+        perfil.sede?.id_ciudad ??
+        (mismoUsuario ? previo?.id_ciudad : undefined),
+      estadoMembresia:
+        perfil.estadoMembresia ??
+        (mismoUsuario ? previo?.estadoMembresia : undefined),
+      enMora: perfil.enMora ?? (mismoUsuario ? previo?.enMora : undefined),
       foto_url: perfil.foto_url || obtenerAvatarDesdeSesion(session.value),
     }
     usuario.value = perfilNormalizado
@@ -292,5 +319,6 @@ export const useAuthStore = defineStore('auth', () => {
     marcarPerfilVerificado,
     cargarPerfilLocal,
     actualizarDatosUsuario,
+    sincronizarPerfilSocio,
   }
 })
