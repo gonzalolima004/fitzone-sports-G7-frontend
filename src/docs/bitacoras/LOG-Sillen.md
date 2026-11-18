@@ -282,6 +282,17 @@
 - **Commits:**
 - `563bb88` feat(router): registrar rutas de dashboard y historial del socio
 - `fc0b819` feat(dashboard): implementar vista de historial y dashboard del socio
+
+---
+
+#### 18/11/2026
+#### Matías Sillén Ríos | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Corrección de desbordamiento de scroll en PanelGerenciaView.vue utilizando clases de Tailwind CSS (`w-full overflow-x-hidden`).
+- **Commits:**
 - `61c10c3` fix(gerencia): evitar desbordamiento en PanelGerenciaView
-`
+
+---
+
 ---
