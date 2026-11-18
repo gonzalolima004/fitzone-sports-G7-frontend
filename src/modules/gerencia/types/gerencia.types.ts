@@ -106,6 +106,12 @@ export interface UsuarioListado extends SocioResumen {
   usuario_rol?: Array<{ rol: { id_rol: number; nombre: string } }>
 }
 
+/** Una página de GET /usuarios, que devuelve el listado paginado. */
+export interface PaginaUsuarios {
+  data: UsuarioListado[]
+  meta: { total: number; page: number; lastPage: number }
+}
+
 /** Usuario preparado para el panel: datos básicos, sede y si es socio. */
 export interface UsuarioGestion extends SocioResumen {
   id_sede: number | null
