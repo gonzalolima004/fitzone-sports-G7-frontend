@@ -286,3 +286,18 @@
   - `cc814e3` `fix(auth): asegurar tipado de usuario en setPerfilInterno para membresias y pagos`
 
 ----
+
+#### 17/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Full Stack
+- **Actividades**:
+  - Actualización y carga de diagramas fuente en Mermaid (`.mmd`) y sus versiones exportadas en `.svg` dentro de `src/docs/diagramas/` (`c4-1-contexto`, `c4-2-contenedores`, `c4-3-componentes-acceso`, `c4-3-componentes-canchas`, `der-fisico`, `uml-clases-dominio`), alineando roles, servicios externos, flujo offline M2 y canales WebSocket en tiempo real.
+  - Limpieza, ordenamiento cronológico e incorporación de hashes cortos en la bitácora personal (`LOG-Caraballo.md`), sumando commits omitidos y eliminando entradas duplicadas o de otros integrantes.
+- **Decisiones**:
+  - Mantener versionados tanto los fuentes editables `.mmd` como los `.svg` renderizados para asegurar legibilidad inmediata y trazabilidad en la entrega final.
+- **Dificultades**: Ninguna
+- **Commits:**
+  - `432e495` `docs(diagramas): carga de archivos fuente editables de diagramas`
+  - `aae02e3` `docs(diagramas): carga de svg legible de diagramas`
+  - `de79287` `docs(log): inclusion de hash cortos y limpieza de bitacora`
+
+----
