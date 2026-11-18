@@ -80,7 +80,10 @@ const routes: RouteRecordRaw[] = [
           const authStore = useAuthStore()
           if (authStore.rol === 'socio') {
             next({ name: 'socio-dashboard' })
-          } else if (authStore.rol === 'recepcionista' || authStore.rol === 'gerente') {
+          } else if (
+            authStore.rol === 'recepcionista' ||
+            authStore.rol === 'gerente'
+          ) {
             next({ name: 'recepcion' })
           } else {
             next()
@@ -90,7 +93,8 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'socio-dashboard',
         name: 'socio-dashboard',
-        component: () => import('@/modules/M1-usuarios/views/SocioDashboardView.vue'),
+        component: () =>
+          import('@/modules/M1-usuarios/views/SocioDashboardView.vue'),
         meta: {
           requiresAuth: true,
           roles: ['socio'],
@@ -99,10 +103,11 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'historial',
         name: 'historial',
-        component: () => import('@/modules/M1-usuarios/views/HistorialReservasView.vue'),
+        component: () =>
+          import('@/modules/M1-usuarios/views/HistorialReservasView.vue'),
         meta: {
           requiresAuth: true,
-          roles: ['socio'],
+          roles: ['socio', 'externo'],
         },
       },
 
@@ -221,18 +226,6 @@ const routes: RouteRecordRaw[] = [
             name: 'gerencia',
             component: () =>
               import('../modules/gerencia/views/GerenciaDashboardView.vue'),
-          },
-          {
-            path: 'directorio-usuarios',
-            name: 'directorio-usuarios',
-            component: () =>
-              import('@/modules/M1-usuarios/views/DirectorioUsuariosView.vue'),
-          },
-          {
-            path: 'canchas',
-            name: 'gerencia-canchas',
-            component: () =>
-              import('../modules/M4-canchas/views/GerenciaCanchasView.vue'),
           },
           // Sedes: listado, horario semanal y calendario de feriados y excepciones
           {

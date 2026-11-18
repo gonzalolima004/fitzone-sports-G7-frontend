@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { RouterView, RouterLink, useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 import { useAuthStore } from '../../store/auth'
 import { useSedeStore } from '../../store/sede'
+import { obtenerFechaHoyLocal } from '../utils/date'
 import { PhUser, PhSignOut, PhCaretDown } from '@phosphor-icons/vue'
 
 const authStore = useAuthStore()
@@ -21,6 +22,26 @@ onMounted(() => {
   document.addEventListener('click', handleClickOutside)
 })
 
+watch(
+  [
+    () => sedeStore.sedeSeleccionada?.id_sede,
+    () => sedeStore.fechaReferenciaHorario,
+  ],
+  async ([idSede, fechaRef]) => {
+    if (!idSede) return
+    const fecha = fechaRef || obtenerFechaHoyLocal()
+    const key = `${idSede}_${fecha}`
+    if (!sedeStore.horariosCache[key]) {
+      try {
+        await sedeStore.obtenerHorarioOperativo(idSede, fecha)
+      } catch {
+        // Silencioso en el header global si falla la consulta de horario
+      }
+    }
+  },
+  { immediate: true }
+)
+
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
 })
@@ -32,11 +53,6 @@ function handleClickOutside(event: MouseEvent) {
   ) {
     menuUsuarioAbierto.value = false
   }
-}
-
-function onCambioSede(event: Event) {
-  const target = event.target as HTMLSelectElement
-  sedeStore.seleccionarSede(Number(target.value))
 }
 
 const nombreCompleto = computed(() => {
@@ -121,62 +137,73 @@ async function handleLogout() {
           >
         </div>
 
-        <!-- Lado derecho: Selector de Sede + Perfil de usuario -->
+        <!-- Lado derecho: Badge de Sede + Horario Operativo + Perfil de usuario -->
         <div class="flex items-center gap-3">
-          <!-- Selector interactivo de Sede (conectado a la API y Pinia) -->
+          <!-- Indicador de sede activa y horario de apertura/cierre -->
           <div
-            class="inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-full text-xs sm:text-sm font-semibold text-[#202759] transition-colors shadow-2xs"
+            v-if="sedeStore.sedeSeleccionada"
+            class="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-100 border border-slate-200/80 rounded-full text-xs font-medium text-slate-600"
+            title="Sede activa y horario operativo"
           >
-            <svg
-              class="w-4 h-4 text-[#202759] flex-shrink-0"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-              />
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-            </svg>
-
-            <!-- Estado de carga -->
-            <span
-              v-if="sedeStore.cargando"
-              class="text-xs text-slate-500 font-normal"
-            >
-              Cargando sedes...
-            </span>
-
-            <!-- Selector desplegable de sedes reales -->
-            <select
-              v-else-if="sedeStore.sedes.length > 0"
-              :value="sedeStore.idSedeSeleccionada"
-              class="bg-transparent text-[#202759] font-bold text-xs sm:text-sm focus:outline-none cursor-pointer pr-1"
-              title="Cambiar sede activa"
-              @change="onCambioSede"
-            >
-              <option
-                v-for="sede in sedeStore.sedes"
-                :key="sede.id_sede"
-                :value="sede.id_sede"
-                class="text-slate-800"
+            <div class="flex items-center gap-1.5">
+              <svg
+                class="w-3.5 h-3.5 text-[#202759] shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
               >
-                {{ sede.nombre }}
-              </option>
-            </select>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+              <strong
+                class="font-bold text-[#202759] max-w-[160px] sm:max-w-[220px] truncate"
+              >
+                {{ sedeStore.sedeSeleccionada.nombre }}
+              </strong>
+            </div>
 
-            <!-- Fallback en caso de que no haya sedes o error -->
-            <span v-else class="text-xs text-slate-500 font-normal">
-              {{ sedeStore.error ? 'Error de sedes' : 'Sin sedes' }}
-            </span>
+            <template v-if="sedeStore.horarioOperativoActual">
+              <span class="text-slate-300 hidden sm:inline">|</span>
+              <div class="hidden sm:flex items-center gap-1.5">
+                <template
+                  v-if="
+                    sedeStore.horarioOperativoActual.abierto ||
+                    sedeStore.horarioOperativoActual.es_horario_especial
+                  "
+                >
+                  <span
+                    :class="[
+                      'font-semibold font-mono tabular-nums text-xs',
+                      sedeStore.horarioOperativoActual.es_horario_especial
+                        ? 'text-amber-800'
+                        : 'text-emerald-700',
+                    ]"
+                  >
+                    {{ sedeStore.horarioOperativoActual.hora_apertura }} a
+                    {{ sedeStore.horarioOperativoActual.hora_cierre }} hs
+                  </span>
+                  <span
+                    v-if="sedeStore.horarioOperativoActual.es_horario_especial"
+                    class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300"
+                  >
+                    Horario Especial
+                  </span>
+                </template>
+                <span v-else class="text-[#F96167] font-bold">
+                  Sede Cerrada
+                </span>
+              </div>
+            </template>
           </div>
 
           <!-- Estado Skeleton mientras carga el perfil inicial -->
@@ -206,22 +233,22 @@ async function handleLogout() {
                 {{ nombreCompleto }}
               </span>
 
-               <!-- Fotografía o inicial -->
-               <img
-                 v-if="fotoPerfilUrl"
-                 :src="fotoPerfilUrl"
-                 :alt="nombreAMostrar"
-                 referrerpolicy="no-referrer"
-                 class="w-9 h-9 rounded-full object-cover border border-[#202759]/20 shadow-2xs"
-                 data-testid="navbar-user-avatar"
-                 @error="avatarError = true"
-               />
-               <div
-                 v-else
-                 class="w-9 h-9 rounded-full overflow-hidden bg-[#202759]/10 border border-[#202759]/20 flex items-center justify-center text-[#202759] font-bold text-sm select-none"
-               >
-                 <span>{{ inicialUsuario }}</span>
-               </div>
+              <!-- Fotografía o inicial -->
+              <img
+                v-if="fotoPerfilUrl"
+                :src="fotoPerfilUrl"
+                :alt="nombreAMostrar"
+                referrerpolicy="no-referrer"
+                class="w-9 h-9 rounded-full object-cover border border-[#202759]/20 shadow-2xs"
+                data-testid="navbar-user-avatar"
+                @error="avatarError = true"
+              />
+              <div
+                v-else
+                class="w-9 h-9 rounded-full overflow-hidden bg-[#202759]/10 border border-[#202759]/20 flex items-center justify-center text-[#202759] font-bold text-sm select-none"
+              >
+                <span>{{ inicialUsuario }}</span>
+              </div>
 
               <PhCaretDown
                 :size="14"

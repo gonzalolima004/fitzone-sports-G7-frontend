@@ -78,7 +78,7 @@ const sizeClasses = computed(() => {
     <slot v-if="!loading" name="icon" />
 
     <!-- Contenido / Texto principal del botón -->
-    <span>
+    <span class="inline-flex items-center">
       <slot />
     </span>
   </button>

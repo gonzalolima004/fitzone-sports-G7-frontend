@@ -72,8 +72,7 @@ function obtenerAvatarDesdeSesion(
   sesionActual: Session | null
 ): string | undefined {
   const metadata = sesionActual?.user?.user_metadata as
-    | Record<string, unknown>
-    | undefined
+    Record<string, unknown> | undefined
   if (!metadata) return undefined
   if (typeof metadata.avatar_url === 'string' && metadata.avatar_url.trim()) {
     return metadata.avatar_url.trim()
@@ -134,7 +133,8 @@ export const useAuthStore = defineStore('auth', () => {
           apellido: perfilData.apellido ?? datosActuales.apellido,
           email: perfilData.email ?? datosActuales.email,
           telefono: datosActuales.telefono,
-          foto_url: (perfilData.foto_url ?? datosActuales.foto_url) || undefined,
+          foto_url:
+            (perfilData.foto_url ?? datosActuales.foto_url) || undefined,
           rol: datosActuales.rol,
           estadoMembresia: descripcionEstado,
           dni: perfilData.dni ?? datosActuales.dni,
@@ -267,7 +267,10 @@ export const useAuthStore = defineStore('auth', () => {
       foto_url: perfil.foto_url || obtenerAvatarDesdeSesion(session.value),
     }
     usuario.value = perfilNormalizado
-    localStorage.setItem('fitzone_user_perfil', JSON.stringify(perfilNormalizado))
+    localStorage.setItem(
+      'fitzone_user_perfil',
+      JSON.stringify(perfilNormalizado)
+    )
     if (perfilNormalizado.rol) {
       localStorage.setItem('rol', perfilNormalizado.rol)
     }

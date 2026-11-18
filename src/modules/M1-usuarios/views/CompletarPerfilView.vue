@@ -299,17 +299,17 @@ const handleCancelar = async () => {
                 Seleccionar Imagen
               </BaseButton>
 
-               <input
-                 ref="fileInput"
-                 type="file"
-                 class="hidden"
-                 accept="image/*"
-                 @change="handleFotoUpload"
-               />
-             </div>
-           </div>
+              <input
+                ref="fileInput"
+                type="file"
+                class="hidden"
+                accept="image/*"
+                @change="handleFotoUpload"
+              />
+            </div>
+          </div>
 
-           <div class="flex flex-col sm:flex-row gap-4 pt-2">
+          <div class="flex flex-col sm:flex-row gap-4 pt-2">
             <BaseButton
               type="button"
               variant="outline"

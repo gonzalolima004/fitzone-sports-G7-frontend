@@ -13,6 +13,7 @@ import { usuariosService } from '../services/usuarios.service'
 import { authService } from '../services/auth.service'
 import BaseInput from '@/common/components/BaseInput.vue'
 import BaseButton from '@/common/components/BaseButton.vue'
+import SelectorDeSede from '../components/SelectorDeSede.vue'
 import { toast } from '@/common/utils/toast'
 
 const authStore = useAuthStore()
@@ -258,9 +259,13 @@ async function handleGuardarDatos() {
     authStore.actualizarDatosUsuario(payload)
     toast.success('Datos personales actualizados correctamente.')
   } catch (error: unknown) {
-    const err = error as { response?: { data?: { message?: string | string[] } } }
+    const err = error as {
+      response?: { data?: { message?: string | string[] } }
+    }
     const msg = err.response?.data?.message
-    const finalMsg = Array.isArray(msg) ? msg.join(', ') : msg || 'Error al actualizar tus datos.'
+    const finalMsg = Array.isArray(msg)
+      ? msg.join(', ')
+      : msg || 'Error al actualizar tus datos.'
     toast.error(finalMsg)
   } finally {
     isGuardandoPerfil.value = false
@@ -347,30 +352,40 @@ const iniciales = computed(() => {
 <template>
   <div class="max-w-4xl mx-auto space-y-6">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-200/80 pb-4">
+    <div
+      class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-200/80 pb-4"
+    >
       <div>
         <h1 class="text-2xl sm:text-3xl font-extrabold text-[#202759]">
           Mi Perfil
         </h1>
         <p class="text-xs sm:text-sm text-slate-500 mt-1">
-          Gestiona tu información personal, tu avatar y la seguridad de tu cuenta.
+          Gestiona tu información personal, tu avatar y la seguridad de tu
+          cuenta.
         </p>
       </div>
-      <div v-if="authStore.rol" class="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-full text-xs font-bold text-[#202759] uppercase tracking-wider self-start sm:self-auto">
+      <div
+        v-if="authStore.rol"
+        class="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-full text-xs font-bold text-[#202759] uppercase tracking-wider self-start sm:self-auto"
+      >
         Rol: {{ authStore.rol }}
       </div>
     </div>
 
     <!-- SKELETON LOADER INICIAL -->
     <div v-if="isCargandoInicial" class="space-y-6 animate-pulse">
-      <div class="bg-white p-6 rounded-2xl border border-slate-200/80 flex items-center gap-6">
+      <div
+        class="bg-white p-6 rounded-2xl border border-slate-200/80 flex items-center gap-6"
+      >
         <div class="w-24 h-24 rounded-full bg-slate-200"></div>
         <div class="space-y-2 flex-1">
           <div class="h-5 w-40 bg-slate-200 rounded"></div>
           <div class="h-4 w-60 bg-slate-200 rounded"></div>
         </div>
       </div>
-      <div class="bg-white p-6 rounded-2xl border border-slate-200/80 space-y-4">
+      <div
+        class="bg-white p-6 rounded-2xl border border-slate-200/80 space-y-4"
+      >
         <div class="h-5 w-32 bg-slate-200 rounded"></div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="h-10 bg-slate-200 rounded"></div>
@@ -384,25 +399,33 @@ const iniciales = computed(() => {
     <!-- CONTENIDO PRINCIPAL -->
     <div v-else class="space-y-6">
       <!-- 1. SECCIÓN: FOTOGRAFÍA DE PERFIL -->
-      <section class="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-2xs">
-        <h2 class="text-lg font-bold text-[#202759] mb-4 flex items-center gap-2">
+      <section
+        class="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-2xs"
+      >
+        <h2
+          class="text-lg font-bold text-[#202759] mb-4 flex items-center gap-2"
+        >
           <PhCamera :size="20" weight="bold" class="text-[#F96167]" />
           <span>Fotografía de Perfil</span>
         </h2>
 
-        <div class="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+        <div
+          class="flex flex-col sm:flex-row items-center sm:items-start gap-6"
+        >
           <!-- Avatar Preview -->
           <div class="relative group">
-            <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden bg-slate-100 border-2 border-slate-200 flex items-center justify-center text-[#202759] font-extrabold text-2xl shadow-inner select-none">
-               <img
-                 v-if="avatarMostrado"
-                 :src="avatarMostrado"
-                 alt="Foto de perfil"
-                 referrerpolicy="no-referrer"
-                 class="w-full h-full object-cover"
-                 data-testid="perfil-avatar-img"
-                 @error="avatarLoadError = true"
-               />
+            <div
+              class="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden bg-slate-100 border-2 border-slate-200 flex items-center justify-center text-[#202759] font-extrabold text-2xl shadow-inner select-none"
+            >
+              <img
+                v-if="avatarMostrado"
+                :src="avatarMostrado"
+                alt="Foto de perfil"
+                referrerpolicy="no-referrer"
+                class="w-full h-full object-cover"
+                data-testid="perfil-avatar-img"
+                @error="avatarLoadError = true"
+              />
               <span v-else>{{ iniciales }}</span>
             </div>
 
@@ -431,7 +454,8 @@ const iniciales = computed(() => {
               {{ datosForm.nombre }} {{ datosForm.apellido }}
             </h3>
             <p class="text-xs text-slate-500 max-w-md">
-              Sube una foto clara en formato JPG, PNG o WEBP. El tamaño máximo permitido es de 2 MB.
+              Sube una foto clara en formato JPG, PNG o WEBP. El tamaño máximo
+              permitido es de 2 MB.
             </p>
             <div class="pt-2">
               <BaseButton
@@ -448,9 +472,16 @@ const iniciales = computed(() => {
         </div>
       </section>
 
-      <!-- 2. SECCIÓN: DATOS PERSONALES -->
-      <section class="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-2xs">
-        <h2 class="text-lg font-bold text-[#202759] mb-4 flex items-center gap-2">
+      <!-- 2. SECCIÓN: SELECTOR DE SEDE -->
+      <SelectorDeSede />
+
+      <!-- 3. SECCIÓN: DATOS PERSONALES -->
+      <section
+        class="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-2xs"
+      >
+        <h2
+          class="text-lg font-bold text-[#202759] mb-4 flex items-center gap-2"
+        >
           <PhUser :size="20" weight="bold" class="text-[#F96167]" />
           <span>Datos Personales</span>
         </h2>
@@ -516,7 +547,9 @@ const iniciales = computed(() => {
               variant="secondary"
               :loading="isGuardandoPerfil"
             >
-              <PhFloppyDisk :size="18" weight="bold" class="mr-2" />
+              <template #icon>
+                <PhFloppyDisk :size="18" weight="bold" class="shrink-0" />
+              </template>
               Guardar Cambios
             </BaseButton>
           </div>
@@ -524,13 +557,17 @@ const iniciales = computed(() => {
       </section>
 
       <!-- 3. SECCIÓN: SEGURIDAD Y CONTRASEÑA -->
-      <section class="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-2xs">
-        <h2 class="text-lg font-bold text-[#202759] mb-4 flex items-center gap-2">
+      <section
+        class="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-2xs"
+      >
+        <h2
+          class="text-lg font-bold text-[#202759] mb-4 flex items-center gap-2"
+        >
           <PhLockKey :size="20" weight="bold" class="text-[#F96167]" />
           <span>Seguridad y Contraseña</span>
         </h2>
 
-        <form class="space-y-4 max-w-xl" @submit.prevent="handleCambiarPassword">
+        <form class="space-y-4 w-full" @submit.prevent="handleCambiarPassword">
           <!-- Contraseña actual -->
           <BaseInput
             id="current-password"
@@ -556,7 +593,9 @@ const iniciales = computed(() => {
 
             <!-- Barra visual de fortaleza -->
             <div v-if="passForm.newPassword" class="pt-1 space-y-1">
-              <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+              <div
+                class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden"
+              >
                 <div
                   class="h-full transition-all duration-300"
                   :class="pwdStrength.colorClass"
@@ -589,7 +628,9 @@ const iniciales = computed(() => {
               variant="primary"
               :loading="isCambiandoPassword"
             >
-              <PhShieldCheck :size="18" weight="bold" class="mr-2" />
+              <template #icon>
+                <PhShieldCheck :size="18" weight="bold" class="shrink-0" />
+              </template>
               Actualizar Contraseña
             </BaseButton>
           </div>

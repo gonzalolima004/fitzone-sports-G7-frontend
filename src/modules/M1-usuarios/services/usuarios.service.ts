@@ -5,7 +5,84 @@ import type {
   ActualizarUsuarioPayload,
 } from '../types/usuario.types'
 
+export type TipoActividadHistorial = 'todas' | 'canchas' | 'clases'
+
+export interface HistorialQueryParams {
+  page?: number
+  limit?: number
+  tipo?: TipoActividadHistorial
+  id_sede?: number
+}
+
+export interface SedeHistorial {
+  id_sede: number
+  nombre: string
+  direccion?: string
+}
+
+export interface ItemHistorial {
+  id: string
+  tipo: 'cancha' | 'clase'
+  titulo: string
+  subtitulo?: string
+  fecha_inicio: string
+  fecha_fin: string
+  fecha_creacion?: string | null
+  estado: string
+  sede: SedeHistorial
+  precio?: number
+}
+
+export interface HistorialResponse {
+  items: ItemHistorial[]
+  meta: {
+    total: number
+    page: number
+    limit: number
+    total_paginas: number
+  }
+}
+
+export interface MembresiaResumen {
+  id_membresia: number
+  plan: string
+  estado: string
+  fecha_inicio: string
+  fecha_fin: string
+  dias_restantes: number
+  renovacion_automatica: boolean
+}
+
+export interface SocioDashboardResponse {
+  membresia: MembresiaResumen | null
+  totales: {
+    total_canchas: number
+    total_clases: number
+    total_actividades: number
+    proximas_confirmadas: number
+  }
+  proximas_actividades: ItemHistorial[]
+}
+
 export const usuariosService = {
+  async obtenerDashboard(id_sede?: number): Promise<SocioDashboardResponse> {
+    const response = await apiClient.get<SocioDashboardResponse>(
+      '/usuarios/me/dashboard',
+      { params: id_sede ? { id_sede } : {} }
+    )
+    return response.data
+  },
+
+  async obtenerHistorial(
+    params?: HistorialQueryParams
+  ): Promise<HistorialResponse> {
+    const response = await apiClient.get<HistorialResponse>(
+      '/usuarios/me/historial',
+      { params }
+    )
+    return response.data
+  },
+
   async obtenerUsuarios(id_sede?: number): Promise<UsuarioResponse[]> {
     const params = id_sede ? { id_sede } : {}
     const response = await apiClient.get<UsuarioResponse[]>('/usuarios', {
