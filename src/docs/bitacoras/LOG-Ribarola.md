@@ -231,7 +231,7 @@
 - **Verificación:** Pipeline de validación completo exitoso: formateo (`npm run format`), linter (`npm run lint`), tipado (`npm run typecheck`), compilación de producción (`npm run build`) y tests (`npm run test`) con 16 suites y 117 pruebas aprobadas al 100%.
 
 ----
-  
+
 #### 15/11/2026
 #### Joaquín Ribarola | Rol: Desarrollador Frontend
 
@@ -247,5 +247,25 @@
   - Proteger tanto la interfaz de usuario como la ejecución del servicio mediante validaciones preventivas multinivel.
 - **Dificultades:** Ninguna.
 - **Verificación:** Pipeline de validación completo exitoso: formateo (`npm run format`), linter (`npm run lint`), tipado (`npm run typecheck`), compilación de producción (`npm run build`) y tests (`npm run test`) con 16 suites y 117 pruebas aprobadas al 100%.
+
+----
+
+#### 18/11/2026
+#### Joaquín Ribarola | Rol: DevOps / Desarrollador Frontend
+
+- **Tarea:** Contenerización y despliegue del frontend con Docker y Nginx (Multi-Stage Build).
+- **Actividades:**
+  - **Configuración de exclusiones (`.dockerignore`):** Creación del archivo `.dockerignore` excluyendo dependencias locales (`node_modules`), artefactos compilados (`dist`), historial de control de versiones (`.git`), variables de entorno locales (`.env`, `.env.*`) y archivos de log/depuración para optimizar el contexto de compilación de Docker.
+  - **Servidor web y soporte SPA (`nginx.conf`):** Configuración de Nginx escuchando en el puerto 80 con directiva `try_files $uri $uri/ /index.html;` para soportar el enrutamiento SPA de Vue Router (HTML5 History Mode) evitando errores 404 al recargar páginas. Incorporación de compresión gzip y encabezados de caché optimizados (inmutable para estáticos con hash de Vite y `no-cache` para `index.html`).
+  - **Estrategia Multi-Stage Build (`Dockerfile`):**
+    - **Etapa 1 (builder):** Basada en `node:22-alpine`. Instalación determinista de dependencias vía `npm ci`, declaración de argumentos de construcción (`ARG VITE_API_URL`, `ARG VITE_SUPABASE_URL`, `ARG VITE_SUPABASE_ANON_KEY`) asignados a variables de entorno (`ENV`) antes de ejecutar `npm run build` para garantizar que Vite incruste los valores en los bundles estáticos en tiempo de compilación.
+    - **Etapa 2 (production):** Basada en `nginx:alpine` ligera para minimizar tamaño y superficie de ataque. Copia de artefactos estáticos (`/app/dist` hacia `/usr/share/nginx/html`), reemplazo de `/etc/nginx/conf.d/default.conf` con el archivo `nginx.conf` personalizado y exposición del puerto 80 con inicio en primer plano.
+- **Decisiones:**
+  - Adoptar Multi-Stage Build para desacoplar el entorno de compilación (Node.js, tooling y código fuente) de la imagen de ejecución final, obteniendo una imagen de producción de tamaño reducido y segura con Nginx Alpine.
+  - Asegurar la asignación de `ARG` a `ENV` en la fase de builder para que Vite resuelva correctamente las variables de entorno prefijadas con `VITE_` al empaquetar para producción.
+- **Dificultades:** Ninguna.
+- **Verificación:** Pipeline de validación completo exitoso: formateo (`npm run format`), linter (`npm run lint`), tipado (`npm run typecheck`), compilación de producción (`npm run build`) y tests (`npm run test`) con 26 suites y 193 pruebas aprobadas al 100%.
+- **Commits:**
+  - `ci(docker): configurar dockerfile multi-stage build, nginx para spa y dockerignore`
 
 ----
