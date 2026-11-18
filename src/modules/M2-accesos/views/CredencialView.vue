@@ -9,11 +9,13 @@ import {
 import { useQr } from '../composables/useQr'
 import { accesosService } from '../services/accesos.service'
 import type { SocioPerfilDto } from '../types/accesos.types'
-import { useAuthStore } from '@/store/auth'
 import BaseButton from '@/common/components/BaseButton.vue'
+import { useAuthStore } from '@/store/auth'
+import Qrcode from 'qrcode.vue'
+import { useSedeStore } from '@/store/sede'
 
 const authStore = useAuthStore()
-
+const sedeStore = useSedeStore()
 const socio = ref<SocioPerfilDto | null>(null)
 const isPerfilLoading = ref<boolean>(true)
 const perfilError = ref<string | null>(null)
@@ -37,12 +39,6 @@ const tiempoFormateado = computed<string>(() => {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 })
 
-const qrImageUrl = computed<string>(() => {
-  if (!qrData.value?.token) return ''
-  return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrData.value.token)}`
-})
-
-// Mapeo seguro de iniciales para evitar runtime errors si el backend envía solo 'nombre' o 'nombreCompleto'
 const inicialesSocio = computed<string>(() => {
   if (!socio.value) return 'S'
   if (socio.value.iniciales) return socio.value.iniciales
@@ -52,51 +48,135 @@ const inicialesSocio = computed<string>(() => {
     : partes[0][0]?.toUpperCase() || 'S'
 })
 
+const poblarSocioDesdeLocal = (): void => {
+  const usuarioLocal = authStore.usuario
+  socio.value = {
+    socioId: usuarioLocal?.id ?? 1,
+    nombre: usuarioLocal?.nombre
+      ? `${usuarioLocal.nombre} ${usuarioLocal.apellido || ''}`.trim()
+      : 'Socio FitZone',
+    dni: usuarioLocal?.dni || 'N/A',
+    iniciales: usuarioLocal?.nombre
+      ? usuarioLocal.nombre[0].toUpperCase()
+      : 'SF',
+    foto_url: usuarioLocal?.foto_url || null,
+    id_ciudad: usuarioLocal?.id_ciudad,
+    membresia: {
+      membresia_estado: {
+        descripcion: String(
+          usuarioLocal?.estadoMembresia || 'Inactiva'
+        ).toUpperCase(),
+      },
+    },
+  }
+}
+
 const cargarPerfil = async (): Promise<void> => {
   try {
     isPerfilLoading.value = true
     perfilError.value = null
 
-    // Obtenemos el ID del usuario del authStore, fallback a 1 si no está definido para pruebas
-    const userId = authStore.usuario?.id ? Number(authStore.usuario.id) : 1
+    if (
+      typeof navigator !== 'undefined' &&
+      !navigator.onLine &&
+      authStore.usuario
+    ) {
+      poblarSocioDesdeLocal()
+      return
+    }
+
+    const userId = authStore.usuario?.id ?? 1
     const data = await accesosService.obtenerPerfilSocio(userId)
+
+    const listaMembresias = Array.isArray(data.membresia)
+      ? data.membresia
+      : data.membresia
+        ? [data.membresia]
+        : []
+    const membresiaActiva = listaMembresias.find(
+      (m: unknown) =>
+        (
+          m as { membresia_estado?: { descripcion?: string } }
+        )?.membresia_estado?.descripcion?.toUpperCase() === 'ACTIVA'
+    )
+
+    const descripcionEstado = membresiaActiva
+      ? 'ACTIVA'
+      : listaMembresias[0]?.membresia_estado?.descripcion?.toUpperCase() ||
+        'INACTIVA'
+
+    const tieneMembresiaActiva = !!membresiaActiva
+    const baseUsuario = authStore.usuario
+
+    authStore.setPerfilInterno({
+      ...baseUsuario,
+      id: Number(data.socioId) || baseUsuario?.id || userId,
+      nombre: data.nombre || baseUsuario?.nombre,
+      apellido: data.apellido ?? baseUsuario?.apellido,
+      email: data.email || baseUsuario?.email,
+      dni: data.dni || baseUsuario?.dni,
+      foto_url: data.foto_url || baseUsuario?.foto_url,
+      id_ciudad: data.id_ciudad ?? baseUsuario?.id_ciudad,
+      estadoMembresia: descripcionEstado,
+      enMora: !tieneMembresiaActiva,
+    })
 
     socio.value = {
       ...data,
-      nombre: data.nombre || authStore.usuario?.nombre || 'Socio FitZone',
+      nombre: data.nombre || baseUsuario?.nombre || 'Socio FitZone',
       socioId: data.socioId || userId,
       dni: data.dni || 'Sin especificar',
-      estado: data.estado || 'ACTIVO',
+      membresia: { membresia_estado: { descripcion: descripcionEstado } },
+      foto_url: data.foto_url || null,
     }
-  } catch (error: unknown) {
-    // Si falla el endpoint de perfil, cargamos un perfil fallback con los datos del authStore para no bloquear la pantalla del QR
-    if (authStore.usuario) {
-      socio.value = {
-        socioId: authStore.usuario.id || 1,
-        nombre: authStore.usuario.nombre || 'Fernando',
-        dni: 'N/A',
-        iniciales: 'F',
-        estado: 'ACTIVO',
-      }
-    } else {
-      perfilError.value =
-        error instanceof Error
-          ? error.message
-          : 'Error al cargar datos del socio.'
-    }
+  } catch (error) {
+    console.error('Error al cargar perfil:', error)
+    // Si no hay red, leemos del store local los datos reales almacenados al iniciar sesión
+    poblarSocioDesdeLocal()
   } finally {
     isPerfilLoading.value = false
   }
 }
 
-const reintentarTodo = async (): Promise<void> => {
-  await cargarPerfil()
+const validarSedeYCiudad = (): boolean => {
+  const sedeActual = sedeStore.sedeSeleccionada
+  const ciudadSocio = authStore.usuario?.id_ciudad
+
+  // Si tenemos ambos datos y no coinciden, bloqueamos
+  if (
+    sedeActual?.id_ciudad &&
+    ciudadSocio &&
+    Number(sedeActual.id_ciudad) !== Number(ciudadSocio)
+  ) {
+    return false
+  }
+  return true
+}
+
+const gestionarCargaQr = async (): Promise<void> => {
+  qrErrorMessage.value = null
+
+  // 1. Validamos primero si la sede seleccionada es de la ciudad correcta
+  if (!validarSedeYCiudad()) {
+    const nombreSede = sedeStore.sedeSeleccionada?.nombre || 'la sede actual'
+    qrErrorMessage.value = `Acceso restringido: No puedes generar el QR porque te encuentras en "${nombreSede}", la cual no corresponde a la ciudad de tu membresía.`
+    return
+  }
+
+  // 2. Si la ciudad es correcta, procedemos a solicitar el QR (online u offline)
   await cargarQr()
 }
 
-onMounted(async () => {
+const reintentarTodo = async (): Promise<void> => {
+  await sedeStore.cargarSedes()
   await cargarPerfil()
-  await cargarQr()
+  await gestionarCargaQr()
+}
+
+onMounted(async () => {
+  await sedeStore.cargarSedes() // Aseguramos tener las sedes y la sede seleccionada cargada
+  await cargarPerfil() // Cargamos los datos del socio
+  await gestionarCargaQr()
 })
 </script>
 
@@ -124,7 +204,7 @@ onMounted(async () => {
         </p>
       </header>
 
-      <!-- Skeleton / Datos de Socio -->
+      <!-- Datos de Socio / Skeleton -->
       <section
         v-if="isPerfilLoading"
         class="p-5 border-b border-slate-200 flex items-center gap-3.5 animate-pulse"
@@ -140,11 +220,19 @@ onMounted(async () => {
         v-else-if="socio"
         class="p-5 border-b border-slate-200 flex items-center gap-3.5"
       >
+        <!-- Avatar con foto real o iniciales como fallback -->
         <div
-          class="w-11 h-11 rounded-full border-2 border-[#f43f5e] flex items-center justify-center font-bold text-slate-800 bg-slate-50 shrink-0"
+          class="w-12 h-12 rounded-full border-2 border-[#f43f5e] flex items-center justify-center font-bold text-slate-800 bg-slate-50 shrink-0 overflow-hidden shadow-sm"
         >
-          <span>{{ inicialesSocio }}</span>
+          <img
+            v-if="socio.foto_url"
+            :src="socio.foto_url"
+            alt="Foto de perfil"
+            class="w-full h-full object-cover"
+          />
+          <span v-else>{{ inicialesSocio }}</span>
         </div>
+
         <div class="flex-1 min-w-0">
           <h2 class="text-base font-bold text-slate-900 truncate m-0">
             {{ socio.nombre }}
@@ -156,23 +244,24 @@ onMounted(async () => {
             <span class="font-medium text-slate-700">{{ socio.dni }}</span>
           </p>
         </div>
+
+        <!-- Estado de la membresía dinámico -->
         <span
           class="text-[11px] font-bold px-2.5 py-1 rounded-full border"
           :class="
-            socio.estado === 'ACTIVO'
+            socio.membresia?.membresia_estado?.descripcion === 'ACTIVA'
               ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
               : 'bg-rose-50 text-rose-800 border-rose-200'
           "
         >
-          {{ socio.estado }}
+          {{ socio.membresia?.membresia_estado?.descripcion }}
         </span>
       </section>
 
-      <!-- QR / Estados -->
+      <!-- Main QR -->
       <main
         class="p-6 flex flex-col items-center justify-center bg-white min-h-[320px]"
       >
-        <!-- Loading -->
         <div
           v-if="isLoadingGlobal"
           class="py-8 text-center flex flex-col items-center gap-3"
@@ -185,27 +274,24 @@ onMounted(async () => {
           </p>
         </div>
 
-        <!-- Error -->
+        <!-- Bloque que captura y muestra exactamente el mensaje que manda el backend (ej. membresía inactiva / mora) -->
         <div
           v-else-if="perfilError || qrErrorMessage"
           class="py-6 text-center max-w-xs flex flex-col items-center"
         >
           <PhWarningCircle :size="36" class="text-rose-500 mb-2" />
           <p class="text-sm font-semibold text-rose-800 m-0">
-            No se pudo obtener la credencial
+            Acceso restringido
           </p>
-          <p class="text-xs text-rose-600 mt-1 mb-4">
-            {{ perfilError || qrErrorMessage }}
+          <p class="text-xs text-rose-600 mt-1 mb-4 leading-relaxed">
+            {{ qrErrorMessage || perfilError }}
           </p>
           <BaseButton size="sm" variant="outline" @click="reintentarTodo">
-            <template #icon>
-              <PhArrowClockwise :size="16" />
-            </template>
+            <template #icon><PhArrowClockwise :size="16" /></template>
             Reintentar
           </BaseButton>
         </div>
 
-        <!-- QR Válido -->
         <template v-else-if="qrData && !isExpired">
           <div
             class="bg-rose-50 text-rose-600 text-xs font-semibold px-4 py-1.5 rounded-full mb-5 flex items-center gap-1.5"
@@ -219,10 +305,11 @@ onMounted(async () => {
           <div
             class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex justify-center items-center"
           >
-            <img
-              :src="qrImageUrl"
-              :alt="`Código QR de acceso`"
-              class="w-48 h-48 object-contain block"
+            <qrcode
+              :value="qrData.token"
+              :size="192"
+              level="M"
+              render-as="svg"
             />
           </div>
 
@@ -233,15 +320,14 @@ onMounted(async () => {
           </div>
         </template>
 
-        <!-- Expirado -->
         <div v-else class="py-6 text-center flex flex-col items-center">
           <PhWarningCircle :size="32" class="text-amber-500 mb-2" />
           <p class="text-sm text-slate-500 mb-4">
             La credencial de acceso ha expirado.
           </p>
-          <BaseButton size="sm" :loading="isQrLoading" @click="cargarQr">
-            Solicitar nuevo QR
-          </BaseButton>
+          <BaseButton size="sm" :loading="isQrLoading" @click="cargarQr"
+            >Solicitar nuevo QR</BaseButton
+          >
         </div>
       </main>
 

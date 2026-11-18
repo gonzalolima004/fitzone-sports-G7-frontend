@@ -3,11 +3,12 @@ import type {
   CotizacionTurnoResponse,
   CrearReservaCanchaDto,
   ReservaCanchaResponse,
+  DetalleReservaCancha,
 } from '@/modules/M4-canchas/types/canchas.types'
 
 export const reservasService = {
   /**
-   * Consulta la cotización dinámica del turno al backend (US-05-03 / Subtarea 2.2)
+   * Consulta la cotización dinámica del turno al backend
    * Devuelve el desglose de precio según el perfil del usuario (descuento 15% socio)
    * y horario pico (19:00 a 21:00 hs) sin duplicar el patrón Strategy en Vue.
    */
@@ -15,7 +16,8 @@ export const reservasService = {
     idCancha: number,
     fecha: string,
     horaInicio: string,
-    costoBase: number
+    costoBase?: number,
+    esSocio: boolean = true
   ): Promise<CotizacionTurnoResponse> {
     try {
       const response = await http.get<CotizacionTurnoResponse>(
@@ -30,31 +32,34 @@ export const reservasService = {
       )
       return response.data
     } catch {
-      // Simulación de contingencia local que refleja la respuesta del Strategy del backend
+      // Simulación de contingencia local si el endpoint no responde
       const horaNum = parseInt(horaInicio.split(':')[0], 10)
       const esPico = horaNum >= 19 && horaNum < 21
-      const esSocio = true // Por defecto el usuario activo es socio
+      const base =
+        costoBase && !isNaN(costoBase) && costoBase > 0 ? costoBase : 8000
       const descuentoPorcentaje = esSocio ? 15 : 0
-      const montoDescuento = Math.round(costoBase * (descuentoPorcentaje / 100))
-      const montoRecargoPico = esPico ? Math.round(costoBase * 0.2) : 0
-      const precioFinal = costoBase - montoDescuento + montoRecargoPico
+      const montoDescuento = Math.round(base * (descuentoPorcentaje / 100))
+      const montoRecargoPico = esPico ? Math.round(base * 0.2) : 0
+      const precioFinal = base - montoDescuento + montoRecargoPico
 
       return {
-        costo_base: costoBase,
+        costo_base: base,
         descuento_porcentaje: descuentoPorcentaje,
         monto_descuento: montoDescuento,
         es_horario_pico: esPico,
         monto_recargo_pico: montoRecargoPico,
         precio_final: precioFinal,
         es_socio: esSocio,
+        aplica_descuento_socio: descuentoPorcentaje > 0,
+        motivo_sin_descuento: esSocio ? null : 'ROL_EXTERNO',
       }
     }
   },
 
   /**
-   * Envía la solicitud transaccional para reservar la cancha (US-05-04 / Subtarea 2.3)
+   * Envía la solicitud transaccional para reservar la cancha
    * Consume POST /reservas-canchas.
-   * Si ocurre un conflicto de concurrencia (RN-02), el backend responde HTTP 409 Conflict.
+   * Si ocurre un conflicto de concurrencia, el backend responde HTTP 409 Conflict.
    */
   async crearReserva(
     dto: CrearReservaCanchaDto
@@ -64,6 +69,71 @@ export const reservasService = {
       dto
     )
     return response.data
+  },
+
+  /**
+   * Obtiene el detalle de una reserva de cancha por ID
+   * Consume GET /reservas-canchas/:id
+   */
+  async obtenerReservaPorId(id: number): Promise<DetalleReservaCancha> {
+    try {
+      const response = await http.get<
+        DetalleReservaCancha & {
+          cancha_reserva_estado?: { descripcion?: string }
+        }
+      >(`/reservas-canchas/${id}`)
+      const data = response.data
+      return {
+        ...data,
+        nombre_cancha: data.nombre_cancha || data.cancha?.nombre,
+        tipo_cancha: data.tipo_cancha || data.cancha?.cancha_tipo?.descripcion,
+        nombre_sede: data.nombre_sede || data.cancha?.sede?.nombre,
+        direccion_sede: data.direccion_sede || data.cancha?.sede?.direccion,
+        estado_nombre:
+          data.estado_nombre || data.cancha_reserva_estado?.descripcion || '',
+      }
+    } catch (err) {
+      console.warn(
+        `No se pudo obtener la reserva #${id} desde el backend HTTP:`,
+        err
+      )
+      throw err
+    }
+  },
+
+  /**
+   * Guarda temporalmente el detalle contextual de la reserva creada en cliente
+   * para enriquecer la vista de detalle.
+   */
+  guardarReservaEnCache(reserva: DetalleReservaCancha): void {
+    try {
+      localStorage.setItem(
+        `fitzone_reserva_${reserva.id_cancha_reserva}`,
+        JSON.stringify(reserva)
+      )
+    } catch (e) {
+      console.warn('Error guardando reserva en cache:', e)
+    }
+  },
+
+  /**
+   * Obtiene las reservas de canchas del usuario autenticado.
+   */
+  async obtenerMisReservasCanchas(): Promise<DetalleReservaCancha[]> {
+    try {
+      const response = await http.get<DetalleReservaCancha[]>(
+        '/reservas-canchas/mis-reservas'
+      )
+      return response.data
+    } catch {
+      try {
+        const response =
+          await http.get<DetalleReservaCancha[]>('/reservas-canchas')
+        return response.data
+      } catch {
+        return []
+      }
+    }
   },
 }
 

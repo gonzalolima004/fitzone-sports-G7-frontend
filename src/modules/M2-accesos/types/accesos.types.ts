@@ -1,3 +1,36 @@
+export type TipoOperacion = 'ingreso' | 'egreso'
+
+// DTOs de Request como unión de tipos para soportar QR o DNI
+export type ValidarAccesoRequestDto = {
+  readonly qrToken?: string
+  readonly id_sede: number
+  readonly dni?: string
+}
+
+export type RegistrarEgresoRequestDto = {
+  readonly qrToken?: string
+  readonly dni?: string
+  readonly id_sede?: number
+}
+
+export interface ValidarAccesoResponseDto {
+  readonly exito: boolean
+  readonly mensaje: string
+  readonly socio?: {
+    readonly id: number
+    readonly nombre: string
+    readonly apellido: string
+    readonly dni: string
+    readonly email?: string
+  }
+  readonly motivoRechazo?:
+    | 'QR_VENCIDO'
+    | 'MEMBRESIA_INVALIDA'
+    | 'SEDE_LLENA'
+    | 'DOBLE_INGRESO'
+    | 'OTRO'
+}
+
 export interface BackendQrResponseDto {
   readonly token: string
   readonly expiraEnSegundos: number
@@ -16,12 +49,29 @@ export interface ApiErrorDto {
   readonly status: number
   readonly detail: string
   readonly instance?: string
+  readonly message?: string | string[]
 }
 
 export interface SocioPerfilDto {
+  readonly apellido?: string
   readonly socioId: string | number
+  readonly email?: string
   readonly nombre: string
   readonly dni: string
   readonly iniciales: string
-  readonly estado: 'ACTIVO' | 'INACTIVO' | 'SUSPENDIDO' | string
+  readonly foto_url?: string | null
+  readonly id_sede?: number
+  readonly id_ciudad?: string | number
+  readonly membresia?: {
+    readonly membresia_estado?: {
+      readonly descripcion?: string
+    }
+  }
+}
+
+export interface AforoResponseDto {
+  readonly idSede: number
+  readonly aforoActual: number
+  readonly aforoMaximo: number
+  readonly [key: string]: unknown
 }

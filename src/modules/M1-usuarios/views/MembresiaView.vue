@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useAuthStore } from '@/store/auth'
-import { PhMedal, PhWarningCircle, PhShieldCheck } from '@phosphor-icons/vue'
+import { useAuthStore, type RolUsuario } from '@/store/auth'
+import { PhMedal, PhWarningCircle } from '@phosphor-icons/vue'
+import BaseButton from '@/common/components/BaseButton.vue'
+import BaseModal from '@/common/components/BaseModal.vue'
 
 import PlanCard from '../components/PlanCard.vue'
 import CheckoutModal from '../../M5-pagos/components/CheckoutModal.vue'
@@ -10,7 +12,9 @@ import {
   membresiasService,
   type PlanMembresia,
   type EstadoMembresia,
+  type MembresiaActiva,
 } from '../services/membresias.service'
+import { authService } from '../services/auth.service'
 import { pagosService } from '../../M5-pagos/services/pagos.service'
 import { toast } from '@/common/utils/toast'
 
@@ -21,10 +25,39 @@ const authStore = useAuthStore()
 const isLoading = ref(true)
 const isProcessingPayment = ref(false)
 const modalAbierto = ref(false)
+const modalSuspenderAbierto = ref(false)
+const isSuspendiendo = ref(false)
 
 const planes = ref<PlanMembresia[]>([])
 const miEstado = ref<EstadoMembresia | null>(null)
+const membresiaActiva = ref<MembresiaActiva | null>(null)
 const planSeleccionado = ref<PlanMembresia | null>(null)
+
+const sincronizarRolSocio = async () => {
+  if (authStore.rol !== 'externo') return
+  try {
+    const respuesta = await authService.verifyLocalProfile()
+    const u = respuesta?.user
+    if (u) {
+      const rolBackend = String(
+        u.rol ?? u.roles?.[0] ?? 'socio'
+      ).toLowerCase() as RolUsuario
+      authStore.setPerfilInterno({
+        id: u.id_usuario,
+        email: u.email,
+        rol: rolBackend,
+      })
+    }
+  } catch {
+    if (authStore.usuario && authStore.usuario.id !== undefined) {
+      authStore.setPerfilInterno({
+        ...authStore.usuario,
+        id: authStore.usuario.id, // TypeScript valida que id es number
+        rol: 'socio',
+      })
+    }
+  }
+}
 
 const fetchDatos = async () => {
   try {
@@ -33,27 +66,25 @@ const fetchDatos = async () => {
 
     if (!userId) throw new Error('Usuario no identificado')
 
-    const [planesData, estadoData] = (await Promise.all([
+    const [planesData, estadoData, activaData] = (await Promise.all([
       membresiasService.getPlanes(),
       membresiasService.verificarEstado(userId),
-    ])) as unknown as [PlanMembresia[], EstadoMembresia]
+      membresiasService.getMembresiaActiva(userId).catch(() => null),
+    ])) as unknown as [PlanMembresia[], EstadoMembresia, MembresiaActiva | null]
 
-    planes.value = planesData.map((p) => {
-      let desc =
-        'Acceso ilimitado a 25+ sedes|Clases grupales incluidas|15% off en Canchas|Credencial QR dinámica'
-
-      if (p.duracion_dias === 90) {
-        desc =
-          'Todo lo del Plan Básico|Reserva prioritaria de clases (48 hs antes)|Renovación automática sin cortes|2 pases de invitado por trimestre'
-      } else if (p.duracion_dias >= 365) {
-        desc =
-          'Todo lo del Plan Pro|2 meses gratis incluidos en el año|Turno fijo semanal en canchas|Kit de bienvenida FitZone Sports'
-      }
-
-      return { ...p, descripcion: desc }
-    })
+    planes.value = planesData.map((p) => ({
+      ...p,
+      descripcion:
+        p.descripcion ||
+        'Acceso a musculación y clases grupales|Credencial digital QR|15% off en canchas|Sin matrícula',
+    }))
 
     miEstado.value = estadoData
+    membresiaActiva.value = activaData
+
+    if (estadoData?.esSocioActivo || estadoData?.enMora || activaData) {
+      await sincronizarRolSocio()
+    }
   } catch {
     toast.error('Ocurrió un error al cargar la información de la membresía.')
   } finally {
@@ -62,7 +93,27 @@ const fetchDatos = async () => {
 }
 
 onMounted(async () => {
+  let habiaPagoPendienteLocal = false
+  try {
+    const rawStorage = localStorage.getItem('fitzone_pago_pendiente')
+    if (rawStorage) {
+      const data = JSON.parse(rawStorage)
+      if (data && typeof data.id_pago === 'number') {
+        habiaPagoPendienteLocal = true
+        await pagosService.obtenerPagoPorId(data.id_pago)
+      }
+    } else if (authStore.rol === 'externo') {
+      await pagosService.obtenerMisPagos().catch(() => null)
+    }
+  } catch {
+    // Continúa con la verificación normal de membresía
+  }
+
   await fetchDatos()
+
+  if (miEstado.value?.esSocioActivo && habiaPagoPendienteLocal) {
+    localStorage.removeItem('fitzone_pago_pendiente')
+  }
 
   if (route.query.status || route.query.payment_id) {
     router.replace({ path: route.path })
@@ -76,6 +127,8 @@ onMounted(async () => {
         'Tu pago está siendo procesado. Se actualizará en unos minutos.'
       )
     }
+  } else if (habiaPagoPendienteLocal && miEstado.value?.esSocioActivo) {
+    toast.success('¡Tu membresía ha sido activada exitosamente!')
   }
 })
 
@@ -88,26 +141,63 @@ const confirmarPago = async () => {
   isProcessingPayment.value = true
   try {
     const payload = {
-      id_membresia: planSeleccionado.value?.id,
+      id_membresia_plan: planSeleccionado.value?.id,
       monto: planSeleccionado.value?.precio ?? 0,
       email_pagador: authStore.usuario?.email || 'test@fitzone.com',
       titulo: `Suscripción - ${planSeleccionado.value?.nombre ?? ''}`,
     }
 
-    const response = (await pagosService.iniciarPago(payload)) as {
-      initPoint?: string
-      sandboxInitPoint?: string
+    const response = await pagosService.iniciarPago(payload)
+
+    if (response?.id_pago) {
+      localStorage.setItem(
+        'fitzone_pago_pendiente',
+        JSON.stringify({
+          id_pago: response.id_pago,
+          preferenceId: response.preferenceId,
+          fecha: new Date().toISOString(),
+        })
+      )
     }
 
-    if (response?.initPoint || response?.sandboxInitPoint) {
-      window.location.href = (response.initPoint ||
-        response.sandboxInitPoint) as string
+    const checkoutUrl = response?.sandboxInitPoint || response?.initPoint
+    if (checkoutUrl) {
+      window.location.href = checkoutUrl
+      return
     }
   } catch {
     toast.error('No se pudo iniciar el proceso de pago. Inténtalo nuevamente.')
   } finally {
     isProcessingPayment.value = false
     modalAbierto.value = false
+  }
+}
+
+const fechaFinCiclo = computed(
+  () =>
+    membresiaActiva.value?.fecha_fin ??
+    miEstado.value?.fecha_vencimiento ??
+    miEstado.value?.fechaVencimiento ??
+    null
+)
+
+const puedeSuspender = computed(
+  () => Boolean(miEstado.value?.esSocioActivo) && !miEstado.value?.suspendida
+)
+
+const confirmarSuspension = async () => {
+  isSuspendiendo.value = true
+  try {
+    await membresiasService.suspenderMiMembresia()
+    modalSuspenderAbierto.value = false
+    toast.success(
+      `Tu membresía fue suspendida. Conservás tus beneficios hasta el ${formatFecha(fechaFinCiclo.value)}.`
+    )
+    await fetchDatos()
+  } catch {
+    toast.error('No se pudo suspender la membresía. Inténtalo nuevamente.')
+  } finally {
+    isSuspendiendo.value = false
   }
 }
 
@@ -124,24 +214,52 @@ const formatFecha = (fechaStr: string | null) => {
 }
 
 const estadoConfig = computed(() => {
-  if (!miEstado.value)
+  if (!miEstado.value) {
     return {
       class: 'bg-slate-100 text-slate-600 border-slate-200',
-      text: 'CARGANDO...',
+      text: 'Cargando...',
+    }
+  }
+
+  if (miEstado.value.esSocioActivo || membresiaActiva.value) {
+    const nombrePlan =
+      membresiaActiva.value?.membresia_plan?.nombre ||
+      miEstado.value.nombre_plan ||
+      miEstado.value.planNombre ||
+      'Plan Activo'
+    const inicioStr = formatFecha(
+      membresiaActiva.value?.fecha_inicio ?? miEstado.value.fecha_inicio ?? null
+    )
+    const finStr = formatFecha(
+      membresiaActiva.value?.fecha_fin ??
+        miEstado.value.fecha_vencimiento ??
+        miEstado.value.fechaVencimiento ??
+        null
+    )
+
+    const detalleFechas =
+      inicioStr !== '-' && finStr !== '-'
+        ? ` • Inicio: ${inicioStr} - Fin: ${finStr}`
+        : finStr !== '-'
+          ? ` • Fin: ${finStr}`
+          : ''
+
+    if (miEstado.value.suspendida) {
+      return {
+        class: 'bg-amber-100 text-amber-700 border-amber-200',
+        text: `${nombrePlan} • Suspendida: beneficios hasta ${finStr}`,
+      }
     }
 
-  if (miEstado.value.esSocioActivo) {
     return {
       class: 'bg-green-100 text-green-700 border-green-200',
-      text: 'ACTIVA',
+      text: `${nombrePlan}${detalleFechas}`,
     }
-  } else if (miEstado.value.enMora) {
-    return { class: 'bg-red-100 text-red-700 border-red-200', text: 'VENCIDA' }
-  } else {
-    return {
-      class: 'bg-slate-100 text-slate-600 border-slate-200',
-      text: 'SIN SUSCRIPCIÓN',
-    }
+  }
+
+  return {
+    class: 'bg-slate-100 text-slate-600 border-slate-200',
+    text: 'Sin membresía',
   }
 })
 
@@ -188,18 +306,37 @@ const isPopularPlan = (plan: PlanMembresia) => plan.duracion_dias === 90
 
           <div class="flex items-center flex-wrap gap-2 sm:gap-3">
             <span
-              class="px-3 py-1.5 text-[10px] sm:text-[11px] font-bold tracking-wide rounded-full border bg-white text-slate-600 shadow-sm whitespace-nowrap"
-            >
-              Cobertura: 25+ Sucursales
-            </span>
-            <span
-              class="px-3 py-1.5 text-[10px] sm:text-[11px] font-bold tracking-wide rounded-full border uppercase shadow-sm whitespace-nowrap"
+              class="px-3.5 py-1.5 text-xs font-bold tracking-wide rounded-full border shadow-sm whitespace-nowrap"
               :class="estadoConfig.class"
             >
-              ESTADO: {{ estadoConfig.text }}
+              {{ estadoConfig.text }}
             </span>
+            <BaseButton
+              v-if="puedeSuspender"
+              variant="danger-outline"
+              size="sm"
+              @click="modalSuspenderAbierto = true"
+            >
+              Suspender membresía
+            </BaseButton>
           </div>
         </header>
+
+        <!-- Aviso de membresía suspendida -->
+        <div
+          v-if="miEstado?.suspendida"
+          class="bg-amber-50 border-l-4 border-amber-400 p-4 sm:p-5 rounded-r-xl shadow-sm mb-8 sm:mb-10"
+        >
+          <h3 class="text-amber-800 font-bold text-sm sm:text-base">
+            Membresía suspendida
+          </h3>
+          <p class="text-amber-700 text-xs sm:text-sm mt-1 leading-relaxed">
+            Mantenés todos tus beneficios de socio hasta el
+            <strong>{{ formatFecha(fechaFinCiclo) }}</strong
+            >. Después no se generará un nuevo cobro. Para volver a suscribirte
+            tenés que esperar a que finalice esta vigencia.
+          </p>
+        </div>
 
         <!-- Panel de Vencimiento / Mora -->
         <div
@@ -219,7 +356,11 @@ const isPopularPlan = (plan: PlanMembresia) => plan.duracion_dias === 90
               <p class="text-red-700 text-xs sm:text-sm mt-1 leading-relaxed">
                 Tu plan actual finalizó el
                 <strong>{{
-                  formatFecha(miEstado?.fechaVencimiento ?? null)
+                  formatFecha(
+                    miEstado?.fecha_vencimiento ??
+                      miEstado?.fechaVencimiento ??
+                      null
+                  )
                 }}</strong
                 >. <br class="hidden sm:block" />
                 Actualmente
@@ -256,8 +397,19 @@ const isPopularPlan = (plan: PlanMembresia) => plan.duracion_dias === 90
             v-for="plan in planes"
             :key="plan.id"
             :plan="plan"
-            :is-current="miEstado?.nombre_plan === plan.nombre"
+            :is-current="
+              (membresiaActiva?.membresia_plan?.nombre ??
+                miEstado?.nombre_plan) === plan.nombre
+            "
+            :has-active-plan="
+              Boolean(
+                miEstado?.esSocioActivo ||
+                membresiaActiva ||
+                miEstado?.nombre_plan
+              )
+            "
             :is-popular="isPopularPlan(plan)"
+            :disabled="Boolean(miEstado?.suspendida)"
             :is-loading="
               isProcessingPayment && planSeleccionado?.id === plan.id
             "
@@ -265,25 +417,36 @@ const isPopularPlan = (plan: PlanMembresia) => plan.duracion_dias === 90
           />
         </div>
 
-        <!-- Footer Informativo -->
-        <div
-          class="mt-10 sm:mt-12 bg-blue-50/50 border border-blue-100 p-4 sm:p-5 rounded-xl flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4"
+        <!-- Modal de confirmación de suspensión -->
+        <BaseModal
+          v-model="modalSuspenderAbierto"
+          title="Suspender membresía"
+          max-width="sm"
         >
-          <div class="bg-blue-100 p-2 rounded-full shrink-0">
-            <PhShieldCheck :size="24" weight="duotone" class="text-blue-600" />
-          </div>
-          <div>
-            <h4 class="text-sm font-bold text-[#202759]">
-              Seguridad de Datos y Tokenización
-            </h4>
-            <p class="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed">
-              FitZone Sports no almacena datos sensibles de tarjetas de crédito
-              o débito en sus bases de datos locales. La transacción se procesa
-              directamente mediante el checkout seguro oficial de la pasarela de
-              pagos.
-            </p>
-          </div>
-        </div>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Vas a conservar tus beneficios hasta el
+            <strong>{{ formatFecha(fechaFinCiclo) }}</strong
+            >. Luego no se generará un pago pendiente.
+            <strong>Esta acción no se puede deshacer</strong>: para volver a
+            suscribirte tendrás que esperar a que finalice la vigencia.
+          </p>
+          <template #actions>
+            <BaseButton
+              variant="outline"
+              :disabled="isSuspendiendo"
+              @click="modalSuspenderAbierto = false"
+            >
+              Cancelar
+            </BaseButton>
+            <BaseButton
+              variant="danger"
+              :loading="isSuspendiendo"
+              @click="confirmarSuspension"
+            >
+              Sí, suspender
+            </BaseButton>
+          </template>
+        </BaseModal>
 
         <!-- Modal de Checkout -->
         <CheckoutModal
@@ -291,6 +454,7 @@ const isPopularPlan = (plan: PlanMembresia) => plan.duracion_dias === 90
           v-model="modalAbierto"
           :plan="planSeleccionado"
           :is-loading="isProcessingPayment"
+          :email-pagador="authStore.usuario?.email"
           @confirmar="confirmarPago"
         />
       </div>

@@ -1,108 +1,324 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { supabase } from '@/common/api/supabase'
 import {
   authService,
   type LoginPayload,
 } from '@/modules/M1-usuarios/services/auth.service'
+import type { Session } from '@supabase/supabase-js'
+import { accesosService } from '@/modules/M2-accesos/services/accesos.service'
+import http from '@/common/api/http'
 
-export type RolUsuario = 'socio' | 'recepcion' | 'gerente' | 'admin'
+export type RolUsuario = 'socio' | 'externo' | 'recepcionista' | 'gerente'
 
 export interface Usuario {
-  id?: number
+  id: number
   nombre?: string
-  apellido?: string // Agregado para compatibilidad con la respuesta de la API
+  apellido?: string
   email?: string
+  telefono?: string
+  foto_url?: string
   rol?: RolUsuario
+  id_sede?: number
+  sede?: {
+    id_sede: number
+    nombre?: string
+    id_ciudad?: number
+  }
+  estadoMembresia?: string
+  enMora?: boolean
+  dni?: string
+  id_ciudad?: number | string
+}
+
+let sincronizandoCola = false
+
+export async function sincronizarColaOffline() {
+  if (sincronizandoCola) return
+  const colaRaw = localStorage.getItem('fitzone_offline_queue')
+  if (!colaRaw) return
+
+  const cola = JSON.parse(colaRaw) as unknown[]
+  if (!Array.isArray(cola) || cola.length === 0) return
+
+  sincronizandoCola = true
+  try {
+    const pendientes: unknown[] = []
+    for (const item of cola) {
+      try {
+        const registro = item as {
+          tipo?: string
+          data?: { id_usuario?: number; id_sede?: number }
+          timestamp?: string
+        }
+
+        if (!registro.tipo || !registro.data || !registro.timestamp) continue
+
+        await http.post('/accesos/sincronizar-offline', {
+          id_usuario: registro.data.id_usuario,
+          id_sede: registro.data.id_sede,
+          tipo: registro.tipo,
+          timestamp: registro.timestamp,
+        })
+      } catch {
+        pendientes.push(item)
+      }
+    }
+
+    localStorage.setItem('fitzone_offline_queue', JSON.stringify(pendientes))
+  } finally {
+    sincronizandoCola = false
+  }
+}
+
+// Escuchar cuando el navegador recupera la red
+window.addEventListener('online', () => {
+  sincronizarColaOffline()
+})
+
+function obtenerAvatarDesdeSesion(
+  sesionActual: Session | null
+): string | undefined {
+  const metadata = sesionActual?.user?.user_metadata as
+    Record<string, unknown> | undefined
+  if (!metadata) return undefined
+  if (typeof metadata.avatar_url === 'string' && metadata.avatar_url.trim()) {
+    return metadata.avatar_url.trim()
+  }
+  if (typeof metadata.picture === 'string' && metadata.picture.trim()) {
+    return metadata.picture.trim()
+  }
+  return undefined
 }
 
 export const useAuthStore = defineStore('auth', () => {
-  // Rol activo (se persiste en localStorage para pruebas y sesión)
-  const rol = ref<RolUsuario>(
-    (localStorage.getItem('rol') as RolUsuario) || 'socio'
-  )
+  const session = ref<Session | null>(null)
+  const usuario = ref<Usuario | null>(null)
+  const isInitialized = ref(false)
+  const cargandoPerfil = ref(false)
+  const perfilVerificado = ref(false)
 
-  function obtenerUsuarioInicial(): Usuario | null {
-    const raw = localStorage.getItem('usuario')
-    if (!raw) return null
+  const isAuthenticated = computed(() => !!session.value)
+  const token = computed(() => session.value?.access_token || null)
+  const rol = computed<RolUsuario>(() => {
+    return (
+      usuario.value?.rol ||
+      (localStorage.getItem('rol') as RolUsuario) ||
+      'socio'
+    )
+  })
+
+  function marcarPerfilVerificado(valor: boolean) {
+    perfilVerificado.value = valor
+  }
+
+  async function sincronizarPerfilSocio() {
     try {
-      return JSON.parse(raw)
-    } catch {
-      return { nombre: raw, rol: rol.value }
-    }
-  }
+      const userIdLocal = usuario.value?.id
+      if (userIdLocal) {
+        const perfilData = await accesosService.obtenerPerfilSocio(userIdLocal)
 
-  // Datos del usuario obtenidos de la sesión
-  const usuario = ref<Usuario | null>(obtenerUsuarioInicial())
+        const listaMembresias = Array.isArray(perfilData.membresia)
+          ? perfilData.membresia
+          : perfilData.membresia
+            ? [perfilData.membresia]
+            : []
 
-  // Token JWT
-  const token = ref<string | null>(
-    localStorage.getItem('token') || localStorage.getItem('fitzone_token')
-  )
+        const membresiaActiva = listaMembresias.find(
+          (m: unknown) =>
+            (
+              m as { membresia_estado?: { descripcion?: string } }
+            )?.membresia_estado?.descripcion?.toUpperCase() === 'ACTIVA'
+        )
+        const estadoFallback = (
+          listaMembresias[0] as
+            { membresia_estado?: { descripcion?: string } } | undefined
+        )?.membresia_estado?.descripcion?.toUpperCase()
+        const descripcionEstado = membresiaActiva
+          ? 'ACTIVA'
+          : estadoFallback || 'INACTIVA'
 
-  const isAuthenticated = computed(() => !!token.value)
+        const datosActuales = usuario.value ?? ({} as Partial<Usuario>)
 
-  function setRol(nuevoRol: RolUsuario) {
-    rol.value = nuevoRol
-    localStorage.setItem('rol', nuevoRol)
-  }
-
-  function setUsuario(nuevoUsuario: Usuario | null, nuevoToken?: string) {
-    usuario.value = nuevoUsuario
-    if (nuevoUsuario) {
-      localStorage.setItem('usuario', JSON.stringify(nuevoUsuario))
-      localStorage.setItem('fitzone_user', JSON.stringify(nuevoUsuario))
-      if (nuevoUsuario.rol) {
-        rol.value = nuevoUsuario.rol
-        localStorage.setItem('rol', nuevoUsuario.rol)
+        setPerfilInterno({
+          ...datosActuales,
+          id: Number(perfilData.socioId),
+          nombre: perfilData.nombre ?? datosActuales.nombre,
+          apellido: perfilData.apellido ?? datosActuales.apellido,
+          email: perfilData.email ?? datosActuales.email,
+          telefono: datosActuales.telefono,
+          foto_url:
+            (perfilData.foto_url ?? datosActuales.foto_url) || undefined,
+          rol: datosActuales.rol,
+          estadoMembresia: descripcionEstado,
+          enMora: !membresiaActiva,
+          dni: perfilData.dni ?? datosActuales.dni,
+          id_ciudad: Number(perfilData.id_ciudad) || datosActuales.id_ciudad,
+        })
       }
-    } else {
-      localStorage.removeItem('usuario')
-      localStorage.removeItem('fitzone_user')
-    }
-
-    if (nuevoToken) {
-      token.value = nuevoToken
-      localStorage.setItem('token', nuevoToken)
-      localStorage.setItem('fitzone_token', nuevoToken)
+    } catch (error) {
+      console.warn(
+        'No se pudo sincronizar el perfil del socio automáticamente:',
+        error
+      )
     }
   }
 
-  // NUEVO: Función para realizar el inicio de sesión contra el backend
+  async function cargarPerfilLocal() {
+    cargandoPerfil.value = true
+    try {
+      const respuesta = (await authService.verifyLocalProfile()) as {
+        success?: boolean
+        user?: {
+          id_usuario: number
+          dni?: string
+          nombre?: string
+          apellido?: string
+          email?: string
+          telefono?: string | null
+          foto_url?: string | null
+          rol?: string
+          roles?: string[]
+          id_sede?: number
+          sede?: {
+            id_sede: number
+            nombre?: string
+            id_ciudad?: number
+          }
+        }
+      }
+
+      const u = respuesta?.user
+      if (u) {
+        const rolBackend = String(
+          u.rol ?? u.roles?.[0] ?? 'externo'
+        ).toLowerCase() as RolUsuario
+
+        setPerfilInterno({
+          id: u.id_usuario,
+          dni: u.dni,
+          nombre: u.nombre,
+          apellido: u.apellido,
+          email: u.email,
+          telefono: u.telefono ?? undefined,
+          foto_url: u.foto_url ?? obtenerAvatarDesdeSesion(session.value),
+          rol: rolBackend,
+          id_sede: u.id_sede,
+          sede: u.sede,
+        })
+        marcarPerfilVerificado(true)
+        return usuario.value
+      }
+      return null
+    } finally {
+      cargandoPerfil.value = false
+    }
+  }
+
+  function actualizarDatosUsuario(datosParciales: Partial<Usuario>) {
+    if (!usuario.value) return
+    usuario.value = {
+      ...usuario.value,
+      ...datosParciales,
+    }
+    localStorage.setItem('fitzone_user_perfil', JSON.stringify(usuario.value))
+    if (usuario.value.rol) {
+      localStorage.setItem('rol', usuario.value.rol)
+    }
+  }
+
+  async function initialize() {
+    const { data } = await supabase.auth.getSession()
+    session.value = data.session
+    isInitialized.value = true
+
+    if (session.value) {
+      const guardado = localStorage.getItem('fitzone_user_perfil')
+      if (guardado) {
+        try {
+          usuario.value = JSON.parse(guardado) as Usuario
+        } catch {
+          // ignore error
+        }
+      }
+      if (typeof navigator === 'undefined' || navigator.onLine) {
+        sincronizarPerfilSocio()
+      }
+    }
+
+    supabase.auth.onAuthStateChange((_event, newSession) => {
+      session.value = newSession
+      if (!newSession) {
+        usuario.value = null
+        perfilVerificado.value = false
+      }
+    })
+  }
+
   async function login(credenciales: LoginPayload) {
-    // 1. Llama al servicio HTTP
     const data = await authService.login(credenciales)
-
-    // 2. Mapea la respuesta a tu interfaz Usuario
-    const nuevoUsuario: Usuario = {
-      id: data.usuario.id_usuario,
-      nombre: data.usuario.nombre,
-      apellido: data.usuario.apellido,
-      email: data.usuario.email,
-      rol: data.usuario.rol as RolUsuario,
+    if (data.session) {
+      session.value = data.session
     }
-
-    // 3. Utiliza tu función existente para guardar todo
-    setUsuario(nuevoUsuario, data.token)
   }
 
-  function logout() {
+  async function logout() {
+    // 1. Limpiamos Pinia de forma síncrona INMEDIATAMENTE para que el router.push('/login') no rebote
+    session.value = null
     usuario.value = null
-    token.value = null
-    localStorage.removeItem('token')
-    localStorage.removeItem('fitzone_token')
-    localStorage.removeItem('usuario')
-    localStorage.removeItem('fitzone_user')
+    perfilVerificado.value = false
     localStorage.removeItem('rol')
+    localStorage.removeItem('fitzone_user_perfil')
+
+    // 2. Cerramos sesión en Supabase en segundo plano
+    try {
+      await authService.logout()
+    } catch {
+      console.warn('Sesión de Supabase ya estaba inactiva.')
+    }
+  }
+
+  function setPerfilInterno(perfil: Usuario) {
+    const previo = usuario.value
+    const mismoUsuario = previo?.id === perfil.id
+    const perfilNormalizado: Usuario = {
+      ...perfil,
+      id_ciudad:
+        perfil.id_ciudad ??
+        perfil.sede?.id_ciudad ??
+        (mismoUsuario ? previo?.id_ciudad : undefined),
+      estadoMembresia:
+        perfil.estadoMembresia ??
+        (mismoUsuario ? previo?.estadoMembresia : undefined),
+      enMora: perfil.enMora ?? (mismoUsuario ? previo?.enMora : undefined),
+      foto_url: perfil.foto_url || obtenerAvatarDesdeSesion(session.value),
+    }
+    usuario.value = perfilNormalizado
+    localStorage.setItem(
+      'fitzone_user_perfil',
+      JSON.stringify(perfilNormalizado)
+    )
+    if (perfilNormalizado.rol) {
+      localStorage.setItem('rol', perfilNormalizado.rol)
+    }
   }
 
   return {
-    rol,
+    session,
     usuario,
     token,
+    rol,
+    cargandoPerfil,
+    perfilVerificado,
     isAuthenticated,
-    setRol,
-    setUsuario,
-    login, // Exportamos la nueva función
+    isInitialized,
+    initialize,
+    login,
     logout,
+    setPerfilInterno,
+    marcarPerfilVerificado,
+    cargarPerfilLocal,
+    actualizarDatosUsuario,
+    sincronizarPerfilSocio,
   }
 })

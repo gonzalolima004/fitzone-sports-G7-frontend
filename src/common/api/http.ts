@@ -1,8 +1,9 @@
 import axios from 'axios'
 import router from '../../router'
+import { supabase } from './supabase'
+import { useAuthStore } from '@/store/auth'
 
 export const http = axios.create({
-  // Asegurate de tener VITE_API_URL="http://localhost:3000" en tu .env
   baseURL: import.meta.env.VITE_API_URL,
   headers: {
     'Content-Type': 'application/json',
@@ -10,43 +11,73 @@ export const http = axios.create({
   timeout: 10000,
 })
 
-// Interceptor de solicitud: adjunta el token de sesión si existe en localStorage
 http.interceptors.request.use(
-  (config) => {
-    // Compatibilidad: busca el token tanto bajo 'token' (useAuthStore) como 'fitzone_token'
-    const token =
-      localStorage.getItem('token') || localStorage.getItem('fitzone_token')
+  async (config) => {
+    let token: string | null | undefined
+    try {
+      const authStore = useAuthStore()
+      token = authStore.token
+    } catch {
+      // pinia no listo aún
+    }
+
+    if (!token) {
+      const { data } = await supabase.auth.getSession()
+      token = data.session?.access_token
+    }
+
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+      // CORRECCIÓN DE SEGURIDAD CRÍTICA: Prevenir el envío de tokens a dominios no confiables
+      const requestUrl = config.url || ''
+      const isAbsoluteUrl = /^https?:\/\//i.test(requestUrl)
+      const apiUrl = import.meta.env.VITE_API_URL as string
+
+      // Si la URL es relativa (usa el baseURL), o si es absoluta y coincide exactamente con nuestra API, adjuntamos el token.
+      const isOwnApi = !isAbsoluteUrl || requestUrl.startsWith(apiUrl)
+
+      if (isOwnApi) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
     }
     return config
   },
   (error) => Promise.reject(error)
 )
 
-// Interceptor de respuesta: centraliza errores y redirige si la sesión expiró (401)
 http.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    if (!error.response) {
+      return Promise.reject(error)
+    }
     const status = error.response?.status
     const message =
       error.response?.data?.message || error.message || 'Error de conexión'
 
     console.error(`[HTTP ${status ?? 'Network Error'}]:`, message)
 
-    // Si la sesión no es válida o expiró, limpiamos y mandamos a login
-    if (status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('fitzone_token')
-      localStorage.removeItem('usuario')
-      localStorage.removeItem('fitzone_user')
-      localStorage.removeItem('rol')
+    if (
+      status === 403 &&
+      typeof message === 'string' &&
+      message.includes('sin cuenta asociada')
+    ) {
+      if (router.currentRoute.value.path !== '/completar-perfil') {
+        router.push('/completar-perfil')
+      }
+      return Promise.reject(error)
+    }
 
+    if (status === 401) {
+      try {
+        const authStore = useAuthStore()
+        await authStore.logout()
+      } catch {
+        await supabase.auth.signOut()
+      }
       if (router.currentRoute.value.path !== '/login') {
         router.push('/login')
       }
     }
-
     return Promise.reject(error)
   }
 )

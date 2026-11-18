@@ -12,12 +12,13 @@ export type EstadoPago = 'Pendiente' | 'Aprobado' | 'Rechazado'
 
 /**
  * Payload requerido por POST /pagos/iniciar-pago (IniciarPagoDto)
- * Regla de negocio: exactamente uno entre id_cancha_reserva o id_membresia debe estar presente.
+ * Regla de negocio: exactamente uno entre id_cancha_reserva o id_membresia_plan / id_membresia debe estar presente.
  */
 export interface IniciarPagoRequest {
-  monto: number
+  monto?: number
   titulo: string
   id_cancha_reserva?: number
+  id_membresia_plan?: number
   id_membresia?: number
   email_pagador?: string
 }
@@ -40,6 +41,7 @@ export interface PagoConceptoDto {
   id_referencia: number | null
   titulo: string
   detalle: string
+  duracion_dias?: number
 }
 
 /**
@@ -51,6 +53,7 @@ export interface PagoPendiente {
   titulo: string
   detalle: string
   monto: number
+  duracion_dias?: number
 }
 
 /**
@@ -150,6 +153,29 @@ export const pagosService = {
   getComprobanteUrl(id: number): string {
     const baseURL = (import.meta.env.VITE_API_URL as string) || ''
     return `${baseURL}/pagos/${id}/comprobante`
+  },
+
+  /**
+   * Descarga el comprobante PDF con el token de sesión y lo abre en una pestaña nueva.
+   * Retorna false si el navegador bloqueó la ventana emergente.
+   */
+  async abrirComprobante(id: number): Promise<boolean> {
+    const win = window.open('', '_blank')
+    try {
+      const response = await apiClient.get<Blob>(`/pagos/${id}/comprobante`, {
+        responseType: 'blob',
+      })
+      const url = URL.createObjectURL(
+        new Blob([response.data], { type: 'application/pdf' })
+      )
+      if (!win) return false
+      win.location.href = url
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+      return true
+    } catch (error) {
+      win?.close()
+      throw error
+    }
   },
 }
 

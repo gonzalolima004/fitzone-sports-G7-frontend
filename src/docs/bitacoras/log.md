@@ -1,0 +1,1500 @@
+## Unidad I: Arquitectura
+
+### Matías Sillen Ríos - Frontend Developer
+- **Actividades:** Definición de la estructura de directorios del Frontend (Vue.js) aplicando un enfoque "Feature-Driven", creacion del archivo LOG.md y estandarización del flujo de trabajo colaborativo en Git (Git Flow simplificado y reglas para Pull Requests).
+- **Decisiones:** Se decidió alinear los nombres de los módulos del Frontend (ej. `M1-usuarios`) de forma idéntica al Backend (NestJS) para mantener un Lenguaje Ubicuo. Además, se estableció mantener la lógica transversal (interceptores, utilidades, composables) estrictamente dentro de `src/common`.
+- **Commits vinculados:** `bf9c804` (Organice la estructura del pryecto por modulos, tal como se solicitó en la catedra).
+
+----
+
+#### 02/10/2026
+#### Gonzalo Lima | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Configuración e integración inicial de Vue Router con definición de rutas para cada módulo y manejo de ruta no encontrada (404).
+  - Creación del cliente HTTP con Axios, interceptores para adjuntar token Bearer y redirección automática al login en respuestas 401.
+  - Configuración del pipeline de calidad: ESLint Flat Config para Vue 3 + TypeScript, Prettier, Vitest y scripts de validación.
+- **Decisiones:**
+  - Integrar ESLint Flat Config y excluir archivos .md para evitar formateos no deseados en la documentación compartida.
+- **Dificultades:** Ninguna.
+- **Commits:**
+  - `feat(router): vue router y rutas iniciales`
+  - `feat(api): axios para conexión http`
+  - `feat(api): comprobación de conexión al backend e instalación de pinia`
+  - `feat: configuración de prettier y formateador + fixes de ambos`
+
+----
+
+#### 02/10/2026
+#### Gonzalo Lima | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Creación del layout principal  dividiendo en header, sidebar y área de contenido.
+  - Integración de Pinia y consumo del endpoint GET /sedes para la selección de sede.
+  - Filtrado y presentación de rutas de navegación dinámicas según el rol del usuario obtenido desde la sesión.
+- **Decisiones:**
+  - Persistir el ID de sede seleccionada en localStorage para preservar el contexto de navegación ante recargas de página.
+  - El rol proviene exclusivamente de la autenticación del backend.
+- **Dificultades:** Ninguna.
+- **Commits:**
+  - `feat: layout principal y sidebar`
+  - `feat: navegación según rol y selector de sede`
+
+----
+
+#### 02/10/2026
+#### Gonzalo Lima | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Creación de componentes compartidos atómicos reutilizables.
+  - Reemplazo de alertas estáticas por notificaciones Toast mediante la integración de vue3-toastify.
+  - Documentación  en src/common/components/README.md detallando como se usan estos componentes.
+- **Decisiones:**
+  - Adoptar vue3-toastify para ofrecer una experiencia idéntica a React-Toastify en Vue 3 con tema claro, evitando alertas fijas intrusivas y centralizando el feedback al usuario en 3 segundos.
+- **Dificultades:** Ninguna.
+- **Commits:**
+  - `feat(components): base para botones e inputs compartidos`
+  - `feat(components): base para modal compartido e implementación de vue3 toastify`
+  - `feat(components): aplicación de los estilos del maquetado + configs varias`
+
+----
+
+#### 12/10/2026
+#### Gonzalo Lima | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Creación del servicio de pagos para conectar la interfaz con la API de cobros.
+  - Creación del botón y modal de confirmación de pago con validación y estados de carga.
+  - Listado dinámico de conceptos pendientes (membresías adeudadas y reservas de canchas).
+  - Redirección al checkout de Mercado Pago al confirmar el pago.
+- **Decisiones:**
+  - Reutilizar los componentes base del sistema (botones y modales) para mantener la consistencia visual.
+  - Mostrar mensajes de estado claros cuando el socio está al día con sus pagos.
+- **Dificultades:**
+  - Problema con el token de sesión en las peticiones que provocaba error de autenticación, resuelto unificando su lectura en el cliente HTTP.
+- **Commits:**
+  - `feat(pagos): pago service y botón disparador de acción de pago`
+  - `feat(pagos): conectar service con api iniciar-pagos`
+  - `feat(pagos): integracion de pagos pendientes e inicio de checkout`
+
+----
+
+#### 12/10/2026
+#### Gonzalo Lima | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Creación de la vista de resultado del pago con soporte para estados Aprobado, Pendiente, Rechazado y No identificado.
+  - Configuración de la ruta /pagos/resultado y para los retornos de MercadoPago (pagos/exito, pagos/error, pagos/pendiente).
+  - Consulta al backend (GET /pagos/:id) para certificar el estado real del pago a partir de localStorage o parámetros de URL.
+  - Integración de botones contextuales.
+- **Decisiones:**
+  - Validar siempre el estado persistido en la base de datos para no depender únicamente de los parámetros de retorno de la pasarela.
+  - Unificar la estructura de la tarjeta mediante propiedades reactivas computadas para mantener el código conciso y sin duplicaciones.
+  - Uso estricto de componentes base (BaseButton) respetando la guía de diseño institucional.
+- **Dificultades:**
+  - Manejo de accesos directos sin identificador de pago o consultas no autorizadas, resuelto incorporando un estado defensivo con navegación segura al panel de pagos.
+- **Commits:**
+  - `feat(pagos): crear vistas de resultados y sus rutas`
+  - `feat(pagos): conectar las vistas con el estado real del pago`
+  - `feat(pagos): conexión con acciones contextuales y navegación dependiendo del resultado del pago`
+  - `fix(pagos): mejoras en la ui y corrección de errores visuales`
+
+----
+
+#### 12/10/2026
+#### Gonzalo Lima | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Creación del componente HistorialPagos para la consulta de pagos realizados por el usuario.
+  - Conexión para poder descargar el PDF del comprobante.
+  - Desglose de datos en mini badges visuales con iconos.
+  - Normalización estética de importes monetarios en ARS sin decimales en tarjetas, historial y modales de pago.
+  - Optimización de armonía visual en tarjetas de pagos pendientes para vista mobile.
+  - Creación del componente genérico BaseSkeleton e integración en conceptos pendientes e historial de pagos.
+- **Decisiones:**
+  - Desacoplar el historial en un componente dedicado y reutilizable para mantener un tamaño de archivo liviano y alta legibilidad.
+  - Restringir la disponibilidad de descarga del comprobante únicamente a transacciones certificadas en estado 'Aprobado'.
+  - Implementar BaseSkeleton para estandarizar los estados de carga.
+- **Dificultades:**
+  - Desbalance visual y saltos de línea involuntarios en los badges descriptivos y botones de cobro en pantallas estrechas.
+- **Commits:**
+  - `feat(pagos): creación de historial de pagos`
+  - `fix(pagos): armonizar diseño en desktop y mobile`
+  - `feat(pagos): agregar skeleton loaders base y utilizarlo en toda la sección`
+
+----
+
+#### 20/10/2026 - 22/10/2026
+#### Gonzalo Lima | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Implementación de redirección inteligente post-login según el rol del usuario mediante guard auxiliar y actualización de tipos en auth store.
+  - Ajuste de visibilidad y permisos en las secciones del menú lateral (Sidebar) alineado con los roles de usuario.
+  - Reestructuración de rutas para publicar la Landing Page en la ruta raíz (`/`) como vista pública y reubicación del dashboard privado en `/inicio`.
+  - Creación del módulo `landing` con rutas dedicadas y vista orquestadora modularizada (`LandingView.vue`).
+  - Maquetado y desarrollo de componentes modulares para la Landing Page:
+    - `LandingHeader`: Barra de navegación fija con scroll suave a secciones, selector rápido de sedes y accesos a login/registro.
+    - `LandingHero`: Portada institucional con propuesta de valor, badges destacados, llamadas a la acción e imágenes responsive.
+    - `LandingFrictionless`: Sección explicativa de acreditación instantánea mediante QR, reserva de canchas y red de sedes.
+    - `LandingSedes`: Catálogo interactivo de sedes con buscador por ciudad/nombre, filtro por departamentos de Entre Ríos y mapa interactivo con Leaflet.
+    - `LandingServicios`: Grilla completa de disciplinas deportivas con filtrado dinámico por categoría y desglose de características.
+    - `LandingPlanes`: Comparador de planes de suscripción con selector de periodicidad mensual/anual con descuento y vinculación al registro.
+    - `LandingCanchas`: Módulo informativo de canchas deportivas con acceso a alquiler para socios y usuarios externos.
+    - `LandingFaq`: Acordeón interactivo con preguntas frecuentes sobre servicios, membresías y acreditaciones.
+    - `LandingCta` y `LandingFooter`: Banner final de llamado a la acción y pie de página con accesos rápidos, información de sedes y contacto.
+- **Decisiones:**
+  - Modularizar la Landing Page en componentes independientes bajo `src/modules/landing/components/` para mantener una alta mantenibilidad, facilitar pruebas y evitar archivos extensos.
+  - Separar la vidriera pública en la ruta raíz (`/`) y trasladar el panel principal a `/inicio` para ofrecer una navegación natural a visitantes y socios.
+  - Centralizar la lógica de redirección basada en roles en una utilidad compartida (`rutaPorRol`) para reutilizarla tanto en el formulario de login como en el guard global del router.
+  - Integrar Leaflet para la visualización geográfica de sedes en Entre Ríos sin depender de servicios pagos de mapas.
+- **Dificultades:**
+  - Adaptar la navegación y guards para permitir el acceso público a la landing y a la reserva de canchas para usuarios externos sin provocar redirecciones involuntarias al login.
+- **Commits:**
+  - `feat(rbac): redirección después de iniciar sesión dependiendo del rol`
+  - `feat(landing): ruta para la lading y mover dashboard a /inicio`
+  - `feat(landing): landing completa modularizada`
+
+----
+
+#### 26/10/2026
+#### Gonzalo Lima | Rol: Desarrollador Frontend
+
+- **Actividades**:
+  - Migración y alineación completa de los planes de membresía a Plan Mensual (30 días), Plan Trimestral (90 días) y Plan Anual (365 días).
+  - Actualización de la landing page con botones de acción: redirige a /membresia si el usuario está autenticado, o a /login si no lo está.
+  - Actualización del modal de checkout con leyenda dinámica de renovación automática según la duración del plan seleccionado (mensual, trimestral o anual) y emisión del ID de plan y preferencia de renovación al backend.
+- **Decisiones**:
+  - Eliminar los selectores artificiales de ciclo de facturación en la landing para consumir directamente los planes reales desde el endpoint del backend.
+  - Enrutar a los usuarios no autenticados al login al interactuar con acciones comerciales clave de la landing page para optimizar el embudo de conversión a socios.
+- **Dificultades**: Ninguna.
+- **Commits:**
+  - `feat(pagos): enviar id_membresia_plan y texto dinámico de renovación en checkout`
+  - `feat(membresias): actualizar cards, beneficios y landing con los nuevos planes`
+
+----
+
+#### 29/10/2026
+#### Gonzalo Lima | Rol: Desarrollador Frontend
+
+- **Actividades**:
+  - Vista de membresías: visualización del estado y vigencia de la suscripción en cabecera (plan actual, fechas y badges) y dinamización de acciones en tarjetas de planes.
+  - Modal de checkout: simplificación del flujo reemplazando el formulario simulado de tarjeta por confirmación directa y redirección a Mercado Pago.
+  - Remoción de la opción de renovación automática en checkout y vista de membresías.
+- **Decisiones**:
+  - Delegar el cobro exclusivamente a Checkout Pro de Mercado Pago sin formularios intermedios de tarjeta.
+- **Dificultades**: Ninguna.
+- **Commits**:
+  - `fix(pagos): reemplazar inputs ficticios de tarjeta por modal de confirmacion en checkout`
+  - `feat(membresias): resaltar plan actual, dinamizar botones y mostrar vigencia en cabecera`
+  - `refactor(pagos): remover seleccion de renovacion automatica en checkout`
+
+----
+
+#### 04/11/2026
+#### Gonzalo Lima | Rol: Desarrollador Frontend
+
+- **Actividades**:
+  - Optimización de la Landing Page: centralización y deduplicación de peticiones en el store para evitar llamadas repetidas.
+  - Obtención dinámica de los tipos de cancha desde el backend,eliminando datos hardcodeados.
+  - Rediseño del botón "Mi panel" y ocultamiento del botón de menú hamburguesa en mobile cuando el usuario tiene sesión activa.
+  - Verificación de pago de membresías: reconciliación automática de pagos pendientes y sincronización inmediata del rol del usuario de `"externo"` a `"socio"` en `authStore` tras acreditarse el pago.
+- **Decisiones**:
+  - Reutilizar la promesa en vuelo dentro del store de Pinia para que múltiples componentes montados en simultáneo compartan una única petición HTTP.
+  - Refrescar el perfil local contra el backend al detectarse la membresía activa para actualizar los permisos del menú lateral sin obligar al usuario a reloguear.
+- **Dificultades**: En el entorno Sandbox de Mercado Pago sobre `localhost` no se muestra el botón de retorno automático al sitio, por lo que se resolvió verificando los pagos pendientes del usuario al ingresar a la vista de membresías.
+- **Commits**:
+  - `feat(landing): utilizar el store para una única llamada a la api de sedes y ciudades`
+  - `feat(landing): obtener los tipos de cancha dinámicamente desde el backend`
+  - `chore(landing): mejorar estética del botón "Mi panel"`
+  - `feat(membresias): acreditar pagos de membresia y promover rol externo a socio`
+
+----
+
+#### 07/11/2026
+#### Gonzalo Lima | Rol: Desarrollador Frontend
+
+- **Actividades**:
+  - Descarga segura de comprobantes: se actualizó la vista del historial de pagos para que la descarga de facturas en PDF viaje protegida con la cuenta del usuario, garantizando la privacidad de su información.
+  - Botón para suspender membresía: se agregó el botón "Suspender membresía" con una ventana de confirmación clara. Al suspenderla, se muestra un aviso indicando hasta qué día siguen activos los beneficios y se desactivan los botones de compra para no pagar dos veces.
+- **Decisiones**:
+  - Descargar los comprobantes mediante la sesión activa del usuario para que nadie externo pueda abrirlos.
+  - Desactivar la contratación de planes mientras la membresía suspendida siga vigente para evitar cobros dobles accidentales.
+- **Dificultades**: Ninguna.
+- **Commits**:
+  - `feat(pagos): descargar comprobantes mediante peticion autenticada en historial de pagos`
+  - `feat(membresia): añadir botón para suspender membresía y badge informativos`
+
+----
+
+#### 03/10/2026 - 05/10/2026
+#### Matías Sillen | Rol: Desarrollador Frontend
+
+* **Actividades:**
+* Maquetado e implementación de la pantalla de inicio de sesión (`LoginView.vue`) con validaciones visuales.
+* Configuración del estado global de la sesión utilizando Pinia y protección de rutas privadas mediante Navigation Guards en Vue Router.
+* Implementación de la conexión HTTP configurando Axios con interceptores para adjuntar automáticamente el token JWT.
+
+
+* **Decisiones:**
+* Mantener la sintaxis de Composition API (Setup Store) en Pinia para conservar la lógica previa de roles y persistencia en `localStorage`.
+* Formatear e interceptar los errores de validación devueltos por NestJS (en formato array) para mostrarlos como cadenas de texto limpias en la interfaz del usuario.
+* Redirigir al usuario autenticado directamente a la ruta raíz (`home`) tras un login exitoso, adaptándose a la estructura del `MainLayout` existente.
+
+
+* **Dificultades:**
+* Problemas iniciales de conexión (errores 404) debido a variables de entorno no configuradas (`VITE_API_URL`) y a que la ruta de login no existía inicialmente en el servidor.
+* Advertencias del compilador de TypeScript por el uso de promesas nativas y Vite, solucionadas actualizando el `tsconfig.json` a `ES2022`.
+
+
+* **Commits:**
+* `feat(usuarios): crear servicio http para inicio de sesión`
+* `feat(auth): integrar login con api manteniendo estructura de pinia setup`
+* `feat(usuarios): maquetar pantalla de inicio de sesión con validaciones`
+* `feat(router): proteger rutas del MainLayout con guard de autenticación`
+* `fix(login): corregir redireccion a ruta home tras inicio de sesion`
+* `fix(login): formatear correctamente los mensajes de error de validacion del array de nestjs`
+
+----
+
+#### 05/10/2026
+#### Matías Sillen | Rol: Desarrollador Frontend
+
+* **Actividades:**
+* Maquetado e implementación de las pantallas de `RegistroView.vue` y `PerfilView.vue` siguiendo la identidad visual (azul noche y coral).
+* Integración del servicio de API (Axios) para registrar nuevos usuarios, subir fotos de perfil en formato `FormData` y editar datos personales.
+* Refactorización de las vistas para utilizar los componentes UI compartidos del equipo (`BaseInput`, `BaseButton`, `BaseModal`) y notificaciones mediante `Toastify`.
+* Configuración del Vue Router para exponer la ruta pública de registro y la ruta privada de edición de perfil.
+
+
+* **Decisiones:**
+* Asignar automáticamente el rol `[1]` (Socio) o `[]` (Cliente Externo) según la selección visual del usuario en el formulario.
+* Enviar el valor `"pendiente"` de forma temporal en el campo `foto_url` al crear el usuario para cumplir con las exigencias de validación del backend, para luego reemplazarlo al subir la imagen con el ID generado.
+
+
+* **Dificultades:**
+* El guard de navegación de Vue Router generaba un bloqueo de renderizado al intentar cargar el registro público dentro del `MainLayout` (que exige autenticación); se resolvió extrayendo la ruta `/registro` al nivel raíz.
+* El DTO del backend rechazaba el registro por tipado estricto, obligando a mapear el `id_sede` como `string` y dividir el nombre completo en el frontend antes de enviar la petición.
+
+
+* **Commits:**
+* `feat(usuarios): crear servicio para registro, edicion y carga de fotos de perfil`
+* `feat(usuarios): maquetar e implementar pantalla de registro aplicando identidad visual`
+* `feat(usuarios): crear pantalla de edicion de perfil de usuario`
+* `feat(router): registrar rutas publica de registro y privada de perfil`
+* `fix(router): extraer ruta de registro del mainlayout para evitar bloqueo del guard y errores de renderizado`
+* `fix(usuarios): agregar foto_url temporal y tipar id_sede como string para cumplir con validacion del DTO`
+* `refactor(usuarios): migrar PerfilView a componentes BaseInput, BaseButton y Toastify`
+* `refactor(usuarios): aplicar shared components e integrar toastify en RegistroView`
+
+----
+
+#### 07/10/2026
+#### Matías Sillen | Rol: Desarrollador Frontend
+
+* **Actividades:**
+* Creación de la rama `refactor/login-ui-tailwind` para aislar los cambios de la interfaz.
+* Refactorización completa de la vista de inicio de sesión (`LoginView.vue`), eliminando el bloque de estilos CSS puro (`scoped`) y migrando la estructura a Tailwind CSS.
+* Implementación de los componentes reutilizables de la UI base (`BaseInput` y `BaseButton`) en el formulario de login para estandarizar el diseño con el resto de la plataforma.
+* Sustitución de los mensajes de error en línea por el sistema de notificaciones globales utilizando `vue3-toastify`.
+
+
+* **Decisiones:**
+* Aislar esta refactorización en una rama nueva para mantener un historial de control de versiones limpio y estructurado, separando el desarrollo funcional original de las mejoras visuales.
+* Aplicar directamente los colores hexadecimales de la identidad visual oficial (`#202759` y `#F96167`) mediante clases utilitarias de Tailwind para asegurar la consistencia total con las pantallas de Registro y Perfil.
+
+
+* **Dificultades:**
+* Ninguna significativa. La adaptación de la estructura HTML que dependía de clases locales al uso de los nuevos componentes atómicos y utilidades de Tailwind se realizó de forma fluida.
+
+
+* **Commits:**
+* `refactor(login): migrar UI a tailwind, implementar BaseInput/BaseButton e integrar toastify`
+
+---
+#### 07/10/2026 - 13/10/2026
+#### Matías Sillen | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Refactorización completa de MembresiaView.vue para asegurar un uso estricto de Tailwind CSS, eliminando etiquetas <style scoped> y animaciones @keyframes.
+  - Reemplazo de la animación custom por el componente <Transition> nativo de Vue combinado con utilidades de Tailwind para el efecto fade-in.
+  - Corrección del paso de propiedades en PlanCard.vue hacia CheckoutModal.vue, emitiendo el objeto completo del plan para asegurar la visualización del precio correcto.
+  - Inyección manual del token JWT desde Pinia (authStore) hacia el pagosService para resolver errores de autorización 401 en endpoints protegidos.
+  - Modificación del layout principal (Layout.vue) ajustando el contenedor general a h-screen overflow-hidden para mantener la barra lateral fija y habilitar el scroll independiente del área de contenido.
+- **Decisiones:**
+  - Pasar el objeto completo del plan desde la tarjeta al modal (en lugar de emitir únicamente el ID) para hacer el componente más robusto frente a posibles cambios o filtrados de claves del lado del backend.
+  - Mantener la responsabilidad del inicio de pago enviando el payload correcto, pero delegar el manejo del webhook y la confirmación final a la Épica 6 correspondiente al módulo de pagos.
+- **Dificultades:**
+  - Problemas de renderizado de precios debido a que el ID del plan llegaba como undefined, causando que el frontend siempre seleccionara el primer plan por defecto. Se resolvió enviando la entidad completa.
+  - El componente de layout inicial generaba un scroll a nivel de página entera que arrastraba el menú lateral; requirió un reajuste de las clases flexbox y overflow de Tailwind.
+- **Commits:**
+  -  `feat(membresias): mapear endpoints de planes y verificacion de estado`
+  -  `feat(pagos): agregar servicio HTTP para iniciar preferencia de pago`
+  -  `feat(membresias): crear componente reutilizable PlanCard`
+  -  `feat(pagos): maquetar modal de checkout seguro con integracion de metodos`
+  -  `refactor(ui): reemplazar svgs en duro por componentes de phosphor icons en PlanCard.vue`
+  -  `feat(membresias): implementar pantalla de membresías integrando estados, mora y retorno de checkout`
+  -  `fix(membresias): unificar id_membresia_plan en UI y adjuntar token JWT en servicio de pagos`
+  -  `fix(membresias): pasar objeto plan completo al modal para garantizar la visualización del precio correcto`
+  -  `refactor(membresias): enviar objeto plan completo al modal, eliminar css custom y aplicar tailwind estricto`
+  -  `fix(layout): cambiar min-h-screen por h-screen para mantener sidebar fijo y habilitar scroll interno`
+
+----
+
+#### 09/10/2026
+#### Angelina Viale | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Desarrollo de la vista de credencial del socio para la generación y visualización dinámica del código QR de acceso.
+  - Creación del servicio accesos.service.ts para consumir el endpoint de generación de codigo qr, adjuntando la sesión activa del usuario.
+  - Implementación del composable useQr.ts para gestionar la lógica de cuenta regresiva, expiración del token y renovación automática de la credencial.
+  - Manejo de estados de carga, fallos de red y expiración de sesión para evitar mostrar códigos no válidos o desactualizados
+- **Decisiones:**
+  -Centralizar la lógica del temporizador y temporización de renovación dentro de un composable (useQr) para limpiar correctamente los intervalos al desmontar el componente y evitar fuga de memoria o llamadas innecesarias a la API.
+  -
+- **Dificultades:** Ninguna.
+- **Commits:**
+  - `feat(M2): interfases de qrResponse y appiError`
+  - `feat(M2): crear componente de QR`
+  - `feat(M2): implementar servicio y composable para QR`
+  - `feat(M2): bitacora y arreglos`
+
+----
+
+#### 14/10/2026
+#### Angelina Viale | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Desarrollo de la vista de recepción (RecepcionView.vue) y del componente reutilizable de validación (ValidacionAcceso.vue) para el control de acceso en sucursales.
+  - Implementación de la opción de ingreso manual del token QR y del escaneo de códigos en tiempo real utilizando la librería html5-qrcode
+  - Conexión del flujo de validación con el servicio de accesos (accesos.service.ts) para consumir el endpoint de validación y control de aforo/ingresos
+  -Incorporación de la lógica para registrar la salida (egreso) del socio y manejo visual de los estados de éxito, errores y rechazos del servidor (QR vencido, membresía inválida, sede llena o doble ingreso).
+- **Decisiones:**
+  - Extraer y centralizar la lógica del lector y validación en el componente ValidacionAcceso.vue para mantener la vista limpia, evitar la duplicación de código y cumplir con el principio de separación de responsabilidades.
+  - Implementar un mecanismo de control de estado (isLoadingIngreso y bandera de escaneo activo) para evitar múltiples disparos simultáneos y condiciones de carrera al escanear con la cámara.
+- **Dificultades:** Conflictos temporales de lecturas múltiples por segundo desde la cámara web (captura de fotogramas repetidos en paralelo), resueltos bloqueando el lector inmediatamente al detectar un código válido antes de invocar la API..
+- **Commits:**
+  - `feat(M2): crear vista de recepcion y componente de validacion de acceso`
+  - `feat(M2): metodos service accesos e interfaces actualizacion`
+  - `feat(M2): actualizacion credencial`
+
+----
+
+#### 18/10/2026
+#### Angelina Viale | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  -Desarrollo del monitor de aforo en tiempo real para la vista de recepción (AforoView.vue) e integración del componente visual IndicadorAforo.vue.
+
+  -Conexión con el endpoint inicial GET /accesos/aforo/:id_sede para obtener el aforo actual y la capacidad máxima configurada por sede.
+
+  -Creación del composable reutilizable useAforo.ts para encapsular la lógica de consulta inicial, cálculo de porcentajes/alertas de capacidad y la suscripción al canal de eventos en tiempo real.
+
+  -Implementación de la gestión de ciclo de vida del WebSocket/suscripción en tiempo real, garantizando la desconexión limpia al cambiar de sede.
+
+  -Integración de estados de carga, manejo de errores de conexión y alertas visuales al alcanzar o superar el límite de capacidad permitido de la sede.
+- **Decisiones:**
+  -Encapsular toda la lógica de estado y suscripción en vivo en el composable useAforo.ts para separar la capa de datos de la interfaz de usuario.
+  -Centralizar la notificación de cambios de aforo mediante la reactividad de Vue, asegurando que las actualizaciones de ingresos/egresos desde la recepción se reflejen inmediatamente en el monitor sin requerir recargar la pantalla.
+  
+- **Dificultades:** Ninguna.
+- **Commits:**
+  - `feat(M2): creacion de componente Indicador aforo`
+  - `feat(M2): creacion del composables useAforo`
+  - `feat(M2): actualizacion de accesos.service se agrega funcion obtener aforo`
+  - `feat(M2): actualizacion composable, importaciones y nombre de tipos`
+  -`feat(M2): actualizacion accesos.types creacion de una nueva interfaz`
+  -`feat(M2): creacion vista aforoView`
+  -`feat(M2): actualizacion bitacora`
+
+----
+
+#### 05/10/2026
+#### Joaquín Ribarola | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Desarrollo de la vista principal de Clases Grupales (`ClasesView.vue`) estructurando la UI base.
+  - Implementación del indicador dinámico de Sede usando Pinia (`useSedeStore`).
+  - Creación de un filtro dinámico de fechas, calculando automáticamente los próximos 5 días con formateo legible y de datos.
+- **Decisiones:**
+  - Generar el listado de los próximos días en el frontend en lugar de consultarlos, para agilizar la interacción.
+  - Utilizar un diseño premium con micro-animaciones en TailwindCSS respetando estrictamente la estética de la maqueta (RF-07).
+- **Dificultades:** Ninguna.
+- **Commits:**
+  - `feat(clases): crea interfaz y filtros de agenda (US-04-01)`
+
+----
+
+#### 05/10/2026
+#### Joaquín Ribarola | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Desarrollo del servicio `clases.service.ts` conectando el endpoint `GET /clases` (Tipado con interfaces `ClaseResponse`).
+  - Creación del componente reutilizable `ClaseCard.vue` con diseño estético premium y cálculo dinámico de porcentajes de ocupación.
+  - Integración de `ClaseCard` en `ClasesView` generando un mapeo dinámico reactivo (`computed`) para simular los horarios e instructores faltantes en la API actual.
+  - Refinamiento de la Experiencia de Usuario (UI/UX) implementando Skeleton Loaders para tiempos de carga y Empty States estéticos para errores de conexión o falta de clases en agenda.
+- **Decisiones:**
+  - Simular datos de agenda en el frontend (horarios, profesores, sala) para avanzar con el maquetado sin bloquearnos por la falta de implementación de esos campos en el backend.
+  - Centralizar y reutilizar estilos globales de estado (DISPONIBLE/COMPLETO) para dar coherencia visual.
+  - Utilizar un enfoque optimista y enriquecido para los estados visuales (esqueletos de carga) en lugar de spinners genéricos, para cumplir con los requerimientos de diseño premium.
+- **Dificultades:** Ninguna (Se resolvió un problema menor del compilador TS actualizando el `tsconfig.app.json` con `target: ES2022`).
+- **Commits:**
+  - `feat(clases): conecta api y define tipados para consultar catálogo (E4 Tarea 1.2)`
+  - `feat(clases): implementa componente ClaseCard con UI responsiva (E4 Tarea 1.3 y 1.4)`
+
+----
+
+#### 07/10/2026
+#### Joaquín Ribarola | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Desarrollo del flujo completo de reservas (Tarea 2.1) implementando `POST /reservas-clases` en el frontend, incluyendo modals de confirmación.
+  - Implementación del flujo de cancelación de reservas (Tarea 2.2) y consumo de `DELETE /reservas-clases/:id`, adaptando la UI con botones contextuales cuando la clase ya fue reservada por el usuario (estado local).
+  - Manejo integral de excepciones del backend (restricciones de horario, mora, ventana de reservas) reflejando los errores de la API visualmente dentro de los modals (Tarea 2.3).
+  - Integración de recarga automática de clases en bloque `finally` para asegurar actualización de cupos concurrentes tras cualquier intento exitoso o fallido (Tarea 2.4).
+- **Decisiones:**
+  - Administrar el rastreo de reservas de la sesión activa en un diccionario local en memoria (`misReservasLocal`) a falta de endpoint que exponga las reservas actuales del socio.
+  - Exponer los mensajes de error del backend en el modal y no solo en notificaciones globales para proveer mayor contexto (UX).
+  - Ejecutar la recarga de clases luego de intentar una reserva (incluso si falla) para garantizar que, si dos usuarios compiten por el último cupo, el que pierda vea inmediatamente que la clase pasó a estado "COMPLETO".
+- **Dificultades:** Ninguna.
+- **Commits:**
+  - `feat(clases): implementa reservar clases`
+  - `feat(clases): implementa cancelacion de clases`
+  - `feat(clases): UI errores backend y refresh de cupos (Tareas 2.3 y 2.4)`
+
+----
+
+#### 07/10/2026
+#### Joaquín Ribarola | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Desarrollo de la inscripción a Lista de Espera (Tarea 3.1) mediante el endpoint `POST /lista-espera/inscribir` integrando su respectivo modal de confirmación en la UI.
+  - Implementación visual del estado de inscripción (Tarea 3.2) almacenando temporalmente la inscripción en la sesión activa y deshabilitando el botón de acción en las tarjetas (`ClaseCard.vue`).
+  - Integración de Supabase Realtime (Tarea 3.3) configurando `.env` e inicializando el cliente JS. Suscripción a la tabla `lista_espera` para detectar vacantes en vivo (filtro: `estado=NOTIFICADO`) y alertar al socio mediante una notificación Toast permanente y un auto-refresco del catálogo.
+- **Decisiones:**
+  - Utilizar el ecosistema nativo de Supabase Realtime directamente desde el Frontend en vez de depender de WebSockets puros, simplificando la arquitectura y garantizando entrega inmediata sin polling.
+  - El modal de reserva ahora cambia su botón por un estado visual inactivo "En Lista de Espera" evitando llamadas duplicadas al backend de forma robusta en la UI.
+- **Dificultades:** Ninguna.
+- **Commits:**
+  - `feat(clases): inscripcion a lista de espera`
+  - `feat(clases): integracion notificaciones vacantes supabase realtime`
+
+----
+
+#### 4/10/2026 - 12/10/2026
+#### Marcos Caraballo | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Desarrollo de la vista principal de canchas (`CanchasView.vue`) integrando filtros dinámicos por disciplina deportiva (Pádel y Fútbol 5) y fecha de juego (`BaseInput` tipo date con valor mínimo fijado en el día de hoy).
+  - Creación del componente `GrillaTurnos.vue` estructurando la matriz horaria (08:00 a 22:00 hs en filas y canchas en columnas), representando los estados libre, ocupado y mantenimiento, y resaltando la franja de horario pico (19:00 a 21:00 hs) con valores numéricos tabulares.
+  - Implementación de la capa de servicio `canchas.service.ts` con cliente Axios tipado para consultar el catálogo de canchas por sede y el endpoint `GET /canchas/:id/disponibilidad`.
+  - Integración de suscripción en tiempo real con Supabase Realtime a la tabla `cancha_reserva` para refrescar los casilleros tomados al instante y mitigar colisiones por concurrencia.
+  - Implementación de barra resumen inferior para el turno seleccionado y modal de confirmación con `BaseModal` para preparar la continuidad hacia la Tarea 2.
+  - Corrección de tipados utilizando `RealtimePostgresChangesPayload` para cumplir con la configuración de linter.
+- **Decisiones:**
+  - Utilizar temporalmente slots de horarios fijos calculados según una hora hardcodeada, al no estar decidido todavía la implementación final de horarios.
+  - Segmentar las columnas de la grilla por disciplina seleccionada en lugar de mostrar todas las canchas juntas, evitando saturación de información y mejorando la legibilidad.
+  - Consumir la sede activa desde el store global de Pinia (`useSedeStore`) para que cualquier cambio de sede en el encabezado actualice de forma reactiva el catálogo y la grilla.
+- **Dificultades:**
+  - Curva de aprendizaje inicial con Vue 3, lo que demandó considerable tiempo inicial de investigación y estudio del framework.
+  - Discrepancias con los modelos iniciales de arquitectura,tanto diagramas como los adr y falta de endpoints en el backend para obtener información relevante, así que se tuvo que implementar temporalmente con información hardcodeada u omitirse temporalmente.
+- **Commits:**
+  - `feat(M4): implementar grilla de disponibilidad de canchas y sincronizacion realtime`
+  - `docs(log): registrar avance de e5 tarea 1 en bitacora`
+
+----
+
+#### 13/10/2026
+#### Marcos Caraballo | Rol: Desarrollador Backend y Frontend
+
+- **Actividades:**
+  - Construcción del módulo `M4-canchas`.
+  - Desarrollo de la matriz horaria estructurada con eje horizontal de canchas activas y eje vertical de horas, obtenidos consumiendo la api correctamente.
+  - Integración de filtros reactivos por disciplina deportiva y sede activa consumiendo `useSedeStore`.
+  - Desarrollo del componente modal de confirmación con resumen previo del turno (sede, cancha, deporte, fecha y horario), consulta asíncrona de cotización desglosada y botón transaccional con estado de carga.
+  - Corrección del cálculo de costos estimativos por slot en la grilla: vinculación directa con el `costo_base` real de cada cancha y aplicación del recargo del 20% en franja pico (19 a 21 hs), eliminando importes planos.
+  - Validación y control de fechas:
+    - Bloqueo de fechas pasadas.
+    - Deshabilitación de turnos del día actual cuya hora ya transcurrió, mostrándolos con estado inactivo "Pasado / No disp.".
+  - Rediseño de casilleros de slots horarios para diferenciarlos más fácilmente y que sea visualmente más agradable.
+  - Preparación para futuras integraciones con Supabase Realtime sobre la tabla `cancha_reserva` para refresco automático ante reservas concurrentes de otros usuarios.
+- **Decisiones:**
+  -
+- **Dificultades:**
+  - Adaptación del frontend ante la falta de endpoints específicos o contratos incompletos en el backend preexistente, requiriendo normalizar respuestas y pausar el flujo visual hasta implementar y sincronizar los endpoints en el backend.
+  - Sincronización de zonas horarias, la hora local argentina y las marcas de tiempo ISO que esperaba el backend, para evitar que turnos de la tarde o noche se desfasaran o se computaran en días posteriores.
+  - Sobrecarga y división del tiempo de desarrollo al tener que asumir tanto el diseño y programación de la arquitectura del backend como la implementación y refinamiento de la interfaz de usuario en el frontend de manera simultánea en una ventana de tiempo acotada.
+- **Commits:**
+  - `feat(M4): implementar confirmacion de reserva de canchas con slots de horarios reales`
+  - `docs(log): actualizar bitacora con tareas de calendario, horario y reservas`
+
+----
+
+01/10/2026
+#### Facundo Agüero | Rol: Team Leader
+
+- **Actividades:**
+  - Revisión del trabajo integrador, el backlog backend, el repositorio frontend y el maquetado para organizar el comienzo del desarrollo en Vue.
+  - Planificación de dos semanas de trabajo y creación del backlog frontend en PDF.
+  - Organización y asignación en Trello de 21 tareas de frontend y 2 tareas de coordinación, con descripción, estimación en horas y subtareas.
+  - Distribución de responsabilidades: Gonzalo Lima, base compartida y pagos (16 horas); Matías Sillen, usuarios y membresías (18 horas); Angelina Viale, QR, recepción y aforo (17 horas); Joaquín Ribarola, clases y lista de espera (17 horas); Marcos Caravallo, canchas y reservas (18 horas); Facundo Agüero, reportes (11 horas) y coordinación TL (7 horas).
+  - Identificación de dependencias entre módulos y preparación de las consultas y del resumen de avance para presentar al profesor.
+- **Decisiones:**
+  - Mantener el formato de tarjetas utilizado por el equipo: tareas concretas, checklist de subtareas y estimaciones en horas.
+  - Repartir la carga considerando también el tiempo de coordinación del TL y organizar la revisión entre compañeros.
+  - Priorizar la base común y la sesión para facilitar la integración de los demás módulos.
+  - Proponer ramas por tarea con PR hacia dev y reservar main para la versión estable.
+- **Dificultades:**
+  - Las estimaciones son iniciales y deben ajustarse según la disponibilidad y el aprendizaje de Vue de cada integrante.
+  - Se detectaron dependencias del backend pendientes de verificar, especialmente validación de ingreso, permisos y notificaciones.
+  - La tarea previa del diagrama relacional, compartida por Gonzalo y Joaquín, no está incluida en las 104 horas estimadas para frontend y coordinación.
+- **Commits:** No corresponde. La planificación se registró en Trello y en el documento de backlog frontend.
+
+----
+
+#### 08/10/2026
+#### Facundo Agüero | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Desarrollo inicial de la pantalla de reporte de ingresos, con filtros de fechas, sede y concepto.
+  - Validación del rango de fechas y reutilización del store de sedes del equipo.
+  - Creación del servicio para consultar GET /reportes/ingresos y mostrar total, detalle por sede y respuesta sin resultados.
+  - Comprobación de errores de conexión y recuperación de la consulta al reiniciar el backend local.
+  - Ejecución satisfactoria de typecheck, lint y build.
+- **Decisiones:**
+  - Trabajar en feature/e1-tarea-4-reporte-ingresos, manteniendo el filtro de sede del reporte separado de la selección del encabezado.
+  - Reutilizar el cliente HTTP compartido y omitir los filtros opcionales cuando se seleccionan todas las sedes o conceptos.
+- **Dificultades:**
+  - Faltaba el archivo .env del frontend; se configuró la URL del backend y se verificó la carga de sedes.
+  - Se corrigieron errores de sintaxis y la ausencia de la función de formato de moneda durante el aprendizaje de Vue.
+  - Las tablas pago y pago_estado consultadas aparecen vacías. Queda pendiente comprobar filas, filtros e importes con pagos de prueba acordados por el equipo.
+- **Commits:**
+  - `feat(reportes): agregar filtros de fechas y validar rango`
+  - `feat(reportes): agregar filtros de sede y concepto`
+  - `feat(reportes): consultar ingresos y mostrar resultados`
+
+----
+
+#### 08/10/2026
+#### Facundo Agüero | Rol: Team Leader
+
+- **Actividades:**
+  - Revisión e integración en dev de los PR de usuarios, clases y reporte de ingresos.
+  - Actualización del repositorio local y comprobación del código integrado.
+  - Prueba de carga de clases por sede, pantalla sin resultados y recuperación ante errores de conexión.
+  - Revisión de npm audit y del check GitGuardian del PR de credencial QR.
+  - Creación y asignación de cinco tarjetas de corrección en Trello, con estimaciones y subtareas:
+    - Gonzalo Lima: configuración de TypeScript (0,5 horas) y actualización de dependencias (1,5 horas).
+    - Matías Sillen: token y cierre de sesión (2 horas).
+    - Joaquín Ribarola: agenda y estado de reservas de clases (5 horas).
+    - Angelina Viale: revisión de alerta GitGuardian del QR (2 horas).
+
+- **Decisiones:**
+  - Distribuir las correcciones entre los responsables de los módulos.
+  - Realizar los arreglos mediante ramas y PR hacia dev.
+  - Mantener pendiente el merge del PR #4 hasta resolver o justificar los hallazgos de GitGuardian y verificar la credencial QR.
+  - Repetir las verificaciones después de integrar cambios, porque la ausencia de conflictos de Git no garantiza que la aplicación funcione.
+  - Conservar en stash las correcciones locales de integración hasta revisar si siguen siendo necesarias.
+
+- **Dificultades:**
+  - ESLint pasó en el dev actualizado, pero el build falló por propiedades duplicadas en tsconfig.app.json.
+  - El store guarda token y usuario con claves diferentes de las utilizadas por el cliente HTTP.
+  - La agenda conserva datos simulados; el selector de fecha no filtra las clases y el estado de reservas se mantiene solo en memoria.
+  - npm audit reportó tres paquetes afectados por dos avisos de severidad alta.
+  - GitGuardian continúa reportando dos posibles secretos en el PR #4; queda pendiente determinar si son credenciales reales o falsos positivos.
+  - Las correcciones quedaron organizadas y asignadas, pero todavía no están resueltas.
+
+- **Referencias:**
+  - [Configuración de TypeScript](https://trello.com/c/uhzPNA93)
+  - [Token y cierre de sesión](https://trello.com/c/vOFfK1Cs)
+  - [Agenda y reservas de clases](https://trello.com/c/A6FQAuR8)
+  - [Actualización de dependencias](https://trello.com/c/rxq6hcEG)
+  - [Alerta GitGuardian del QR](https://trello.com/c/LyyrNbDx)
+
+#### 11/10/2026
+#### Joaquín Ribarola | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Relevamiento de contratos y dependencias del backend para la agenda de clases grupales y reservas.
+  - Actualización del servicio `clases.service.ts` integrando los nuevos DTOs del backend (`ClaseAgendaResponse`, `MiReservaClaseResponse`, `MiInscripcionListaEsperaResponse`).
+  - Incorporación de los métodos `obtenerMisReservas` y `obtenerMisInscripciones`, y soporte para el filtro opcional de `fecha` en `obtenerClasesPorSede`.
+  - Estandarización de los payloads de `reservarClase` e `inscribirListaEspera` para soportar horarios en formato ISO (`fecha_inicio` y `fecha_fin`).
+  - Adaptación del componente `ClaseCard.vue` para renderizar cupos y aforo reales sin depender de simulaciones, manejando fallbacks para instructor ('Sin profesor asignado') y sala ('Sala no especificada'), e indicando la posición en cola de lista de espera.
+  - Conexión de `ClasesView.vue` con la agenda por fecha y sede, reactivando la consulta al backend al cambiar el selector de fecha. Eliminación del estado local en memoria en favor de la recuperación directa de reservas e inscripciones en espera del usuario autenticado.
+  - Actualización de las operaciones de reserva, lista de espera y cancelación para utilizar las instancias horarias ISO reales, reflejando el estado consistente en pantalla tras cada operación.
+  - Corrección de la discrepancia de almacenamiento del token JWT entre el store global de autenticación (`useAuthStore`) y el cliente Axios (`http.ts`), garantizando el envío del header `Authorization: Bearer <token>` para llamadas autenticadas de reservas.
+- **Decisiones:**
+  - Mantener compatibilidad hacia atrás en los DTOs de peticiones y respuestas para evitar roturas de compilación mientras se refactorizan las vistas y componentes.
+  - Manejar valores no disponibles de forma explícita en la UI en lugar de generar valores ficticios, y extender `ClaseCardProps` de forma flexible para integrarse con la agenda por fecha.
+  - Consultar en paralelo la agenda y el estado del usuario mediante `Promise.all` para optimizar el tiempo de respuesta, distinguiendo las reservas por fecha para evitar solapamientos visuales entre días.
+  - Sincronizar bidireccionalmente las claves `'token'` y `'fitzone_token'` tanto en el cliente Axios (`http.ts`) como en `useAuthStore` para evitar errores 401 y rebotes de redirección cuando la sesión del usuario está activa.
+- **Dificultades:** Ninguna.
+- **Commits:**
+  - `feat(clases): actualizar clases.service con contratos reales de agenda y reservas`
+  - `feat(clases): adaptar ClaseCard para datos reales de agenda y lista de espera`
+  - `feat(clases): conectar agenda y estado de reservas del usuario por fecha`
+  - `fix(auth): sincronizar lectura y guardado de token jwt entre http y auth store`
+
+----
+
+----
+
+
+---
+
+#### 14/10/2026
+#### Facundo Agüero | Rol: Desarrollador Frontend
+
+- **Tarea:** E1 Tarea 5 — Pantalla de ocupación y reservas por sede.
+- **Actividades:**
+  - Implementación de `/reportes/ocupacion`, conectada a `GET /reportes/ocupacion` mediante el cliente HTTP compartido.
+  - Incorporación de filtros de fechas y sede, consulta consolidada, totales y detalle de asistencias, reservas de canchas y clases.
+  - Manejo de carga, resultados vacíos, errores y reintentos; prevención de envíos simultáneos y validación de fechas.
+  - Incorporación de pruebas de pantalla con respuestas simuladas.
+- **Decisiones:**
+  - Mantener el filtro de sede del reporte independiente del selector general.
+  - Mostrar cantidades históricas del período, sin presentarlas como aforo instantáneo.
+  - Publicar la entrega en `feature/e1-tarea-5-ocupacion` para revisión hacia `dev`.
+- **Dificultades y resolución:**
+  - Se eliminaron las propiedades `target` y `lib` duplicadas que impedían compilar.
+  - Se sincronizó `package-lock.json` con las dependencias ya declaradas porque `npm ci` fallaba.
+  - Se detectó una consulta incompleta en el backend; su corrección se entregó en una rama separada.
+- **Verificación:** Build y lint aprobados; 5 pruebas aprobadas. Pendiente aceptación visual y prueba con una cuenta del entorno compartido.
+- **Commits:** `feat(reportes): consultar ocupacion y reservas por sede`
+
+---
+
+#### 14/10/2026
+#### Facundo Agüero | Rol: Desarrollador Frontend
+
+- **Tarea:** E1 Tarea 6 — Integración del panel de gerencia.
+- **Actividades:**
+  - Integración de ingresos y ocupación en un panel con navegación por rutas y enlaces directos.
+  - Accesos a reportes desde el inicio para gerente/admin y mantenimiento del menú activo en rutas hijas.
+  - Adaptación del formulario de ingresos a distintos anchos, conservando filtros y formato de importes.
+  - Pruebas de navegación y regresión del reporte de ingresos.
+- **Decisiones:**
+  - Conservar `/reportes` para ingresos y `/reportes/ocupacion` para actividad.
+  - Publicar `feature/e1-tarea-6-panel-gerencia` con dependencia de `feature/e1-tarea-5-ocupacion`.
+- **Dificultades:** La aceptación integrada requiere la corrección del backend y una sesión real; no se da por realizada con pruebas simuladas.
+- **Verificación:** Build y lint aprobados; 8 pruebas aprobadas incluyendo tarea 5.
+- **Commits:** `feat(reportes): integrar panel de gerencia y navegacion`
+
+---
+
+#### 14/10/2026
+#### Facundo Agüero | Rol: Team Leader
+
+- **Actividades:** Revisión del tablero y dependencias; publicación y normalización de las cuatro ramas propias a `feature/`; actualización de bitácoras dev/TL; resolución de conflictos frontend #16, #17, #18 y #20 conservando los cambios de sus autores; preparación del [traspaso](./cierre-tl-2026-10-14.md).
+- **Integración propia:** A solicitud de Facundo, creación y merge hacia dev de frontend [#21](https://github.com/gonzalolima004/fitzone-sports-G7-frontend/pull/21), [#22](https://github.com/gonzalolima004/fitzone-sports-G7-frontend/pull/22) y backend [#56](https://github.com/gonzalolima004/fitzone-sports-G7-backend/pull/56). Se resolvieron conflictos en rutas y bitácoras conservando los registros completos y las pantallas de pagos. El PR de esta rama entrega la documentación de cierre.
+- **Decisiones:** Preservar el historial mediante merges y conservar ocupación como ruta hija única del panel. La solicitud de crear y fusionar los PR reemplazó el acuerdo previo de apertura manual. Las integraciones previas de #16/#17/#18/#20 fueron externas a esta asistencia.
+- **Dificultades y resolución:** Regeneración local de Prisma Client por el esquema de clases actualizado; conflicto de entradas de log; ruta de ocupación duplicada al incorporar dev. Se conservaron las entradas de todos los autores y se reemplazó la plantilla vacía de TL.
+- **Verificación final de código:** Frontend build/lint y 11 pruebas aprobados; backend build/typecheck y 9 pruebas aprobados más verificación SQL con PGlite. No se modificó la base compartida ni se acredita aceptación visual o sesión real con tests simulados.
+- **Trello:** Tareas frontend 5 y 6 documentadas y finalizadas como desarrollo integrado; backend ocupación actualizado conservando Finalizado. TL tarea 2 mantiene pendientes de revisión entre compañeros y aceptación integrada.
+- **Commits de resolución:** `f7e9073`, `9f0197f`, `b1afc69`, `714e0e7`, `e44c72e`; integraciones propias `c354c59`, `1a3c1e1`, `0f0f93a`.
+- **Pendientes:** Revisión humana, aceptación visual y con datos reales, contrato de checkout de membresías, sorteo y acuerdos de la reunión del 14/10 a las 15:00; nuevo TL asume el 15/10.
+
+---
+
+#### 20/10/2026
+#### Marcos Caraballo | Rol: Desarrollador Frontend
+- **Actividades**:
+  - Reestructuración del módulo de visualización y reserva de canchas (CanchasView, DetalleReservaView, canchasService).
+  - Implementación de arquitectura resiliente de disponibilidad con fallback automático: el frontend intenta consultar la grilla agrupada de la sede (GET /canchas/disponibilidad) y, ante respuestas no implementadas o versiones previas del backend, conmuta automáticamente a consultas unitarias concurrentes (GET /canchas/:id/disponibilidad).
+  - Normalización del flujo de selección de turnos, confirmación de reserva y redirección a la pantalla de detalle/pago (/reservas/:id/detalle).
+- **Decisiones**:
+  - Optar por hacer una petición a la API de disponibilidad para una sede, en una fecha, para evitar hacer demasiadas peticiones al backend.
+- **Dificultades**:
+  - Múltiples intentos fallidos e implementaciones descartadas debido a la falta de endpoints en el backend, generando errores y obligando a replantear el servicio varias veces.
+  - Consultar la disponibilidad cancha por cancha generaba demoras notables y condiciones de carrera si el usuario cambiaba rápidamente de fecha o sede antes de que terminaran de resolver las promesas.
+  - Gestión de estado y reactividad en Vue 3 con Pinia para garantizar que el rol de socio, la fecha seleccionada y los precios calculados se trasladen de forma transparente y sin desfases horarios hacia el modal y la vista final de pago.
+  - Gran inversión de tiempo y pruebas para lograr que la grilla fuera fluida, no realizara peticiones redundantes y muestre precios y disponibilidad de las canchas de forma correcta.
+- **Commits:**
+- `feat(M4): reserva de canchas funcionando y arreglos varios en modulo de canchas, adaptado a cambios backend`
+- `chore: comando format`
+- `docs(log): actualizacion de bitacora`
+
+---
+
+#### 03/11/2026
+#### Marcos Caraballo | Rol: Desarrollador Frontend
+- **Actividades**:
+  - Centralización del horario operativo de sedes en `useSedeStore` mediante `obtenerHorarioOperativo` y caché reactiva en memoria (`horariosCache`), evitando estados locales duplicados en vistas.
+  - Optimización de carga inicial y eliminación de peticiones redundantes en `CanchasView.vue` controlando la ejecución de los `watch()` mediante un flag de inicialización (`inicializado`).
+  - Implementación de deduplicación de promesas en vuelo en `sede.ts` para llamadas concurrentes a `cargarSedes()` y `obtenerHorarioOperativo()`.
+  - Refactorización de `canchas.service.ts` para delegar consultas de horarios operativos a `sedeStore` y sincronizar respuestas por lote (`getDisponibilidadPorSede`) directamente en la caché del store.
+  - Adaptación tipográfica estricta en `canchas.types.ts` extendiendo `HorarioOperativo` de la tienda sin recurrir a `any`.
+- **Decisiones**:
+  - Manejar el horario operativo como propiedad computada en `CanchasView.vue` vinculada a `sedeStore.horariosCache`, garantizando una única fuente de verdad reactiva y evitando peticiones de red al revisitar fechas o sedes.
+  - Controlar las suscripciones reactivas en `CanchasView.vue` para que los observadores de filtros y sede no disparen llamadas en cascada durante el montaje inicial (`onMounted`).
+  - Utilizar un mapa de promesas activas en `useSedeStore` para deduplicar peticiones simultáneas idénticas antes de su resolución.
+- **Dificultades**:
+  - Disparo de múltiples solicitudes HTTP duplicadas al recargar la página en `/canchas` debido a la ejecución simultánea de `onMounted` (en `MainLayout` y `CanchasView`) y la activación anticipada de watchers al resolverse la sede por defecto.
+  - Las peticiones concurrentes a `obtenerHorarioOperativo` antes de que se completara el primer GET causaban fallos en la verificación de caché (`horariosCache.value[key] === undefined`), solucionado mediante caché de promesas en vuelo.
+- **Commits:**
+- `feat(M4): fix de reserva y optimizacion de requests`
+- `feat(pinia): evitar requests redundantes en store`
+
+---
+
+#### 22/10/2026
+#### Marcos Caraballo | Rol: Desarrollador Frontend
+- **Actividades**:
+  - Implementación y ajuste del CRUD administrativo de canchas (alta, edición, baja lógica y listado).
+  - Actualización de `canchasService` y tipos (`Cancha`, `CrearCanchaDto`, `ActualizarCanchaDto`), soporte para creación de una cancha que todavía no esté disponible para reservas y filtro de disponibilidad
+  - Integración de control de disponibilidad inmediata y selector en los formularios de creación y edición de canchas.
+- **Decisiones**: Ninguna
+- **Dificultades**: Ninguna
+- **Commits:**
+- `refactor(M4): cambios en cancha tipos y nombres de atributos`
+- `feat(M4): crud canchas del gerente funcionando`
+- `feat(M4): baja logica y disponibilidad de canchas`
+- `docs(log): actualizacion de bitacora`
+#### 21/10/2026
+#### Joaquín Ribarola | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Creación del módulo utilitario `date-formatter.ts` en `src/common/utils` estandarizando el formateo a `dd/mm/aaaa`, nombres de días y meses en español, y helpers para generación de días de agenda y comparación cronológica de horarios.
+  - Integración en `clases.service.ts` de la interfaz y método para consultar el horario operativo de la sede (`GET /sedes/:id/horario-operativo?fecha=YYYY-MM-DD`).
+  - Incorporación en `clases.service.ts` del método para baja y eliminación de clases grupales (`DELETE /clases/:id`).
+  - Implementación en `ClasesView.vue` de una agenda interactiva: reemplazo de los botones estáticos por una barra de navegación con tira semanal de 7 días, controles de navegación rápida (día y semana) y botón "Hoy".
+  - Limpieza de interfaz: eliminación de la alerta estática de RF-07 y remoción del botón no funcional de calendario para maximizar el área de trabajo y la visualización directa de la grilla de clases.
+  - Conexión de la agenda con el horario operativo del gimnasio/sede, mostrando badge de apertura/cierre y estado visual informativo cuando la sede se encuentra cerrada.
+  - Aplicación de ordenamiento cronológico por horario de inicio para las clases agendadas.
+  - Integración del modelo de periodicidad de clases grupales: soporte de campos `dias_semana` (0=Dom..6=Sáb) y `fecha` puntual en interfaces de servicio, componentes y vistas.
+  - Creación de helpers `formatearDiasSemana` y `coincideFechaClase` en `date-formatter.ts`, con normalización segura ante cadenas ISO para evitar desfases de zona horaria local.
+  - Incorporación en `ClaseCard.vue` de badges contextuales que exhiben los días recurrentes de la clase o su fecha especial de dictado.
+  - Filtrado reactivo en `ClasesView.vue` garantizando que la grilla diaria únicamente muestre las clases que aplican para el día de la semana seleccionado.
+  - Implementación de control reactivo de la ventana de reserva de 48 hs (`obtenerEstadoVentanaReserva`): bloqueo y deshabilitación de la opción de reservar si la clase dista más de 48 horas ("Abre 48 hs antes") o si ya transcurrió ("Clase finalizada"), evitando errores 400 y optimizando la experiencia de usuario.
+  - Implementación del flujo de gestión y administración de clases grupales (CRUD completo) para roles `admin` y `gerente`.
+  - Creación de métodos de servicio `crearClase(data)` y `actualizarClase(id, data)` en `clases.service.ts` con tipados estrictos `CreateClaseRequest` y `UpdateClaseRequest`.
+  - Desarrollo del componente modal `ModalClaseForm.vue` para alta y edición de clases con validaciones completas, capacidad, horarios y selector de periodicidad (días recurrentes o fecha puntual con accesos rápidos).
+  - Incorporación de botón "Nueva Clase" en el encabezado de `ClasesView.vue` y acciones de edición y eliminación en `ClaseCard.vue` condicionadas al rol administrativo.
+  - Implementación de diálogo modal de confirmación de baja lógica (`DELETE /clases/:id`) con feedback mediante notificaciones Toast.
+  - Creación de suite integral de pruebas unitarias (`src/__tests__/date-formatter.spec.ts`, Épica 12 Tarea 2) cubriendo normalización de fechas ISO, prevención de desfase de zona horaria local, formateo en español, periodicidad (`coincideFechaClase`), ordenamiento cronológico y la regla de ventana de reserva de 48 hs.
+- **Decisiones:**
+  - Centralizar el formateo y parseo de fechas en `common/utils/date-formatter.ts` para evitar duplicidad de lógica y prevenir desfases de zona horaria local.
+  - Tipar la respuesta de horario operativo de la sede en `clases.service.ts` para mantener el aislamiento del módulo M3 y desacoplar de `M0-sedes`.
+  - Diseñar un empty state específico y amigable para "Sede Cerrada", evitando confusión en el socio cuando no hay clases por feriado o cierre dominical.
+  - Alinear los índices numéricos de `dias_semana` (0..6) con el estándar de JavaScript `Date.getDay()` y el DTO del backend, formateando su visualización con orden de semana laboral (Lunes a Domingo).
+  - Bloquear en la UI el botón de reserva tanto para clases fuera de la ventana de 48 hs como para clases pasadas, proporcionando feedback contextual claro y defensivo al socio.
+  - Encapsular el formulario de creación/edición en `ModalClaseForm.vue` para mantener la vista principal `ClasesView.vue` concisa y enfocada en la renderización del cronograma.
+  - Restringir la visibilidad de las herramientas mutadoras mediante evaluación reactiva de roles (`admin`/`gerente`) desde `useAuthStore`.
+  - Emplear `vi.useFakeTimers()` y `vi.setSystemTime()` en Vitest para testear de forma determinista y reproducible la ventana de reservas de 48 hs y el bloqueo de clases pasadas sin depender de la hora del entorno de CI.
+- **Dificultades:** Ninguna. Se resolvió la falta de dependencias (`html5-qrcode`) heredadas del último pull de `dev` mediante `npm install`.
+- **Commits:**
+  - `feat(clases): crear date-formatter e integrar servicio de horario operativo de sede`
+  - `feat(clases): implementar selector de calendario interactivo y horario operativo en agenda`
+  - `feat(clases): incorporar periodicidad por dias de la semana y fecha puntual en agenda`
+  - `feat(clases): bloquear reservas fuera de la ventana de 48 hs y clases pasadas`
+  - `feat(clases): implementar gestion CRUD de clases grupales para admin y gerente`
+  - `test(clases): anadir pruebas unitarias para date-formatter, periodicidad y ventana de reserva`
+
+---
+
+#### 17/10/2026 - 22/10/2026
+
+#### Matías Sillen | Rol: Desarrollador Frontend
+
+* **Actividades:**
+* Integración del inicio de sesión con Google OAuth a través de Supabase en las vistas de Login y Registro.
+* Implementación de un interceptor HTTP global para capturar errores `403` y redirigir a los usuarios logueados con Google sin cuenta local.
+* Creación de la vista `CompletarPerfilView.vue` para recolectar datos de negocio obligatorios (DNI, Teléfono, Sede) de usuarios provenientes de Google OAuth.
+* Actualización del guard global en el Vue Router para realizar una verificación proactiva (`/auth/me`) del perfil local antes de permitir el acceso al Dashboard.
+* Asignación dinámica del rol "externo" (`id_rol: 4`) en los flujos de registro local y de Google.
+* Extensión de los permisos de visualización en la barra de navegación lateral (`Sidebar.vue`) para incluir al rol `gerente`.
+* Aplicación de políticas estrictas de seguridad en contraseñas usando expresiones regulares con Zod en los formularios de registro y recuperación.
+* Refactorización del componente reutilizable `BaseInput.vue` para incluir un botón dinámico (toggle) de visibilidad de contraseña utilizando Phosphor Icons.
+
+
+* **Decisiones:**
+* Implementar una verificación de perfil "proactiva" en el Router en lugar de "reactiva" para evitar el efecto de "limbo de autenticación" donde un usuario de Google quedaba atrapado en el Dashboard sin datos locales.
+* Configurar el parámetro `prompt: 'select_account'` en la solicitud OAuth para forzar al proveedor a mostrar siempre el selector de cuentas de Google, incluso si ya existe una sesión activa en el navegador.
+* Agregar un botón explícito de cancelación en la vista de completar perfil para forzar el cierre síncrono de la sesión en Supabase y evitar bucles de redirección infinitos.
+
+
+* **Dificultades:**
+* Sincronización de estado (condición de carrera) entre la recarga rápida de la URL con el token de Google y la lectura de `isAuthenticated` en Pinia por parte de Vue Router.
+* Manejo del bucle infinito de rutas cuando el usuario se arrepentía de completar el perfil de Google y quería regresar al login normal.
+
+
+* **Commits:**
+* `chore(auth): configurar cliente global de Supabase`
+* `feat(auth): migrar auth.service a Supabase SDK`
+* `feat(auth): integrar Pinia con onAuthStateChange de Supabase`
+* `fix(api): interceptor HTTP utiliza sesión activa de Supabase`
+* `feat(auth): flujo de registro unificado con foto opcional en Supabase`
+* `feat(auth): login integrado con Supabase y enlace a cambio de password`
+* `feat(auth): vista de cambio de contraseña`
+* `fix(router): agregar ruta de cambio de contraseña y aplicar lazy loading a registro`
+* `fix(auth): restaurar enlace a registro en UI de login`
+* `fix(auth): forzar asignación síncrona de sesión en Pinia para evitar condición de carrera en el router`
+* `fix(auth): forzar cierre de sesión síncrono en Pinia para arreglar bloqueo del router`
+* `fix(sidebar): hacer el cierre de sesión asíncrono para prevenir errores de navegación`
+* `fix(auth): traducir errores de Supabase al español en login`
+* `feat(auth): aplicar validación Zod estricta (regex) y traducir errores de Supabase en registro`
+* `fix(auth): traducir errores de Supabase al español en recuperación de contraseña`
+* `fix(router): agregar ruta de cambio de contraseña y aplicar lazy loading a registro`
+* `feat(auth): agregar soporte para signInWithOAuth mediante Google`
+* `feat(api): interceptar error 403 de cuenta no asociada y redirigir a completar perfil`
+* `feat(auth): vista para completar datos de perfil (DNI, Sede) tras login con Google`
+* `chore(router): agregar ruta de completar-perfil para Google OAuth`
+* `feat(auth): agregar botón y lógica de integración visual para login con Google`
+* `feat(auth): añadir verifyLocalProfile para comprobación proactiva de perfil`
+* `fix(router): implementar verificación proactiva de perfil antes de acceder al dashboard`
+* `fix(auth): agregar botón cancelar para abortar registro y purgar sesión de Supabase`
+* `fix(auth): asignar id_rol 4 a perfiles de clientes externos en lugar de dejarlos sin rol`
+* `feat(roles): extender permisos de administrador al rol gerente en vistas y rutas`
+* `feat(auth): aplicar política estricta de contraseñas seguras con Zod`
+* `feat(ui): agregar toggle de visibilidad de contraseña global en BaseInput`
+
+---
+
+#### 23/10/2026
+#### Marcos Caraballo | Rol: Desarrollador Frontend
+- **Actividades**:
+  - Implementación y puesta en funcionamiento del CRUD administrativo para tipos de canchas (`cancha-tipo`).
+  - Corrección de desfases y manejo de zona horaria local en los componentes y servicios del módulo de canchas.
+  - Optimización de llamadas a la API reduciendo peticiones HTTP duplicadas al cambiar sedes y filtros.
+  - Desactivación y limpieza temporal de la sincronización con Supabase Realtime para priorizar la estabilidad de las consultas.
+- **Decisiones**:
+  - Pausar temporalmente las suscripciones de Supabase Realtime en el módulo hasta estabilizar el flujo de consultas directas a la API y prevenir sobrecarga de sockets o inconsistencias.
+  - Centralizar y condicionar las consultas reactivas para evitar disparos simultáneos y redundantes al modificar filtros.
+- **Dificultades**:
+  - Tuve problemas con el navegador, no funcionaban correctamente las herramientas de desarrollador, tuve que descargar otro para poder probar el código.
+  - Ajustes en el parseo y la forma de obtener de horarios locales frente a fechas en formato UTC.
+- **Commits:**
+- `feat(M4): CRUD de cancha tipos funcionando y arreglos de hora local`
+- `refactor(M4): optimizacion de consultas a la API`
+- `fix(M4): eliminacion temporal de supabase realtime`
+- `chore(M4): formato con prettier fix por lint`
+- `docs(log): actualizacion de bitacora`
+---
+
+#### 25/10/2026
+#### Angelina Vialle | Rol: Team Leader / Desarrolladora Frontend
+- **Actividades**:
+  - **Módulo M1 (Usuarios y Directorio de Gerencia)**:
+    - Implementación de la vista administrativa `DirectorioUsuariosView.vue` para visualización, búsqueda por DNI/nombre/email y filtrado de usuarios por rol y estado.
+    - Desarrollo del composable `useDirectorioUsuarios.ts` para orquestar la paginación, filtros reactivos, modal de edición de datos de usuario, asignación de roles y estados.
+    - Definición y centralización del tipado TypeScript en `usuario.types.ts` (`Rol`, `UsuarioResponse`, `RegistroPayload`, `ActualizarUsuarioPayload` y `UsuarioRolRelacion`).
+    - Creación de helpers de visualización en `user-helpers.ts` para badges y mapeo de nombres de roles (`Gerente`, `Profesor`, `Recepcionista`, `Cliente`).
+    - Extensión de `usuarios.service.ts` con la función `obtenerUsuarios` y tipado para actualización.
+    - Definición de esquemas de validación Zod en `validators.ts` y configuración de feedback mediante toasts con duración optimizada para mensajes de error.
+    - Configuración de ruta protegida `/usuarios` en `router/index.ts`, agregado de acceso en `Sidebar.vue` y configuración de idioma a español en `index.html`.
+  - **Módulo M2 (Accesos y Aforo)**:
+    - Limpieza de código, eliminación de `console.log` y mensajes redundantes en `useAforo.ts` y `accesos.service.ts`.
+- **Decisiones**:
+  - Centralizar y estandarizar los contratos de datos de usuarios y roles entre backend y frontend para evitar discrepancias estructurales al editar perfiles o asignar roles.
+  - Implementar la lógica del directorio en un composable específico (`useDirectorioUsuarios`) y helpers de presentación desacoplados (`user-helpers.ts`) para mantener la vista limpia y modular.
+  - Reutilizar validadores Zod centralizados tanto para registro como para edición con toasts informativos de duración adecuada para garantizar que el usuario pueda leer las correcciones solicitadas.
+- **Dificultades**:
+  - Adaptar la estructura relacional de `usuario_rol` proveniente de Prisma en el backend con los controles de selección y actualización de roles en los formularios del frontend.
+- **Commits:**
+- `feat(zod): esquema de validacion comun`
+- `feat(comun): agregado de rutas, correcion de pagina a español`
+- `feat(M1): agregado funcion obtenerUsuarios, extraccion de interfaz RegistroPayload`
+- `feat(M1): interfaces par rol, usuarioResponse, registroPayload, actualizarUsuarioPayload y usuarioRolRelacion`
+- `feat(M2): quitado de mensajes y console.log innecesarios`
+- `feat(M1): archivo de como visualizan roles`
+- `feat(M1): vista de gerente directorio de usuarios`
+- `feat(M1): soporte para selección de roles en edición y configurar duración de toasts en validación Zod`
+- `docs(log): actualizacion de bitacora`
+
+---
+
+#### 24/10/2026
+#### Marcos Caraballo | Rol: Desarrollador Frontend
+- **Actividades**:
+  - Implementación completa de la vista y componentes para el CRUD de mantenimientos y bloqueos de canchas (`GestionMantenimientos.vue` y `MantenimientoModal.vue`).
+  - Integración en `GerenciaCanchasView.vue` de navegación por pestañas para alternar entre el catálogo de canchas y la gestión de mantenimientos.
+  - Mejora de UX en `MantenimientoModal.vue`: inclusión de selector previo de sede que filtra dinámicamente las canchas disponibles de dicha sede.
+  - Corrección en `canchas.service.ts` y `GestionMantenimientos.vue` para propagar y notificar adecuadamente con `toast.error` los errores HTTP del backend (ej. validación cuando fechaInicio es posterior a fechaFin).
+  - Incorporación de la ruta de acceso a Gestión de Canchas (`/gerencia/canchas`) en el menú de navegación lateral (`Sidebar.vue`) protegida para el rol gerente.
+- **Decisiones**:
+  - Centralizar en una única vista gerencial (`GerenciaCanchasView`) la administración de canchas y bloqueos de mantenimiento mediante un sistema de pestañas.
+  - Implementar selección de sede opcional dentro del modal de mantenimiento para agilizar la búsqueda de canchas en clubes multi-sede, mejorando la experiencia de usuario.
+- **Dificultades**:
+  - El método de consulta de mantenimientos silenciaba excepciones capturándolas y devolviendo un array vacío, impidiendo la activación del bloque `catch` y la visualización de los toasts de error.
+  - Sincronización del estado del formulario en el modal para limpiar la cancha seleccionada si el usuario cambia a una sede incompatible.
+- **Commits:**
+- `feat(M4): CRUD de mantenimiento dentro de canchas`
+- `chore: agregar gestion de canchas a sidebar`
+- `chore: formato con prettier`
+- `docs(log): actualizacion de bitacora`
+
+---
+
+#### 03/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Frontend
+- **Actividades**:
+  - Centralización del horario operativo de sedes en `useSedeStore` mediante `obtenerHorarioOperativo` y caché reactiva en memoria (`horariosCache`), evitando estados locales duplicados en vistas.
+  - Optimización de carga inicial y eliminación de peticiones redundantes en `CanchasView.vue` controlando la ejecución de los `watch()` mediante un flag de inicialización (`inicializado`).
+  - Implementación de deduplicación de promesas en vuelo en `sede.ts` para llamadas concurrentes a `cargarSedes()` y `obtenerHorarioOperativo()`.
+  - Refactorización de `canchas.service.ts` para delegar consultas de horarios operativos a `sedeStore` y sincronizar respuestas por lote (`getDisponibilidadPorSede`) directamente en la caché del store.
+- **Decisiones**:
+  - Manejar el horario operativo como propiedad computada en `CanchasView.vue` vinculada a `sedeStore.horariosCache`, garantizando una única fuente de verdad reactiva y evitando peticiones de red al revisitar fechas o sedes.
+  - Controlar las suscripciones reactivas en `CanchasView.vue` para que los observadores de filtros y sede no disparen llamadas en cascada durante el montaje inicial (`onMounted`).
+  - Utilizar un mapa de promesas activas en `useSedeStore` para deduplicar peticiones simultáneas idénticas antes de su resolución.
+- **Dificultades**:
+  - Disparo de múltiples solicitudes HTTP duplicadas al recargar la página en `/canchas` debido a la ejecución simultánea de `onMounted` (en `MainLayout` y `CanchasView`) y la activación anticipada de watchers al resolverse la sede por defecto.
+- **Commits:**
+- `feat(M4): fix de reserva y optimizacion de requests`
+- `feat(pinia): evitar requests redundantes en store`
+- `docs(log): actualizacion de bitacora`
+
+---
+
+#### 04/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Frontend
+- **Actividades**:
+  - Conexión del cálculo y desglose de tarifas de reservas con el endpoint `GET /canchas/cotizar` del backend en `reservas.service.ts`.
+  - Extensión de la interfaz de respuesta `CotizacionTurnoResponse` en `canchas.types.ts` para soportar las validaciones de descuento (`aplica_descuento_socio` y `motivo_sin_descuento`).
+  - Actualización de `ConfirmarReserva.vue` integrando un loader de tipo Skeleton mientras se espera la cotización oficial del servidor.
+  - Implementación de feedback visual en el modal de reserva notificando al socio cuando no aplica el descuento (por membresía inactiva o por pertenecer la sede a una ciudad distinta a la de su afiliación).
+  - Ajuste en `ConfirmarReserva.vue` para persistir correctamente descuentos en 0% mediante coalescencia nula (`?? 0`), evitando sobrescrituras involuntarias al guardar en caché local.
+  - Ajuste del indicador de socio en `CanchasView.vue` para reflejar la cotización dinámica sin fijar un porcentaje previo de descuento.
+- **Decisiones**:
+  - Delegar la lógica de negocio completa del descuento (rol, membresía activa y validación de misma ciudad entre sede de usuario y sede de cancha) en el backend a través de `GET /canchas/cotizar`, manteniendo al cliente libre de cálculos redundantes o peticiones adicionales.
+  - Implementar un estado Skeleton en `ConfirmarReserva.vue` para mejorar la experiencia de usuario y evitar saltos visuales durante la verificación de cotización.
+  - Proporcionar mensajes informativos claros y contextuales en el modal de confirmación en lugar de ocultar silenciosamente el descuento de socio.
+- **Dificultades**:
+  - Manejo de casos de borde en los que el usuario posee rol de socio pero su sede de afiliación es de otra ciudad o su membresía está inactiva, requiriendo adaptar los estados y textos explicativos sin alterar el flujo habitual de reserva.
+- **Commits:**
+- `feat(M4): interfaz y tipo para endpoint cotizar`
+- `docs(log): actualizacion de bitacora`
+
+---
+
+#### 06/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Frontend
+- **Actividades**:
+  - Suscripción en tiempo real vía Supabase Broadcast (`canchas:sede:${idSede}`) para escuchar eventos `turno_reservado`.
+  - Creación del composable `useCanchasRealtime` con gestión reactiva ante cambio de sedes y desuscripción automática al desmontar.
+  - Procesamiento reactivo en `CanchasView`: actualización de slots en la grilla, deselección y cierre forzado del modal ante reservas concurrentes con Toasts de advertencia.
+  - Manejo de colisión HTTP 409 en `ConfirmarReserva` para forzar cierre, marcar slot reservado y notificar conflicto.
+  - Suite de tests unitarios en `canchas-realtime-concurrencia.spec.ts`.
+- **Decisiones**:
+  - Encapsular el ciclo de vida de los canales realtime en un composable desacoplado de la vista.
+- **Dificultades**: Ninguna
+- **Commits:**
+- `feat(M4): nuevo tipo para el canal realtime`
+- `feat(M4): implementar supabase realtime en canchas`
+- `feat(M4): test de canchas realtime para concurrencia`
+- `docs(log): actualizacion de bitacora`
+
+---
+
+#### 06/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Frontend
+- **Actividades**:
+  - Eliminación definitiva de cálculos estáticos y funciones de mock de feriados (`calcularHorarioOperativo` y `generarSlotsParaCancha`) en `canchas.service.ts`.
+  - Integración de `getDisponibilidadPorSede` con la respuesta unificada del backend, sincronizando el horario operativo en la caché de `useSedeStore` sin peticiones redundantes.
+  - Incorporación de indicadores visuales en `CanchasView.vue` y `GrillaTurnos.vue` para reflejar el estado de horario especial (`es_horario_especial`) y el motivo de cierre oficial (`motivo_cierre`).
+  - Creación de tests unitarios en `canchas-disponibilidad-horario.spec.ts` validando el renderizado de estados cerrados/especiales y la ausencia de slots inventados ante fallos.
+- **Decisiones**:
+  - Establecer el backend (`CalendarioSede`, `Calendario`, `SedeHorario`) como la única fuente de verdad para determinar feriados y horarios de sedes.
+  - Centralizar y reutilizar la caché de horarios en Pinia aprovechando el payload unificado de disponibilidad para optimizar el consumo de red.
+- **Dificultades**: Ninguna
+- **Commits:**
+- `feat(M4): Eliminacion de fallabacks viejos de prueba`
+- `feat(M4): obtencion correcta del horario en cache`
+- `feat(M4): test de disponibilidad horario`
+- `docs(log): actualizacion de bitacora`
+- `style: uso de prettier para el formato`
+
+---
+
+#### 07/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Full Stack
+- **Actividades**:
+  - Ajuste en `DetalleReservaView.vue` para tomar el costo base y calcular el recargo por horario pico directamente desde el objeto `cancha` de la reserva.
+  - Simplificación y limpieza de etiquetas y textos visuales en el desglose de tarifas.
+- **Decisiones**:
+  - Utilizar temporalmente los datos directos de `reserva.cancha` para mostrar tarifas más precisas en la interfaz a la espera de la actualización definitiva del backend.
+- **Dificultades**: Ninguna
+- **Commits:**
+- `fix(M4): simplificar desglose de tarifas en detalle de reserva`
+- `docs(log): actualizacion de bitacora`
+
+---
+
+#### 07/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Full Stack
+- **Actividades**:
+  - Implementación de utilería genérica `validarConEsquema` y definición de esquemas Zod (`cancha.schema.ts`, `cancha-tipo.schema.ts`, `mantenimiento.schema.ts`) con sanitización alfanumérica contra caracteres especiales, límites decimales y validación cruzada de fechas.
+  - Integración de esquemas en `CanchaModal.vue`, `GestionTiposModal.vue`, `MantenimientoModal.vue` y `GerenciaCanchasView.vue`, bloqueando peticiones HTTP inválidas y mostrando feedback visual junto a toasts de advertencia (`toast.warning`).
+  - Creación de tests unitarios en `canchas-schemas-validation.spec.ts` verificando el bloqueo de strings inseguros, límites de longitud y reglas de negocio.
+- **Decisiones**:
+  - Proveer retroalimentación clara mediante avisos en amarillo (`toast.warning`) y marcado de inputs con error.
+- **Dificultades**: Ninguna
+- **Commits:**
+- `fix(M4): corregir calculo en detalle de reserva`
+- `feat(M4): utils de validacion y schemas Zod en M4`
+- `feat(M4): integrar validacion zod y alertas`
+- `feat(M4): tests unitarios para esquemas Zod`
+- `docs(log): actualizacion de bitacora`
+
+---
+
+#### 10/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Full Stack
+- **Actividades**:
+  - Limpieza de código muerto legacy y eliminación del fallback de `localStorage` en lectura de reservas para no enmascarar errores de red.
+  - Creación de `canchas-horarios.utils.ts` para cálculos temporales (`calcularEsSlotPasado`, `generarFranjasHorarias`) y formato monetario, reemplazando duplicaciones en `GrillaTurnos.vue` y `ConfirmarReserva.vue`.
+  - Implementación del patrón Adapter (`canchas.adapter.ts`) para normalizar slots crudos del backend (`camelCase`/`snake_case`) a `TurnoSlot`.
+  - Modularización de `canchas.service.ts` separando en `mantenimientos.service.ts` y `canchas-tipos.service.ts` bajo una fachada retrocompatible.
+- **Decisiones**:
+  - Mantener retrocompatibilidad mediante el patrón Facade en `canchasService` para no alterar imports en componentes existentes.
+- **Dificultades**: Ninguna
+- **Commits:**
+  - `refactor(canchas): remover fallback`
+  - `refactor(canchas): utils de horarios y formato`
+  - `refactor(canchas): patron adapter para normalizar slots del backend`
+  - `refactor(canchas): patron fachada para dividir canchas service`
+  - `style: formato con prettier`
+  - `docs(log): actualizacion de bitacora`
+
+---
+
+#### 26/10/2026
+
+#### Matías Sillen | Rol: Desarrollador Frontend
+
+* **Actividades:**
+* Separación de los campos de identidad en los formularios de registro y completado de perfil, diferenciando explícitamente `nombre` y `apellido` bajo validaciones estrictas de Zod.
+* Implementación de la funcionalidad completa de gestión de fotos de perfil (carga local, previsualización en miniatura circular, botón de cambio y opción de eliminación) tanto en `RegistroView.vue` como en `CompletarPerfilView.vue`.
+* Eliminación del selector de tipos de perfil en las vistas públicas, forzando la asignación automática y estricta del rol de "cliente externo" (`id_rol: 4`).
+* Unificación y mejora del layout visual en las pantallas de autenticación, configurando un panel izquierdo fijo con el logo centrado y un panel derecho con scroll vertical independiente (`h-screen overflow-hidden` y `overflow-y-auto`).
+* Adición de un indicador dinámico de fuerza de contraseña en tiempo real y un botón de retroceso hacia el inicio de sesión.
+* Corrección en la sanitización de URLs post-OAuth en `src/router/index.ts`, pasando de un estado nulo a preservar `window.history.state` al limpiar los tokens de Supabase del hash.
+
+
+* **Decisiones:**
+* Preservar el estado actual del historial del navegador (`window.history.state`) al ejecutar `replaceState` para evitar la pérdida de referencias de Vue Router, eliminando así los warnings de consola y la latencia al hacer clic en los ítems del menú.
+* Precompletar automáticamente los campos de nombre y apellido dividiendo el `full_name` devuelto por los metadatos de Google OAuth al completar el perfil.
+
+
+* **Dificultades:**
+* Retrasos intermitentes en la transición de rutas del menú lateral provocados por la eliminación drástica del historial al remover los tokens de la barra de direcciones de forma insegura, lo cual se resolvió correctamente manteniendo el contexto del router.
+
+
+* **Commits:**
+* `fix(auth): corregir cursor de botones interactivos`
+* `fix(auth): mejorar errores, separar campos y retirar opcion de socio`
+* `fix(auth): proteger tokens en interceptor y sanitizar URL de redireccion`
+* `fix(auth): separar nombre/apellido, agregar volver, scroll de panel y medidor de contraseña`
+* `style(auth): centrar logo de FitZone y unificar layout de scroll con registro`
+* `fix(auth): separar campos nombre/apellido y forzar rol externo en autocompletado`
+* `fix(router): preservar history state al limpiar url para evitar demoras en navegacion`
+#### 23/10/2026
+#### Facundo Agüero | Rol: Desarrollador Frontend
+
+- **Tarea:** Panel de Gerente, CRUD Sedes/Membresías y Sede Dinámica (parte frontend).
+- **Actividades:**
+  - **Sede dinámica en el registro:** componente común `SelectorSede` conectado al store de sedes (`GET /sedes`), usado en `RegistroView` y en `CompletarPerfilView` (registro con Google). Muestra "Cargando sedes...", un error con reintento y un aviso cuando no hay sedes, y deshabilita el selector y el botón de registro mientras no haya sedes para elegir. El reemplazo de la sede fija por la lista de la API lo había incorporado Matías; esta tarea completó los estados de carga y error y unificó ambos flujos.
+  - **CRUD de sedes:** pantalla `/gerencia/sedes` con listado de sedes activas (ciudad y aforo), resumen, skeleton, estados vacío y de error; alta y edición en `SedeFormModal` validado con Zod según `CreateSedeDto`; alta de ciudad en línea; baja lógica con confirmación previa y toast posterior.
+  - **CRUD de planes:** pantalla `/gerencia/planes` con listado ordenado por duración y precio en pesos; alta y edición en `PlanFormModal` (Zod según `CrearPlanDto`, duración entera, precio con hasta 2 decimales y atajos Mensual/Trimestral/Anual); eliminación con confirmación.
+  - **Dashboard del gerente:** `/gerencia` pasa a ser la portada del rol gerente (`rutaPorRol` y menú lateral), con cuatro indicadores calculados con endpoints existentes (sedes activas, planes, ingresos del mes y reservas de hoy) y accesos a sedes, planes, canchas y reportes. La pantalla de reportes pasa a titularse "Reportes de gerencia" con enlace para volver al panel.
+  - Pruebas con Vitest: selector de sede, CRUD de sedes y planes (listado, validación, alta, edición, errores del servidor, baja), dashboard (indicadores, fechas consultadas, accesos y falla parcial) e ítem activo del menú lateral.
+- **Decisiones:**
+  - Agrupar en `src/modules/gerencia` (ruta indicada en el backlog) el dashboard y las pantallas de parametrización del Gerente Central, sin modificar módulos de otros responsables más allá del selector de sede del registro y de la navegación (`ruta-por-rol.ts` y `Sidebar.vue`).
+  - Reutilizar `BaseModal`, `BaseInput`, `BaseButton`, `BaseSkeleton`, el toast y el store de sedes; seguir el patrón del equipo: modal antes de una acción destructiva y toast después.
+  - Recargar el store global de sedes después de cada alta, edición o baja para que el registro y el selector del encabezado muestren los cambios sin recargar la página.
+  - La sede del registro arranca vacía y se exige elegirla: preseleccionar la primera podía asignar socios a una sede equivocada.
+  - No crear endpoints nuevos para el dashboard: cada indicador usa una consulta existente y carga por separado, de modo que si una falla las demás se muestran.
+- **Dificultades y resolución:**
+  - Eliminar un plan con membresías asociadas devuelve 500 en el backend (clave foránea). La pantalla explica el caso y sugiere editar el plan; el 409 queda pendiente para el responsable de M1.
+  - En pantallas angostas las tablas obligaban a desplazarse en horizontal; se reubicó la información secundaria debajo del nombre y los botones quedan solo con ícono.
+  - Al integrar con los últimos cambios de `dev`, el menú lateral ya tenía "Directorio de Usuarios" y "Gestión de Canchas", que también viven bajo `/gerencia`; con "Panel de gerencia" apuntando a `/gerencia` se resaltaban dos ítems a la vez. Se ajustó `Sidebar.vue` para marcar solo el ítem de ruta más específica.
+- **Verificación:** 12 archivos y 54 pruebas aprobadas (26 nuevas); typecheck, lint y build aprobados; cada commit compila y pasa sus pruebas. Recorrido visual en navegador con API simulada (escritorio y móvil). Pendiente: recorrido con la cuenta compartida de gerente contra el backend con los guards de escritura.
+- **Commits:**
+  - `feat(registro): selector de sede dinamico`
+  - `feat(gerencia): agregar CRUD de sedes`
+  - `feat(gerencia): agregar CRUD de planes de membresia`
+  - `feat(gerencia): agregar dashboard del gerente`
+
+---
+
+#### 27/10/2026
+#### Facundo Agüero | Rol: Desarrollador Frontend
+
+- **Tarea:** Correcciones de la revisión del panel de gerencia.
+- **Actividades:**
+  - Se quitaron de las pantallas de sedes, planes y del panel los códigos de requisitos y de actor que aparecían en títulos y ayudas; quedan solo los textos descriptivos.
+  - Se ajustó el formato de mis entradas de esta bitácora: commits sin hash, sin enlace a Trello y sin códigos de tarea, como en el resto del equipo.
+- **Decisiones:** Ninguna.
+- **Dificultades:** Ninguna.
+- **Verificación:** 12 archivos y 54 pruebas aprobadas; typecheck, lint y build aprobados.
+- **Commits:**
+  - `fix(gerencia): quitar codigos de requisitos de las pantallas`
+  - `docs(log): corregir formato y registrar correcciones`
+
+---
+
+#### 27/10/2026
+#### Facundo Agüero | Rol: Desarrollador Frontend
+
+- **Tarea:** CRUD de membresías de cada socio y ajuste de las pantallas de gerencia a la maqueta (parte frontend).
+- **Actividades:**
+  - Pantalla `/gerencia/membresias` con una fila por socio, como en la maqueta del directorio de usuarios: iniciales, nombre y email, DNI, sede, plan y vencimiento, y estado. Muestra la membresía activa más reciente o, si no tiene, la última que tuvo; los socios sin membresía también aparecen.
+  - Tarjetas con la cantidad de socios en cada estado de la tabla `membresia_estado` y sin membresía; al tocarlas filtran el listado. Filtros por estado y por sede, y búsqueda por nombre, DNI o email sin distinguir tildes.
+  - Acciones por socio: Asociar (sin membresía), Renovar (vencida), Reactivar (suspendida: vuelve a Activa con `PATCH /membresias/:id/estado`) y Gestionar.
+  - Alta en `MembresiaAltaModal`, que también usan Asociar y Renovar con el socio y el plan ya elegidos: socio con buscador, plan con su precio, fecha de inicio y renovación automática, validados con Zod. Muestra el vencimiento que calcula el backend y avisa si el socio ya tiene una membresía activa, que pasa a Suspendida.
+  - Edición en `MembresiaEdicionModal`: estado, vencimiento y renovación automática. Desde ahí se puede eliminar una membresía cargada por error, con confirmación; si tiene pagos, se muestra el motivo que devuelve el backend (409).
+  - Sedes: buscador por nombre o ciudad y columna "Instalaciones" con las canchas de cada sede agrupadas por tipo (`GET /canchas`).
+  - Panel del gerente según la maqueta del dashboard ejecutivo: indicadores de socios activos, facturación del mes, reservas de hoy y aforo simultáneo, y tabla "Rendimiento por sede" con socios activos, aforo actual y máximo, reservas y recaudación del mes. Se mantienen los accesos de administración.
+  - Se quitaron las menciones al rol admin en los comentarios de los servicios de sedes y planes y en una prueba.
+  - Pruebas con Vitest: listado por socio, resumen y filtros, acciones de cada fila, alta y validaciones, edición con cada endpoint, eliminación con 409 y cálculo del vencimiento; buscador e instalaciones de sedes; indicadores, tabla por sede y fallas parciales del panel.
+- **Decisiones:**
+  - Solo se usan endpoints existentes: los socios y su sede salen de `GET /usuarios` y se cruzan en el navegador con `GET /membresias`; el aforo de cada sede, de `GET /accesos/aforo/:id`; la facturación y las reservas, de los reportes de ingresos y ocupación.
+  - Un socio cuenta como activo si su membresía está Activa y no venció (fecha de fin igual o posterior a hoy).
+  - Los estados salen de `GET /membresias/estados` y no están escritos en el frontend.
+  - De la maqueta quedaron afuera el porcentaje de ocupación de canchas y el estado de cada sede, porque ningún endpoint los calcula; en su lugar se muestran las reservas.
+  - Cada dato del panel se carga por separado: si uno falla, ese indicador muestra "No disponible" o un guion y el resto se ve igual.
+  - Las fechas llegan como `2026-10-01T00:00:00.000Z` y se muestran tomando solo la fecha, para que la zona horaria no las corra un día.
+  - En celular las columnas secundarias se ocultan o pasan debajo del nombre, sin desplazamiento horizontal.
+- **Dificultades:** Ninguna.
+- **Verificación:** 13 archivos y 81 pruebas aprobadas (27 nuevas); typecheck, lint y build aprobados; cada commit compila y pasa sus pruebas. Recorrido visual en navegador con API simulada (escritorio, tablet y celular).
+- **Commits:**
+  - `fix(gerencia): quitar el rol admin de comentarios y pruebas`
+  - `feat(gerencia): agregar CRUD de membresias de socios`
+  - `feat(gerencia): agregar buscador e instalaciones en sedes`
+  - `feat(gerencia): alinear el dashboard con la maqueta`
+  - `docs(log): registrar CRUD de membresias y ajustes a la maqueta`
+
+---
+
+#### 10/11/2026
+#### Facundo Agüero | Rol: Desarrollador Frontend
+
+- **Tarea:** Calendario de feriados y excepciones de cada sede para el gerente (parte frontend).
+- **Actividades:**
+  - Pantalla `/gerencia/calendario`, con acceso desde el panel del gerente: grilla del mes de lunes a domingo con los feriados y fechas de toda la cadena y con los cierres u horarios especiales de la sede elegida. Al tocar un día se ve su detalle con las acciones, y debajo de la grilla, la lista de fechas del mes.
+  - La sede del calendario es la del selector del encabezado (store de sedes): si cambia en cualquiera de los dos lugares, se recargan las excepciones.
+  - Alta y edición de feriados en `FeriadoFormModal` (fecha, descripción, feriado y día hábil) y de excepciones en `ExcepcionSedeFormModal` (cierre de todo el día u horario especial con apertura y cierre, y motivo), validados con Zod según los DTO del backend. Las bajas usan `ConfirmarEliminacionModal` y toast; se reutilizan `BaseModal`, `BaseInput`, `BaseButton` y `BaseSkeleton`.
+  - Servicio `calendario.service.ts` para `/calendario` y `/sedes/:id/calendario`, y tipos de las respuestas.
+  - Pruebas con Vitest: carga del mes y marcas de la grilla, cambio de mes y de sede, altas, edición, bajas, validaciones, errores del servidor y acceso a la ruta solo con el rol gerente (guard del router).
+- **Decisiones:**
+  - Cada mes se carga con dos consultas en paralelo (fechas del calendario y excepciones de la sede), porque cada viaje al backend suma tiempo. Si llega tarde la respuesta de un mes o de una sede anteriores, se descarta.
+  - Si se carga un feriado en una fecha que ya existe como día común (el backend la crea al cargar una excepción), se actualiza esa fecha en lugar de crear otra; si ya es un feriado, se pide editarlo.
+  - Si al quitar un feriado alguna sede tiene una excepción ese día, el backend responde 409: la fecha queda como día común, las excepciones se mantienen y el toast lo informa.
+  - Al editar una excepción, la fecha se envía solo si cambió, para ahorrar una consulta.
+  - Después de cada cambio se borran del store los horarios operativos en caché de las fechas tocadas (de todas las sedes si es un feriado, de una sede si es una excepción), para que canchas y clases los vuelvan a pedir.
+  - El acceso por rol se resuelve con la ruta hija de `/gerencia`, que ya exige el rol gerente; además, el backend responde 403 a cualquier otro rol.
+- **Dificultades:**
+  - Un feriado de toda la cadena no cambia por sí solo el horario operativo que consultan canchas y clases: `GET /sedes/:id/horario-operativo` tiene en cuenta las excepciones de cada sede y el horario semanal. El formulario del feriado lo aclara y sugiere cargar una excepción para cerrar la sede; cómo tratar los feriados en ese endpoint queda a definir con su responsable.
+  - En tablet, el selector de sede quedaba cortado a la derecha de la barra del mes; ahora la barra pasa a dos líneas cuando no hay lugar.
+- **Verificación:** 16 archivos y 110 pruebas aprobadas (18 nuevas); typecheck, lint y build aprobados; cada commit compila y pasa sus pruebas. Recorrido visual en navegador con API simulada (escritorio, tablet y celular). Pendiente: recorrido con la cuenta de gerente contra el backend.
+- **Commits:**
+  - `feat(gerencia): agregar vista de calendario con feriados y excepciones por sede`
+  - `feat(gerencia): agregar formularios de feriados y excepciones de sede`
+  - `test(gerencia): agregar pruebas de la vista de calendario`
+  - `docs(log): registrar vista y formularios de calendario`
+
+---
+
+#### 12/11/2026
+#### Facundo Agüero | Rol: Desarrollador Frontend
+
+- **Tarea:** Horarios semanales de cada sede y orden de las rutas y accesos de gerencia, sedes y reportes (parte frontend).
+- **Actividades:**
+  - Pantalla `/gerencia/sedes/horarios`: el gerente elige la sede (la misma del selector del encabezado) y ve la semana de lunes a domingo. Cada día puede abrir (con hora de apertura y de cierre), estar cerrado o quedar sin horario cargado, que se marca con un aviso. Los cambios se guardan juntos con "Guardar cambios", con un pedido por día modificado (alta, modificación o baja de `/sedes/:idSede/horarios`), y se pueden deshacer por día o descartar.
+  - Validación con Zod de las horas de cada día que abre, compartida con las excepciones del calendario, que tenían la misma regla.
+  - Rutas de gerencia ordenadas y agrupadas como el panel: sedes (listado, horarios y calendario, ahora bajo `/gerencia/sedes`), socios y membresías, canchas y reportes. `/gerencia/calendario` redirige a `/gerencia/sedes/calendario`. Las rutas del directorio de usuarios y de gestión de canchas solo cambiaron de lugar en la lista.
+  - Panel del gerente: los accesos de "Administración" quedan agrupados por área (Sedes, Socios y membresías, Canchas y Reportes) y se suman Horarios semanales y el directorio de usuarios.
+  - Pestañas para moverse entre las pantallas de cada área (`PestanasGerencia`): Sedes, Horarios y Calendario, e Ingresos y Ocupación en reportes, que además pasa a usar el mismo encabezado que el resto de gerencia.
+  - Pruebas con Vitest: carga de la semana, días sin horario, guardado de cada caso (alta, modificación y baja), validaciones, deshacer y descartar, falla parcial, cambio de sede con cambios sin guardar y error de carga; accesos agrupados del panel, ítem activo del menú y redirección del calendario.
+- **Decisiones:**
+  - Guardar solo los días que cambiaron, en paralelo: cada pedido hace una o dos consultas en el backend y no hace falta una transacción. Si un día falla, los demás quedan guardados y ese día conserva lo editado con el mensaje del backend.
+  - Con cambios sin guardar no se puede elegir otra sede en la pantalla; si cambia desde el encabezado, se descartan y se avisa.
+  - Al pasar un día a "Abre", se propone el horario de otro día que abre, para no cargarlo de cero.
+  - Después de guardar se borran del store los horarios operativos en caché de esa sede, para que canchas y clases los vuelvan a pedir.
+  - Las pestañas usan nombres cortos para que entren en el celular; el título de cada pantalla da el detalle.
+- **Dificultades:**
+  - En `dev`, la prueba de acceso por rol al calendario fallaba: la ruta de inicio de la recepcionista (`/aforo`, según `rutaPorRol`) ahora es solo para el gerente, así que el guard entra en una redirección infinita cuando la recepcionista abre una ruta sin permiso. La prueba ahora verifica que ningún otro rol entre a gerencia, sin depender de adónde lo manda el guard. La ruta de inicio de cada rol no se tocó.
+  - En tablet la tabla de la semana no entraba al lado del menú; las filas pasan a formato de tarjeta hasta pantallas anchas.
+- **Verificación:** 22 archivos y 172 pruebas aprobadas (12 nuevas); typecheck, lint y build aprobados; cada commit compila y pasa sus pruebas. Recorrido visual en navegador con API simulada (escritorio, tablet y celular). Pendiente: recorrido con la cuenta de gerente contra el backend.
+- **Commits:**
+  - `refactor(gerencia): agrupar rutas y accesos de sedes y reportes`
+  - `feat(gerencia): agregar horarios semanales de cada sede`
+  - `test(gerencia): agregar pruebas de horarios semanales`
+  - `docs(log): registrar horarios semanales y orden de rutas de gerencia`
+
+---
+
+#### 27/10/2026 - 29/10/2026
+
+#### Matías Sillen | Rol: Desarrollador Frontend
+
+* **Actividades:**
+* Restauración y unificación completa del sistema de enrutamiento en `src/router/index.ts`, reintegrando el control de acceso basado en roles (RBAC), las rutas anidadas del módulo de gerencia y las landing pages.
+* Corrección de la sanitización de URLs post-OAuth de Supabase, reemplazando el paso de un estado nulo por la preservación de `window.history.state` en la API de History del navegador.
+* Reintegración de la lógica de mapeo de rol del backend (`authStore.setPerfilInterno`) dentro del bloque de Verificación Proactiva del Guard global.
+
+
+* **Decisiones:**
+* Preservar el objeto de estado interno (`window.history.state`) al momento de limpiar el token de la barra de direcciones (`replaceState`). Esto permite mantener la URL segura sin destruir las referencias de navegación internas que utiliza Vue Router.
+* Mantener la inicialización de Supabase centralizada y controlada en el Store para evitar la creación de múltiples instancias de `GoTrueClient` que generaban cuellos de botella en el almacenamiento local.
+
+
+* **Dificultades:**
+* Al limpiar el fragmento de la URL (`#access_token=...`) para evitar la exposición de credenciales, Vue Router perdía su historial de estado, lo que provocaba advertencias en consola (`history.state seems to have been manually replaced`) y generaba una latencia notoria al navegar entre las distintas pantallas del menú lateral.
+
+
+* **Commits:**
+* `fix(router): restaurar rbac, roles de rutas anidadas e inyectar fix de seguridad y performance`
+
+---
+
+#### 29/10/2026
+#### Joaquín Ribarola | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Corrección en `ClasesView.vue` del mapeo de reservas activas del socio: filtrado estricto por reservas confirmadas (`id_clase_reserva_estado: 1` o `estado === 'CONFIRMADA'`) y descarte de reservas canceladas devueltas por el endpoint `GET /reservas-clases/mis-reservas`.
+  - Validación de concordancia de fecha para reservas e inscripciones en lista de espera (`obtenerFechaLocalISO(r.fecha_inicio) === fechaSeleccionada`), evitando que reservas de otras fechas o clases recurrentes bloqueen incorrectamente la vista actual.
+  - Corrección de errores críticos en `src/router/index.ts`: eliminación de redeclaración de variable `requiresAuth` en guard global y restauración de la jerarquía de rutas del módulo de gerencia y reportes (`/gerencia` y sus hijos) resolviendo colisiones de nombres de propiedades duplicadas (`TS1117`).
+  - Limpieza de import no usado de `SelectorSede` en `CompletarPerfilView.vue`.
+  - Mejora de UX ante carreras de reserva concurrentes (HTTP 409): integración en el modal de confirmación de reserva de un enlace directo para inscribirse a la lista de espera si la clase se completa simultáneamente, con recarga automática de disponibilidad en segundo plano.
+  - Ajuste de notificación Realtime (Supabase) al liberarse vacantes para socios en espera, informando con precisión que la reserva fue confirmada automáticamente por la transacción atómica del backend.
+- **Decisiones:**
+  - Descartar del cálculo del estado de la tarjeta de clase cualquier reserva con estado cancelado, asegurando que ante una cancelación y posterior recarga de página el botón vuelva al estado "Reservar clase" (`DISPONIBLE`).
+  - Mantener redirecciones de retrocompatibilidad para `/reportes` y `/reportes/ocupacion` hacia `/gerencia/reportes`.
+  - Ofrecer transición inmediata hacia la lista de espera desde el modal de error de cupo lleno para evitar frustración al usuario que compite concurrentemente por el último turno.
+- **Dificultades:**
+  - El backend devolvía el historial completo de reservas del socio sin discriminar las canceladas (`where: { id_usuario }`), lo que provocaba que el frontend interpretara erróneamente cualquier reserva histórica como una reserva activa concurrente.
+- **Commits:**
+  - `fix(clases): corregir estado de reservas canceladas en agenda y resolver errores de router`
+  - `feat(clases): optimizar flujo de concurrencia de reservas y notificacion de lista de espera`
+  
+---
+  
+#### 29/10/2026
+#### Angelina Vialle | Rol: Team Leader / Desarrolladora Frontend
+
+- **Actividades**:
+  - **Módulo M2 (Accesos y Aforo - Validación por DNI y QR)**:
+    - Tipado polimórfico en `accesos.types.ts`: actualización de los DTOs `ValidarAccesoRequestDto` y `RegistrarEgresoRequestDto` como unión de tipos (`{ qrToken, id_sede } | { dni, id_sede }`) para dar soporte a la validación de ingreso y registro de egreso tanto por código QR como por documento de identidad (DNI).
+    - Métodos del servicio `accesos.service.ts`: adaptación de `registrarEgreso` para admitir DNI o QR dinámicamente, eliminación de fallback hardcodeado de ID de usuario en `obtenerQr` y mejora en el tipado y limpieza de suscripciones en Supabase Realtime Broadcast (`aforo_actualizado`).
+    - Componente interactivo `ValidacionAcceso.vue`: implementación de un selector secundario con botones toggle en el modo manual para alternar ágilmente entre "Por Token QR" (ícono `PhQrCode`) y "Por DNI del Usuario" (ícono `PhIdentificationCard`).
+    - Gestión de estado y ejecución en recepción: vinculación reactiva para `dniIngresado` y `tokenIngresado`, reseteo de estados al alternar métodos y adaptación de los métodos `handleIngreso` y `handleEgreso` para enviar el payload correspondiente según el método seleccionado.
+    - Normalización y robustez de errores: deserialización y concatenación de respuestas de error provenientes del backend (arrays de validación de `class-validator`, o propiedades `detail`, `title`, `message`) para brindar feedback claro al recepcionista, y separación visual de errores entre modo manual y cámara.
+    - Navegación lateral en `Sidebar.vue`: agregado del acceso a "Recepción" (`/recepcion`) en la sección de Administración para los roles `gerente` y `recepcionista`, y ajuste para que "Directorio de Usuarios" quede restringido exclusivamente al rol `gerente`.
+  - **Enrutamiento y Control de Acceso (`router/index.ts`)**:
+    - Registro de la ruta protegida `/recepcion` apuntando a `RecepcionView.vue` bajo control de acceso RBAC para roles `recepcionista` y `gerente`.
+    - Actualización y unificación del enrutador central: sincronización de rutas hijas del módulo de gerencia y reportes, asegurando la verificación de rol en guardias de navegación.
+- **Decisiones**:
+  - Modelar los DTOs de validación y egreso como tipos unión (`qrToken` | `dni`) en el frontend en lugar de crear endpoints o métodos paralelos.
+  - Diseñar una alternancia clara y accesible mediante toggle buttons en `ValidacionAcceso.vue` para que el personal de recepción pueda registrar socios que olviden su teléfono o tengan dificultades técnicas con el código QR.
+  - Centralizar el formateo de errores del backend para procesar tanto errores genéricos como arrays de validación de NestJS, evitando mensajes genéricos o vacíos.
+- **Dificultades**:
+  - Manejo heterogéneo de respuestas de error del servidor, que en validaciones de DTOs devolvían un array de mensajes (`message: string[]`) mientras que en otros casos devolvían `detail` o `title`, requiriendo normalizar la respuesta para mostrarla legíblemente.
+- **Commits:**
+- `feat(M2): actualizacion index para accesos`
+- `feat(M2): cambio en tipos para agregar la opcion de ingreso por dni`
+- `feat(M2): actualizacion para aceptar tanto dni o qrtoken`
+- `feat(M2): correciones para agregar la opcion de ingresar por DNI`
+- `feat(M2): adicion de acceso en barra lateral`
+- `actualizacion index`
+
+---
+
+#### 08/11/2026
+#### Joaquín Ribarola | Rol: Desarrollador Frontend
+
+- **Tarea:** E16-T1: Visualización de agenda para cualquier tipo de usuario, mensajes claros de membresía y restricción de reservas por jurisdicción de ciudad.
+- **Actividades:**
+  - **Enrutamiento y RBAC:** Incorporación del rol `'externo'` en `meta.roles` para la ruta `/clases` en `src/router/index.ts`, permitiendo el acceso directo a la agenda de clases para cualquier tipo de usuario (socio, externo, recepcionista, gerente) sin bloqueos ni rebotes de guardias.
+  - **Navegación lateral en `Sidebar.vue`:** Habilitación del acceso a "Clases Grupales" en la sección de Operaciones para usuarios con rol `externo`.
+  - **Integración con servicio de membresías:** Invocación de `membresiasService.verificarEstado` en `ClasesView.vue` para auditar reactivamente el estado del socio (`esSocioActivo`, `enMora`, `estado`), determinando si se encuentra habilitado para reservar.
+  - **Banner informativo contextual de estado:** Implementación en `ClasesView.vue` de avisos superiores adaptativos para clientes externos, socios en mora, con membresía suspendida o sin membresía activa, explicando claramente la inhabilitación y proveyendo un botón de redirección directa a la vista de Membresías (`/membresia`).
+  - **Restricción de reservas por ciudad (`socio.sede.id_ciudad === clase.sede.id_ciudad`):** Verificación reactiva de concordancia de ciudad entre la sede a la que pertenece el socio y la sede seleccionada de la clase. Si la sede pertenece a otra ciudad, se muestra banner informativo con botón directo "Volver a mi Sede", y se bloquea la reserva tanto a nivel de componente (`ClaseCard` deshabilitado con etiqueta "Sede en otra ciudad") como defensivamente en `handleReservar` y `handleListaEspera`.
+  - **Blindaje de acciones en `ClaseCard.vue`:** Incorporación de la propiedad `motivoInhabilitacion` (`'EXTERNO'`, `'MORA'`, `'SUSPENDIDA'`, `'SIN_MEMBRESIA'`, `'CIUDAD_DIFERENTE'`) para reemplazar los botones de reserva y lista de espera por accesos contextuales hacia `/membresia` o badges de bloqueo geográfico.
+  - **Guardias defensivas en reservas y lista de espera:** Restricción en `handleReservar` y `handleListaEspera` que bloquea la apertura de modales a usuarios no autorizados, con mora, suspensión o de otra ciudad, informando mediante `toast.warning` y redirigiendo según corresponda. Soporte ante respuestas HTTP 403 y 400 del backend mostrando mensajes informativos.
+  - **Optimización de consultas:** Condicionamiento de las peticiones a `obtenerMisReservas` y `obtenerMisInscripciones` exclusivamente para socios autenticados, evitando llamadas fallidas (403) para externos.
+  - **Cobertura de pruebas:** Creación y extensión de la suite `src/__tests__/clases-restricciones-membresia.spec.ts` con 11 pruebas unitarias certificando navegación, banners de membresía, reemplazo de botones en tarjetas, reservas de socios activos al día y bloqueo por discrepancia de ciudad.
+- **Decisiones:**
+  - Mantener la agenda pública y visible para cualquier tipo de usuario en el sistema pero inhabilitar la inscripción a nivel visual (tarjeta) y de lógica (handlers), canalizando a los usuarios hacia la adquisición de membresías o hacia sedes de su propia ciudad.
+  - No consultar los endpoints de reservas personales si el rol no es socio para no generar peticiones innecesarias que son rechazadas por los guards del backend.
+  - Sincronizar los datos de sede (`id_sede`, `sede`) en `Usuario` y `authStore` para validar en tiempo real la concordancia de ciudad sin peticiones adicionales.
+- **Dificultades:** Ninguna.
+- **Verificación:** 14 suites y 92 pruebas aprobadas al 100%. Typecheck (`vue-tsc -b`), linter (`eslint .`), formateo (`prettier`) y build de producción (`vite build`) exitosos sin errores ni advertencias.
+- **Commits:**
+  - `feat(clases): permitir visualizacion a clientes externos y restringir reservas por estado de membresia`
+  - `feat(clases): restringir reservas e inscripciones a sedes de la misma ciudad del socio`
+
+---
+
+#### 10/11/2026
+#### Joaquín Ribarola | Rol: Desarrollador Frontend
+
+- **Tarea:** E16-T2: Cupos en Tiempo Real, Notificación de Vacantes y Ajustes de Vista Gerente.
+- **Actividades:**
+  - **Realtime cupos en la agenda (`ClasesView.vue`):** Incorporación de un segundo canal Supabase Realtime (`cupos-agenda-realtime`) suscripto a `postgres_changes` sobre la tabla `clase_reserva` (`event: '*'`). Cada INSERT, UPDATE o DELETE en reservas dispara `cargarClases(true)` debounceado a 150ms en segundo plano, actualizando los cupos disponibles en vivo en la agenda sin parpadeos de skeleton.
+  - **Limpieza de canales en `onUnmounted`:** Ambos canales (`vacantesSubscription` y `cuposSubscription`) junto al timer de debounce (`timerCupos`) se limpian y desregistran al desmontar la vista, previniendo memory leaks y suscripciones huérfanas.
+  - **Mensaje de vacante con ventana de 4 horas:** El toast de notificación cuando se libera un lugar en lista de espera fue actualizado para informar explícitamente al socio que tiene 4 horas para aprovechar la vacante confirmada, alineándolo con la regla de negocio establecida por el backend.
+  - **Corrección del campo `descripcion` en el formulario del gerente:** Se identificó que `ClaseCardProps` no incluía el campo `descripcion`, por lo que el modal de edición siempre recibía `undefined`. Se agregó `descripcion?: string | null` a la interfaz en `ClaseCard.vue` y se incluyó `descripcion: clase.descripcion || null` en el mapeo de `clasesAgendadas` en `ClasesView.vue`, reparando la carga y el guardado correcto de la descripción al editar una clase sin pérdida de datos.
+  - **Validación del horario operativo de la sede (`ModalClaseForm.vue`):** Se importó `HorarioOperativoSedeResponse` y se agregó lógica para consultar `obtenerHorarioOperativoSede` al abrir el modal (tanto en modo creación como edición) y cada vez que cambia la fecha puntual. En `guardarClase()`, antes de enviar, se valida que `horario_inicio >= hora_apertura` y `horario_fin <= hora_cierre`; si no se cumple, se bloquea el guardado con un mensaje claro. Además, se muestra un banner informativo verde con el rango horario permitido por la sede.
+  - **Clarificación del tipo de clase (`ModalClaseForm.vue`):** Se incorporaron botones interactivos con íconos para disciplinas principales (Spinning, Yoga Vinyasa, CrossFit) que sincronizan automáticamente el nombre de la clase y seleccionan la disciplina adecuada.
+  - **Unificación estética del botón "Reservar Clase" (`ClaseCard.vue`):** Se estandarizó el botón de reserva para que mantenga un color uniforme institucional (`bg-[#202759] hover:bg-[#161b3d] text-white`) en todas las disciplinas, eliminando la discrepancia donde unas aparecían en rojo y otras en gris oscuro.
+  - **Optimización de carga y reservas (`ClasesView.vue`):**
+    - Descarte de respuestas desfasadas por condiciones de carrera (`idCargaActual`) al conmutar rápidamente entre fechas del calendario o sedes.
+    - Actualización optimista inmediata en memoria de cupos (`cupos_disponibles`, `cupos_ocupados`), estado de reservas e inscripciones en lista de espera al reservar o cancelar, permitiendo un feedback instantáneo en la UI antes de la reconciliación silenciosa con el servidor.
+    - Carga de clases silenciosa (`cargarClases(silencioso = true)`) tras operaciones y eventos en tiempo real, evitando mostrar esqueletos de carga si la grilla ya cuenta con datos.
+    - Reutilización de cache y deduplicación de llamadas para horarios operativos a través del store de sedes.
+  - **`cursor-pointer` en todos los botones:** Configuración global en `src/style.css` asegurando `cursor: pointer` para todos los elementos `<button>` y `[role="button"]`, y `cursor: not-allowed` en botones deshabilitados, complementado con clases explícitas en componentes clave.
+  - **Suite de pruebas unitarias (`src/__tests__/clases-criterios-e16-t2.spec.ts`):** Creación de 9 pruebas unitarias automatizadas certificando el cumplimiento riguroso de cada uno de los 5 criterios de aceptación de la tarea y la homogeneidad cromática de los botones.
+  - **Actualización de test de regresión (`conflictos-clases.spec.ts`):** Adaptado para certificar los 2 canales activos de Supabase Realtime y la limpieza controlada de suscripciones al desmontar.
+- **Decisiones:**
+  - Unificar el botón "Reservar Clase" en el color primario de marca (`#202759`) en lugar de colores variantes por disciplina, brindando consistencia visual y evitando confusiones con estados de alerta o peligro (rojo).
+  - Adoptar actualizaciones optimistas en memoria para reservas y cancelaciones junto a recarga silenciosa en segundo plano, mejorando drásticamente la percepción de velocidad en la experiencia del usuario.
+  - Consultar y cachear el horario operativo mediante `sedeStore` para evitar peticiones HTTP redundantes.
+- **Dificultades:** Ninguna.
+- **Verificación:** 15 suites y 101 pruebas aprobadas al 100%. Pipeline de validación completo exitoso: formateo (`npm run format`), linter (`npm run lint`), tipado (`npm run typecheck`), compilación de producción (`npm run build`) y tests (`npm run test`) con 0 errores y 0 advertencias.
+
+---
+
+#### Angelina Vialle | Rol:Desarrolladora Frontend
+
+- **Actividades**:
+  - **Módulo M2 (Accesos - Generación y Validación de QR Offline)**:
+    - Creación del servicio `OfflineValidator` (`offline-validator.ts`): implementación de validación de tokens QR locales mediante la Web Crypto API (`window.crypto.subtle`) con algoritmo HMAC-SHA256, verificando formato, firma de 16 caracteres y ventana de expiración estricta de 60 segundos (+5s de tolerancia).
+    - Soporte offline en `accesos.service.ts`: mecanismo de contingencia ante fallos de red (`ERR_NETWORK` o ausencia de respuesta del servidor) en `obtenerQr`, permitiendo la generación local del token QR con firma HMAC si el socio cuenta con membresía activa y ciudad asignada.
+    - Manejo de egreso offline en `accesos.service.ts`: encolamiento de registros de salida en `localStorage` (`fitzone_offline_queue`) ante caídas de conexión para sincronización posterior.
+    - Adaptación de `ValidacionAcceso.vue`: integración del validador offline en el flujo de recepción al detectar errores de red, simulando la aprobación de acceso local y guardando los ingresos en `localStorage` (`ingresos_pendientes_sync`).
+    - Actualización del store de sedes (`sede.ts`): persistencia y lectura de la propiedad `id_ciudad` en la sede seleccionada para comprobación de alcance geográfico.
+    - Actualización de dependencias y tipados: incorporación de `qrcode.vue` y ampliación de tipos en `accesos.types.ts` (`ApiErrorDto`, `SocioPerfilDto`).
+- **Decisiones**:
+  - **Estrategia para funcionamiento offline del código QR**: En lugar de depender de mecanismos asimétricos complejos o almacenamiento previo de claves públicas, se eligió replicar de forma idéntica el método de generación y verificación en ambos extremos (backend y frontend) utilizando una clave secreta compartida (`VITE_QR_OFFLINE_SECRET`) y el estándar HMAC-SHA256 procesado de manera nativa con la Web Crypto API. Esto asegura que el token generado en el cliente ante la falta de conexión sea indistinguible y verificable tanto por el backend como por el frontend de la sede.
+- **Dificultades**:
+  - **Restricción geográfica en modo offline (evitar accesos en sedes de otra ciudad)**: Al operar desconectado, el frontend no puede consultar la base de datos central para corroborar los alcances del plan del socio. Para evitar que un usuario utilice un QR generado offline para ingresar a una sede de una ciudad distinta a la que le corresponde, se incluyó el identificador de ciudad (`idCiudad`) dentro de la estructura del token (`${userId}.${idCiudad}.${timestamp}.${signature}`). Tanto al generar el QR como al validarlo en recepción, se verifica que la sede pertenezca a la misma ciudad registrada para el socio; si no coinciden, se rechaza la generación y el acceso.
+  - **Dependencia de servidores y servicios de Supabase para validar**: La arquitectura original requería validar y consultar en tiempo real contra los servidores y la base de datos de Supabase/backend, lo cual impedía completamente la operatoria offline en caso de cortes de internet o fallas de conectividad. Para resolverlo, se diseñó un fallback desacoplado que intercepta los errores de red, valida criptográficamente la credencial en local y almacena temporalmente los eventos de acceso en el almacenamiento local del navegador (`localStorage`) para su posterior sincronización diferida.
+- **Commits**:
+  - `build(deps): agregar qrcode.vue`
+  - `fix(M1): remover id hardcodeado en rol`
+  - `feat(store): adicion variable id_ciudad`
+  - `feat(M2): adicion logica para validacion offline y almacenar ingresos offline`
+  - `refactor(M2): mejora mensaje de error`
+  - `feat(M2): adicion funciones para validar qr igual a backend en frontend`
+  - `feat(M2): servicio para manejar validacion offline de qr`
+  - `feat(M2): actualizacion egreso-ingreso, adicion de variables a appierror y a socioperfil`
+  - `docs(log): actualizacion de bitacora`
+
+---
+
+#### 14/11/2026
+#### Angelina Vialle | Rol: Desarrolladora Frontend
+
+- **Actividades**:
+  - **Módulo M1 (Directorio de Usuarios - Paginación, Baja Lógica y Restauración)**:
+    - Implementación de baja lógica (*soft-delete*): incorporación de modal de confirmación (`modalEliminacionAbierto`) con llamado al endpoint `DELETE /usuarios/:id`, botón de acción con ícono `PhTrash` visible solo en usuarios activos y actualización optimista inmediata en la interfaz para remover al usuario del listado local y actualizar el contador.
+    - Flujo de restauración de cuentas inactivas: creación del método `restaurarUsuarioDirecto` que actualiza `id_usuario_estado` a `1` (`USER_STATUS.ACTIVO`) mediante `PATCH /usuarios/:id`, con un banner informativo y botón de restauración directa (`PhArrowCounterClockwise`) dentro del modal de edición cuando el usuario se encuentra desactivado.
+    - Paginación server-side y filtros dinámicos: adaptación de `cargarDirectorio` en `useDirectorioUsuarios.ts` para enviar parámetros de paginación (`page`, `limit`) y filtrado (`includeDeactivated`, `id_usuario_estado`, `id_sede`) a la API, procesando metadatos de respuesta (`totalPages`, `totalRegistros`) e integrando controles de paginación ("Anterior", "Siguiente") en la tabla.
+    - Actualización de filtros de estado en `DirectorioUsuariosView.vue`: redefinición de las opciones del selector ("Activos", "Desactivados", "Todos los Estados"), iniciando la visualización por defecto en usuarios activos.
+  - **Enrutamiento y Control de Navegación (`router/index.ts`)**:
+    - Ajuste en el guardia de la ruta raíz (`/`): exclusión del rol `gerente` de la redirección automática a `/recepcion`, limitándola exclusivamente al rol `recepcionista`.
+  - **Barra de Navegación Lateral (`Sidebar.vue`)**:
+    - Reorganización de visibilidad por roles en la sección de Operaciones: habilitación del acceso a "Dashboard" (`/inicio`) tanto para `socio` como para `gerente`, y acceso a "Recepción" (`/recepcion`) para roles `recepcionista` y `gerente`.
+  - **Módulos M1 y M5 (Sincronización de Roles y Tipado Seguro)**:
+    - Corrección en `MembresiaView.vue` y `ResultadoPagoView.vue`: incorporación de validación estricta (`authStore.usuario.id !== undefined`) antes de invocar `authStore.setPerfilInterno` en los bloques de captura de excepciones, garantizando la integridad de tipos en TypeScript.
+  - **Módulo M4 (Canchas - Formato)**:
+    - Ajustes de estilo y legibilidad en `DetalleReservaView.vue` para el formateo del cálculo del descuento por membresía.
+- **Decisiones**:
+  - **Actualización optimista de UI para bajas y restauraciones**: Se optó por reflejar de forma inmediata en el estado reactivo (`usuarios.value` y `totalRegistros`) la desactivación o restauración antes de aguardar la respuesta del backend, recargando el padrón únicamente en caso de que la petición HTTP falle para asegurar una experiencia de usuario rápida y fluida.
+  - **Migración a paginación y filtrado desde el servidor**: En lugar de filtrar la totalidad de los usuarios en memoria en el cliente, se trasladó el filtrado y paginado a la consulta al backend (`GET /usuarios?page=...&limit=...`), optimizando el rendimiento y el consumo de recursos de red.
+  - **Diferenciación de flujo de entrada según rol**: Mantener la redirección forzada a recepción únicamente para recepcionistas, permitiendo a los gerentes ingresar a las métricas del dashboard sin pasos intermedios.
+- **Dificultades**:
+  - **Coherencia reactiva entre filtros de estado y actualización optimista**: Al ejecutar una baja lógica o restauración estando activo un filtro específico (por ejemplo, "Activos" o "Desactivados"), fue necesario manejar la remoción del registro del array local o la mutación de su `id_usuario_estado` según el filtro vigente, evitando desfases visuales o contadores desactualizados sin forzar una recarga completa de red.
+  - **Restricciones de tipado estricto en Pinia**: `authStore.usuario.id` está declarado como opcional (`id?: number`), lo que generaba advertencias de TypeScript al intentar propagarlo en `setPerfilInterno` tras procesar pagos o activaciones de membresías. Se resolvió aplicando guards explícitas de existencia antes de actualizar el store.
+- **Commits**:
+  - `fix(index): redireccion de solo recepcionista`
+  - `style(M4): arreglo formato`
+  - `fix(M5 y M1): correcion para que este el id definido`
+  - `fix(components): organizacion SideBar`
+  - `feat(M1): implementacion de baja logica, restauracion y paginacion`
+  
+  ---
+
+
+#### 14/11/2026
+#### Matías Sillén Ríos | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Reorganización completa de `src/router/index.ts` agrupando rutas hijas de `MainLayout` por módulo, incorporando Lazy Loading (`() => import(...)`) en `PerfilView.vue`, completando `meta.roles` en rutas faltantes (`canchas/reservas/:id`), hidratando los datos completos del perfil en `beforeEach` y optimizando `LoginView.vue` para navegar directamente con `rutaPorRol`.
+  - Optimización del interceptor de peticiones en `src/common/api/http.ts` para leer el token activo desde Pinia antes de consultar `supabase.auth.getSession()`, y limpieza de sesión ante respuestas HTTP `401`.
+  - Eliminación del rol hardcodeado `roles: [4]` en `RegistroView.vue` y `CompletarPerfilView.vue`, agregando manejo de compensación ante fallos parciales entre Supabase Auth y el backend local, y persistencia del avatar de Google OAuth al completar el perfil.
+  - Actualización de `src/store/auth.ts`, `MainLayout.vue` y `Sidebar.vue`: eliminación del enlace duplicado `Mi Perfil` del menú lateral, implementación de menú desplegable de usuario en la Navbar mostrando nombre y apellido reales (nunca el correo), fotografía de perfil (Supabase Storage y fallback de Google OAuth con `referrerpolicy="no-referrer"`), iniciales ante error de carga y estado Skeleton.
+  - Ampliación de `PerfilView.vue` y `auth.service.ts`: incorporación de estado Skeleton, campos bloqueados (`email` y `dni`), edición validada con Zod de `nombre`, `apellido` y `telefono` sincronizada en tiempo real con Pinia/Navbar, carga y vista previa de fotografía de perfil (JPG, PNG o WEBP hasta 2 MB) y formulario independiente de cambio de contraseña con reautenticación previa (`reauthenticateWithPassword` + `updatePassword`) en Supabase Auth.
+  - Incorporación de pruebas automatizadas con Vitest en `src/router/__tests__/router.spec.ts` y `src/modules/M1-usuarios/views/__tests__/PerfilView.spec.ts`.
+- **Decisiones:**
+  - Centralizar el acceso a `/perfil` en un menú desplegable de usuario en la Navbar y retirarlo del Sidebar para evitar duplicación de navegación y mantener sincronizado visualmente el avatar y el nombre completo del usuario activo.
+  - Separar en `PerfilView.vue` el formulario de datos personales del formulario de cambio de contraseña, exigiendo reautenticación con la contraseña actual en Supabase Auth antes de aplicar `updateUser`.
+  - Utilizar `referrerpolicy="no-referrer"` y fallback a metadatos de sesión (`avatar_url` / `picture`) para garantizar la visualización confiable de avatares provenientes de cuentas de Google OAuth.
+- **Dificultades:**
+  - Al iniciar sesión con cuentas de Google OAuth, la foto de perfil no se visualizaba porque `CompletarPerfilView.vue` no persistía la URL externa cuando no se subía un archivo local y las etiquetas `<img>` carecían de `referrerpolicy="no-referrer"` frente a la CDN de Google; se resolvió persistiendo la URL en el alta y agregando fallback desde los metadatos de sesión.
+- **Commits:**
+  - `fix(router): reorganizar rutas con lazy loading y corregir navegacion`
+  - `fix(router): corregir advertencia deprecada de consultas de cliente`
+  - `fix(auth): asignar rol externo dinamicamente en el registro`
+  - `fix(navbar): mostrar nombre real y foto de perfil desde Supabase`
+  - `feat(profile): trasladar acceso a mi perfil desde el sidebar a la navbar`
+  - `feat(profile): ampliar vista mi perfil con edicion, avatar y cambio de contrasena`
+   - `test(auth): agregar pruebas unitarias y de integracion de auth y perfil`
+  - `fix(navbar): persistir y mostrar avatar de cuenta de Google OAuth`
+
+---
+
+#### 14/11/2026
+#### Matías Sillén Ríos | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Creación de la vista exclusiva del Dashboard del Socio (`SocioDashboardView.vue`) reutilizando el layout principal (`MainLayout.vue`), tarjetas, badges y componentes `Skeleton` existentes en `src/common/`, mostrando saludo personalizado, resumen de actividad, próximas reservas reales y accesos rápidos.
+  - Implementación de la vista de Historial de Reservas (`HistorialReservasView.vue`) con distinción visual entre reservas de canchas y clases grupales (`@phosphor-icons/vue`), visualización de fechas, horarios, sedes y estados reales persistidos, filtrado por tipo de actividad, paginación y ordenamiento descendente (más recientes primero).
+  - Integración de rutas con carga diferida (Lazy Loading) en `src/router/index.ts` y actualización de navegación en `Sidebar.vue` y `ruta-por-rol.ts`, habilitando el acceso exclusivo a usuarios con rol `socio` y bloqueando mediante `beforeEach` el ingreso directo de usuarios con rol `externo`.
+  - Implementación de estados de interfaz completos (carga con `Skeleton`, historial vacío cuando el socio no posee actividades registradas y manejo de errores de red con opción de reintento) junto con validación de contratos mediante interfaces TypeScript y Zod.
+  - Cobertura de pruebas automatizadas (Vitest / Cypress) validando control de acceso RBAC entre `socio` y `externo`, renderizado de estados visuales y visualización correcta de reservas de canchas y clases grupales.
+- **Decisiones:**
+  - Presentar una vista unificada de historial con filtros por categoría (`Todas`, `Canchas`, `Clases grupales`) e indicadores visuales diferenciados por tipo y estado real, evitando duplicar lógica de consulta y manteniendo consistencia visual en móvil y escritorio.
+  - Centralizar el control de acceso tanto en la visibilidad del menú lateral como en los guards de Vue Router conectados al rol real hidratado desde el backend en Pinia (`useAuthStore`).
+- **Dificultades:**
+  - Evitar saltos visuales o exposición momentánea de componentes del Dashboard antes de confirmar el rol real del usuario tras recargar la página; se resolvió condicionando la navegación a la hidratación previa del perfil en `router.beforeEach` y mostrando estados `Skeleton` durante la carga inicial.
+- **Commits:**
+  - `feat(router): registrar rutas de dashboard y historial del socio`
+  - `feat(dashboard): implementar vista de historial y dashboard del socio`
+`
+---
+  
+#### 15/11/2026
+#### Joaquín Ribarola | Rol: Desarrollador Frontend
+
+- **Tarea:** RF-07 — Reserva de clases: Reserva hasta 48 hs antes; el sistema decrementa el cupo. Cancelación sin penalidad hasta 2 hs antes.
+- **Actividades:**
+  - **Función utilitaria de control de cancelación (`date-formatter.ts`):** Creación de `obtenerEstadoCancelacionReserva(fecha, horario)` evaluando la diferencia temporal entre el momento actual y el inicio de la clase. Si faltan 2 horas o menos (o si la clase ya inició/pasó), bloquea la cancelación devolviendo `puedeCancelar: false`, `motivoBloqueo: 'LIMITE_2_HORAS'` y un mensaje claro para el socio.
+  - **Bloqueo interactivo en la tarjeta de clase (`ClaseCard.vue`):** Para clases reservadas (`clase.estado === 'MISMA_RESERVA'`), si faltan más de 2 horas se mantiene el botón habilitado "Cancelar mi Reserva". Si faltan 2 horas o menos, el botón pasa a estado deshabilitado (`disabled`, `cursor-not-allowed`) con la etiqueta "No cancelable (≤ 2 hs)" y tooltip explicativo de la política de cancelación.
+  - **Guardias defensivas en la vista de agenda (`ClasesView.vue`):** En `handleCancelar(idClase)` y en `confirmarCancelacion()`, se verifica defensivamente el cumplimiento de la ventana de cancelación antes de abrir el modal o invocar el endpoint `cancelarReserva(idReserva)`. En caso de intento inválido, se notifica con `toast.warning`.
+  - **Aviso informativo en modal de cancelación (`ClasesView.vue`):** Incorporación de una nota explicativa dentro del modal recordando al socio la regla RF-07.
+  - **Cobertura de pruebas unitarias (`date-formatter.spec.ts` y `clases-rf-07-cancelacion.spec.ts`):** Validación exhaustiva con `vi.useFakeTimers()` para clases con más de 2 hs, exactamente 2 hs, menos de 2 hs y clases ya pasadas, certificando el bloqueo tanto en tarjeta como en vista y llamadas a servicio.
+- **Decisiones:**
+  - Deshabilitar el botón y bloquear la acción en frontend cuando falten 2 horas o menos para el inicio de la clase, cumpliendo estrictamente con la regla RF-07 sin requerir por el momento un sistema de penalizaciones punitivas.
+  - Proteger tanto la interfaz de usuario como la ejecución del servicio mediante validaciones preventivas multinivel.
+- **Dificultades:** Ninguna.
+- **Verificación:** Pipeline de validación completo exitoso: formateo (`npm run format`), linter (`npm run lint`), tipado (`npm run typecheck`), compilación de producción (`npm run build`) y tests (`npm run test`) con 16 suites y 117 pruebas aprobadas al 100%.
+
+---
+  
+#### 15/11/2026
+#### Joaquín Ribarola | Rol: Desarrollador Frontend
+
+- **Tarea:** RF-07 — Reserva de clases: Reserva hasta 48 hs antes; el sistema decrementa el cupo. Cancelación sin penalidad hasta 2 hs antes.
+- **Actividades:**
+  - **Función utilitaria de control de cancelación (`date-formatter.ts`):** Creación de `obtenerEstadoCancelacionReserva(fecha, horario)` evaluando la diferencia temporal entre el momento actual y el inicio de la clase. Si faltan 2 horas o menos (o si la clase ya inició/pasó), bloquea la cancelación devolviendo `puedeCancelar: false`, `motivoBloqueo: 'LIMITE_2_HORAS'` y un mensaje claro para el socio.
+  - **Bloqueo interactivo en la tarjeta de clase (`ClaseCard.vue`):** Para clases reservadas (`clase.estado === 'MISMA_RESERVA'`), si faltan más de 2 horas se mantiene el botón habilitado "Cancelar mi Reserva". Si faltan 2 horas o menos, el botón pasa a estado deshabilitado (`disabled`, `cursor-not-allowed`) con la etiqueta "No cancelable (≤ 2 hs)" y tooltip explicativo de la política de cancelación.
+  - **Guardias defensivas en la vista de agenda (`ClasesView.vue`):** En `handleCancelar(idClase)` y en `confirmarCancelacion()`, se verifica defensivamente el cumplimiento de la ventana de cancelación antes de abrir el modal o invocar el endpoint `cancelarReserva(idReserva)`. En caso de intento inválido, se notifica con `toast.warning`.
+  - **Aviso informativo en modal de cancelación (`ClasesView.vue`):** Incorporación de una nota explicativa dentro del modal recordando al socio la regla RF-07.
+  - **Cobertura de pruebas unitarias (`date-formatter.spec.ts` y `clases-rf-07-cancelacion.spec.ts`):** Validación exhaustiva con `vi.useFakeTimers()` para clases con más de 2 hs, exactamente 2 hs, menos de 2 hs y clases ya pasadas, certificando el bloqueo tanto en tarjeta como en vista y llamadas a servicio.
+- **Decisiones:**
+  - Deshabilitar el botón y bloquear la acción en frontend cuando falten 2 horas o menos para el inicio de la clase, cumpliendo estrictamente con la regla RF-07 sin requerir por el momento un sistema de penalizaciones punitivas.
+  - Proteger tanto la interfaz de usuario como la ejecución del servicio mediante validaciones preventivas multinivel.
+- **Dificultades:** Ninguna.
+- **Verificación:** Pipeline de validación completo exitoso: formateo (`npm run format`), linter (`npm run lint`), tipado (`npm run typecheck`), compilación de producción (`npm run build`) y tests (`npm run test`) con 16 suites y 117 pruebas aprobadas al 100%.
+
+---

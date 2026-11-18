@@ -57,8 +57,15 @@ export function useQr() {
 
       if (axios.isAxiosError<ApiErrorDto>(error) && error.response?.data) {
         const apiError = error.response.data
+        const mensajeServidor =
+          typeof apiError.message === 'string'
+            ? apiError.message
+            : Array.isArray(apiError.message)
+              ? apiError.message.join('. ')
+              : apiError.detail || apiError.title
+
         errorMessage.value =
-          apiError.detail || apiError.title || 'Error al obtener la credencial.'
+          mensajeServidor || 'Error al obtener la credencial.'
       } else if (error instanceof Error) {
         errorMessage.value = error.message
       } else {

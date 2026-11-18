@@ -225,7 +225,7 @@ async function handleConfirmarPago() {
   errorMensaje.value = null
 
   const payload: IniciarPagoRequest = {
-    monto: props.monto,
+    monto: props.monto || 15000.0,
     titulo: props.concepto,
     id_cancha_reserva: props.idCanchaReserva,
     id_membresia: props.idMembresia,
@@ -466,7 +466,7 @@ async function handleConfirmarPago() {
           </div>
         </div>
 
-        <!-- Garantía de seguridad RNF-02 -->
+        <!-- Garantía de seguridad -->
         <div
           class="p-3.5 bg-slate-50 border border-slate-200/70 rounded-xl flex items-start gap-3 text-xs text-slate-600"
         >

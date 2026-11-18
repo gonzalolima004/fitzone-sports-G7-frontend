@@ -12,11 +12,14 @@ import {
   PhCreditCard,
   PhWarningCircle,
   PhSoccerBall,
+  PhMedal,
   PhArrowClockwise,
   PhMapPin,
   PhCalendarBlank,
 } from '@phosphor-icons/vue'
 import BaseButton from '@/common/components/BaseButton.vue'
+import { useAuthStore, type RolUsuario } from '@/store/auth'
+import { authService } from '@/modules/M1-usuarios/services/auth.service'
 import {
   pagosService,
   type PagoDetalleResponse,
@@ -27,6 +30,7 @@ export type EstadoResultado =
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 
 const estado = ref<EstadoResultado>('verificando')
 const idPago = ref<number | null>(null)
@@ -141,9 +145,14 @@ function irAPagos() {
 
 function irARecurso() {
   if (tipoConcepto.value === 'cancha') {
-    router.push('/canchas')
+    const idRef = pagoDetalle.value?.concepto?.id_referencia
+    if (idRef) {
+      router.push({ name: 'canchas-detalle-reserva', params: { id: idRef } })
+    } else {
+      router.push('/canchas')
+    }
   } else if (tipoConcepto.value === 'membresia') {
-    router.push('/perfil')
+    router.push('/membresia')
   } else {
     router.push('/pagos')
   }
@@ -188,6 +197,38 @@ function recuperarIdPago(): number | null {
 }
 
 /**
+ * Sincroniza el rol del usuario en el store de sesión tras acreditarse su membresía.
+ */
+async function sincronizarRolSocio() {
+  try {
+    const respuesta = await authService.verifyLocalProfile()
+    const u = respuesta?.user
+    if (u) {
+      const rolBackend = String(
+        u.rol ?? u.roles?.[0] ?? 'socio'
+      ).toLowerCase() as RolUsuario
+      authStore.setPerfilInterno({
+        id: u.id_usuario,
+        email: u.email,
+        rol: rolBackend,
+      })
+    }
+  } catch {
+    if (
+      authStore.rol === 'externo' &&
+      authStore.usuario &&
+      authStore.usuario.id !== undefined
+    ) {
+      authStore.setPerfilInterno({
+        ...authStore.usuario,
+        id: authStore.usuario.id, // TypeScript valida que id es number
+        rol: 'socio',
+      })
+    }
+  }
+}
+
+/**
  * Consulta el estado real del pago al backend (GET /pagos/:id).
  */
 async function verificarPagoReal() {
@@ -210,6 +251,9 @@ async function verificarPagoReal() {
     const estadoApi = (pago.estado || '').trim().toLowerCase()
     if (estadoApi === 'aprobado') {
       estado.value = 'aprobado'
+      if (pago.concepto?.tipo === 'membresia') {
+        await sincronizarRolSocio()
+      }
     } else if (estadoApi === 'rechazado' || estadoApi === 'cancelado') {
       estado.value = 'rechazado'
     } else {
@@ -385,6 +429,19 @@ defineExpose({
             <span class="inline-flex items-center gap-2">
               <PhSoccerBall :size="18" weight="bold" />
               Ver mis reservas
+            </span>
+          </BaseButton>
+
+          <BaseButton
+            v-else-if="tipoConcepto === 'membresia'"
+            variant="primary"
+            size="md"
+            class="w-full sm:w-auto"
+            @click="irARecurso"
+          >
+            <span class="inline-flex items-center gap-2">
+              <PhMedal :size="18" weight="bold" />
+              Ver mi membresía
             </span>
           </BaseButton>
 

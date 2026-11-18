@@ -1,0 +1,214 @@
+%% Autor: Marcos Caraballo | Fecha: 2026-11-16 | Versión: 1.0
+erDiagram
+    ciudad {
+        int id_ciudad PK
+        string nombre
+        string provincia
+    }
+
+    sede {
+        int id_sede PK
+        int id_ciudad FK
+        string nombre
+        string direccion
+        int capacidad_maxima
+        boolean activo
+    }
+
+    sede_horario {
+        int id_sede_horario PK
+        int id_sede FK "UK uq_sede_dia"
+        int dia_semana "UK uq_sede_dia"
+        string hora_apertura
+        string hora_cierre
+        boolean cerrado
+    }
+
+    calendario {
+        int id_calendario PK
+        date fecha UK
+        string descripcion
+        boolean es_feriado
+    }
+
+    calendario_sede {
+        int id_calendario_sede PK
+        int id_sede FK "UK uq_sede_calendario"
+        int id_calendario FK "UK uq_sede_calendario"
+        boolean cerrado
+        string motivo
+    }
+
+    rol {
+        int id_rol PK
+        string nombre
+    }
+
+    usuario_estado {
+        int id_usuario_estado PK
+        string descripcion
+    }
+
+    usuario {
+        int id_usuario PK
+        int id_sede FK
+        int id_usuario_estado FK
+        string dni UK
+        string email UK
+        string nombre
+        string apellido
+        string telefono
+        string foto_url
+    }
+
+    usuario_rol {
+        int id_usuario PK, FK
+        int id_rol PK, FK
+    }
+
+    registro_accesos {
+        int id_registro_acceso PK
+        int id_usuario FK
+        int id_sede FK
+        datetime fecha_ingreso
+        datetime fecha_egreso
+    }
+
+    membresia_plan {
+        int id_membresia_plan PK
+        string nombre
+        decimal precio
+        int duracion_dias
+    }
+
+    membresia_estado {
+        int id_membresia_estado PK
+        string descripcion
+    }
+
+    membresia {
+        int id_membresia PK
+        int id_usuario FK
+        int id_membresia_plan FK
+        int id_membresia_estado FK
+        datetime fecha_inicio
+        datetime fecha_fin
+    }
+
+    cancha_tipo {
+        int id_cancha_tipo PK
+        string descripcion
+        boolean activo
+    }
+
+    cancha {
+        int id_cancha PK
+        int id_cancha_tipo FK
+        int id_sede FK
+        string nombre
+        decimal precio_hora
+        boolean activo
+    }
+
+    cancha_mantenimiento {
+        int id_cancha_mantenimiento PK
+        int id_cancha FK
+        datetime fecha_inicio
+        datetime fecha_fin
+        string motivo
+    }
+
+    cancha_reserva_estado {
+        int id_cancha_reserva_estado PK
+        string descripcion
+    }
+
+    cancha_reserva {
+        int id_cancha_reserva PK
+        int id_cancha FK "Bloqueo FOR UPDATE RN-02"
+        int id_usuario FK
+        int id_cancha_reserva_estado FK
+        datetime fecha_inicio
+        datetime fecha_fin
+        decimal precio_congelado
+        decimal descuento_porcentaje
+    }
+
+    clase {
+        int id_clase PK
+        int id_sede FK "Bloqueo FOR UPDATE"
+        string nombre
+        datetime fecha_hora
+        int cupo_maximo
+    }
+
+    clase_reserva_estado {
+        int id_clase_reserva_estado PK
+        string descripcion
+    }
+
+    clase_reserva {
+        int id_clase_reserva PK
+        int id_clase FK
+        int id_usuario FK
+        int id_clase_reserva_estado FK
+        datetime fecha_reserva
+    }
+
+    clase_lista_espera_estado {
+        int id_clase_lista_espera_estado PK
+        string descripcion
+    }
+
+    clase_lista_espera {
+        int id_clase_lista_espera PK
+        int id_clase FK
+        int id_usuario FK
+        int id_clase_lista_espera_estado FK
+        datetime fecha_inscripcion
+    }
+
+    pago_estado {
+        int id_pago_estado PK
+        string descripcion
+    }
+
+    pago {
+        int id_pago PK
+        int id_pago_estado FK
+        int id_cancha_reserva FK
+        int id_membresia FK
+        decimal monto
+        string referencia_externa
+        datetime fecha_pago
+    }
+
+    ciudad ||--o{ sede : "ubica"
+    sede ||--o{ sede_horario : "define"
+    sede ||--o{ calendario_sede : "configura"
+    calendario ||--o{ calendario_sede : "aplica"
+    sede ||--o{ usuario : "asocia"
+    usuario_estado ||--o{ usuario : "clasifica"
+    usuario ||--o{ usuario_rol : "tiene"
+    rol ||--o{ usuario_rol : "asigna"
+    usuario ||--o{ registro_accesos : "ingresa"
+    sede ||--o{ registro_accesos : "recibe"
+    usuario ||--o{ membresia : "posee"
+    membresia_plan ||--o{ membresia : "define"
+    membresia_estado ||--o{ membresia : "determina"
+    cancha_tipo ||--o{ cancha : "tipifica"
+    sede ||--o{ cancha : "contiene"
+    cancha ||--o{ cancha_mantenimiento : "bloquea"
+    cancha ||--o{ cancha_reserva : "reserva"
+    usuario ||--o{ cancha_reserva : "solicita"
+    cancha_reserva_estado ||--o{ cancha_reserva : "estado"
+    sede ||--o{ clase : "programa"
+    clase ||--o{ clase_reserva : "inscribe"
+    usuario ||--o{ clase_reserva : "participa"
+    clase_reserva_estado ||--o{ clase_reserva : "estado"
+    clase ||--o{ clase_lista_espera : "encola"
+    usuario ||--o{ clase_lista_espera : "aguarda"
+    clase_lista_espera_estado ||--o{ clase_lista_espera : "estado"
+    pago_estado ||--o{ pago : "estado"
+    cancha_reserva |o--o{ pago : "abona"
+    membresia |o--o{ pago : "abona"

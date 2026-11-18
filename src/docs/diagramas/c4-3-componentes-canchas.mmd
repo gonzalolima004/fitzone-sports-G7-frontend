@@ -1,0 +1,93 @@
+%% Autor: Marcos Caraballo | Fecha: 2026-11-17 | Versión: 2.1
+flowchart TB
+    classDef comp fill:#85bbf0,stroke:#5d82a8,color:#000000,rx:6,ry:6
+    classDef extComp fill:#438dd5,stroke:#2e6295,color:#ffffff,rx:6,ry:6
+    classDef container fill:#1168bd,stroke:#0b4884,color:#ffffff,rx:6,ry:6
+    classDef db fill:#2f6690,stroke:#1d425e,color:#ffffff,rx:6,ry:6
+    classDef sysExt fill:#666666,stroke:#444444,color:#ffffff,rx:6,ry:6
+
+    spa["<b>Aplicación Web SPA</b><br/><i>[Container: Vue 3, Vite]</i><br/>Grilla de turnos, reservas y gestión"]:::container
+
+    subgraph m4_boundary ["API Backend NestJS - Módulo M4 Canchas Deportivas y Reservas"]
+        direction TB
+
+        subgraph capa_http ["Controladores REST"]
+            direction LR
+            ctrl_canchas["<b>CanchasController</b><br/><i>[NestJS Controller]</i><br/>Catálogo, grilla y cotización"]:::comp
+            ctrl_reservas["<b>ReservasCanchasController</b><br/><i>[NestJS Controller]</i><br/>POST y GET reservas"]:::comp
+            ctrl_mant["<b>MantenimientoController</b><br/><i>[NestJS Controller]</i><br/>Bloqueos de canchas"]:::comp
+        end
+
+        subgraph capa_servicios ["Servicios de Aplicación y Dominio"]
+            direction LR
+            srv_canchas["<b>CanchasService (Facade)</b><br/><i>[NestJS Service]</i><br/>CRUD, fachada y cotización"]:::comp
+            srv_disp["<b>CanchasDisponibilidadService</b><br/><i>[NestJS Service]</i><br/>Cálculo de grilla horaria"]:::comp
+            srv_reservas["<b>ReservasCanchasService</b><br/><i>[NestJS Service]</i><br/>Reglas horarias y reserva"]:::comp
+            srv_mant["<b>MantenimientoService</b><br/><i>[NestJS Service]</i><br/>Ventanas de mantenimiento"]:::comp
+        end
+
+        subgraph capa_patrones ["Patrones GoF, Caché y Realtime"]
+            direction LR
+            ctx_precio["<b>PrecioContextService</b><br/><i>[Strategy Context]</i><br/>Compone tarifas dinámicas"]:::comp
+            strategies["<b>PrecioStrategy + Impls (GoF)</b><br/><i>[Strategy Pattern]</i><br/>Estándar, Socio (-15%), Pico (+20%)"]:::comp
+            srv_cache["<b>CotizacionCacheService</b><br/><i>[In-Memory LRU Cache]</i><br/>Caché socio/ciudad con TTL"]:::comp
+            srv_rt["<b>CanchasRealtimeService</b><br/><i>[Realtime Publisher]</i><br/>Emite turno_reservado"]:::comp
+        end
+
+        subgraph capa_repos ["Repositorios de Persistencia"]
+            direction LR
+            repo_canchas["<b>CanchasRepository</b><br/><i>[Prisma Repository]</i><br/>Canchas, tipos y socios"]:::comp
+            repo_reservas["<b>ReservasCanchasRepository</b><br/><i>[Prisma Repository]</i><br/>Bloqueo FOR UPDATE (RN-02)"]:::comp
+        end
+    end
+
+    guards_m4["<b>SupabaseAuthGuard & RolesGuard</b><br/><i>[Common: NestJS Guards]</i><br/>Auth JWT y control RBAC"]:::extComp
+    srv_sedes["<b>SedeService (M0)</b><br/><i>[NestJS Service]</i><br/>Horarios y feriados"]:::extComp
+    srv_supabase["<b>SupabaseService (Common)</b><br/><i>[NestJS Service]</i><br/>Cliente Supabase Realtime"]:::extComp
+
+    db[("<b>Base de Datos Relacional</b><br/><i>[PostgreSQL / Supabase]</i><br/>cancha, reserva, mantenimiento")]:::db
+    sb_rt["<b>Supabase Realtime</b><br/><i>[Cloud BaaS]</i><br/>Canal canchas:sede:{idSede}"]:::sysExt
+
+    %% Relaciones SPA -> Controllers
+    spa -->|"Consulta turnos en<br/>[JSON/HTTPS]"| ctrl_canchas
+    spa -->|"Gestiona reservas en<br/>[JSON/HTTPS]"| ctrl_reservas
+    spa -->|"Programa bloqueos en<br/>[JSON/HTTPS]"| ctrl_mant
+
+    %% Relaciones Controllers -> Guards
+    ctrl_canchas -->|"Valida auth/roles con<br/>[In-Process / DI]"| guards_m4
+    ctrl_reservas -->|"Valida auth/permisos con<br/>[In-Process / DI]"| guards_m4
+    ctrl_mant -->|"Valida rol personal con<br/>[In-Process / DI]"| guards_m4
+
+    %% Relaciones Controllers -> Services
+    ctrl_canchas -->|"Delega CRUD/cotización a<br/>[In-Process / DI]"| srv_canchas
+    ctrl_canchas -->|"Pide disponibilidad a<br/>[In-Process / DI]"| srv_disp
+    ctrl_reservas -->|"Delega reserva a<br/>[In-Process / DI]"| srv_reservas
+    ctrl_mant -->|"Delega bloqueo a<br/>[In-Process / DI]"| srv_mant
+
+    %% Relaciones internas entre Services y Patrones
+    srv_canchas -->|"Delega grilla hacia<br/>[In-Process / DI]"| srv_disp
+    srv_canchas -->|"Usa caché en<br/>[In-Process / DI]"| srv_cache
+    srv_canchas -->|"Calcula tarifa con<br/>[In-Process / DI]"| ctx_precio
+    srv_canchas -->|"Lee/persiste datos en<br/>[In-Process / DI]"| repo_canchas
+
+    ctx_precio -->|"Ejecuta algoritmos en<br/>[In-Process / DI]"| strategies
+
+    srv_disp -->|"Consulta horarios en<br/>[In-Process / DI]"| srv_sedes
+    srv_disp -->|"Obtiene canchas desde<br/>[In-Process / DI]"| repo_canchas
+    srv_disp -->|"Obtiene reservas desde<br/>[In-Process / DI]"| repo_reservas
+
+    srv_reservas -->|"Pide cotización desde<br/>[In-Process / DI]"| srv_canchas
+    srv_reservas -->|"Valida apertura en<br/>[In-Process / DI]"| srv_sedes
+    srv_reservas -->|"Verifica cancha en<br/>[In-Process / DI]"| repo_canchas
+    srv_reservas -->|"Crea reserva en<br/>[In-Process / DI]"| repo_reservas
+    srv_reservas -->|"Notifica turno a<br/>[In-Process / DI]"| srv_rt
+
+    srv_mant -->|"Registra bloqueo en<br/>[In-Process / DI]"| repo_canchas
+    srv_rt -->|"Solicita broadcast a<br/>[In-Process / DI]"| srv_supabase
+
+    %% Relaciones hacia Infraestructura Externa
+    repo_canchas -->|"Lee/escribe tablas en<br/>[SQL/TCP]"| db
+    repo_reservas -->|"Transacciona FOR UPDATE en<br/>[SQL/TCP]"| db
+    srv_supabase -->|"Publica eventos hacia<br/>[WebSocket]"| sb_rt
+    spa -->|"Suscribe a canal canchas:sede:{idSede} en<br/>[WebSocket]"| sb_rt
+    sb_rt -->|"Empuja turno_reservado en vivo hacia<br/>[WebSocket]"| spa

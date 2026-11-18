@@ -10,6 +10,10 @@ describe('Navegación del panel de gerencia', () => {
       history: createMemoryHistory(),
       routes: [
         {
+          path: '/gerencia',
+          component: { template: '<p>Dashboard de gerencia</p>' },
+        },
+        {
           path: '/reportes',
           component: PanelGerenciaView,
           children: [

@@ -12,11 +12,28 @@ export interface PlanMembresia {
 export interface EstadoMembresia {
   esSocioActivo: boolean
   enMora: boolean
+  /** El socio suspendió su membresía: conserva beneficios hasta el fin del ciclo. */
+  suspendida?: boolean
   estado: 'ACTIVA' | 'VENCIDA' | 'SUSPENDIDA' | 'SIN_MEMBRESIA'
   fechaVencimiento: string | null
+  fecha_inicio?: string | null
+  fecha_vencimiento?: string | null
   planActualId: number | null
   planNombre: string | null
   nombre_plan: string | null
+}
+
+export interface MembresiaActiva {
+  id_membresia: number
+  fecha_inicio: string
+  fecha_fin: string
+  id_membresia_plan: number
+  membresia_plan?: {
+    id_membresia_plan: number
+    nombre: string
+    duracion_dias: number
+    precio: number
+  }
 }
 
 export const membresiasService = {
@@ -28,6 +45,19 @@ export const membresiasService = {
   async verificarEstado(idUsuario: number): Promise<unknown> {
     const response = await apiClient.get(
       `/membresias/usuario/${idUsuario}/verificar`
+    )
+    return response.data
+  },
+
+  /** Suspende la membresía propia (no reversible): beneficios hasta fecha_fin. */
+  async suspenderMiMembresia(): Promise<unknown> {
+    const response = await apiClient.patch('/membresias/mi-membresia/suspender')
+    return response.data
+  },
+
+  async getMembresiaActiva(idUsuario: number): Promise<MembresiaActiva | null> {
+    const response = await apiClient.get<MembresiaActiva | null>(
+      `/membresias/usuario/${idUsuario}/activa`
     )
     return response.data
   },

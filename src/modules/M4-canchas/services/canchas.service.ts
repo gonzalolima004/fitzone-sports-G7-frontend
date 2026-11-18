@@ -1,15 +1,28 @@
 import http from '@/common/api/http'
 import { supabase } from '@/common/utils/supabase'
+import { useSedeStore, type HorarioOperativo } from '@/store/sede'
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import type {
   Cancha,
   CanchaTipo,
   DisponibilidadCanchaResponse,
   TurnoSlot,
-  HorarioOperativoDia,
+  CrearCanchaDto,
+  ActualizarCanchaDto,
+  CrearMantenimientoDto,
+  MantenimientoResponseDto,
+  ActualizarCanchaTipoDto,
+  FiltrosMantenimiento,
+  ActualizarMantenimientoDto,
+  DisponibilidadSedeMap,
+  CanchaDisponibilidadBackendDto,
+  GrillaDisponibilidadBackendResponse,
+  TurnoReservadoPayload,
 } from '@/modules/M4-canchas/types/canchas.types'
+import { normalizarSlotBackend } from '@/modules/M4-canchas/adapters/canchas.adapter'
+import { canchasTiposService } from '@/modules/M4-canchas/services/canchas-tipos.service'
+import { mantenimientosService } from '@/modules/M4-canchas/services/mantenimientos.service'
 
-///NOTA: Capaz es mejor que el estado lo traiga como string directamente
 export interface CanchaReservaRealtimePayload {
   id_cancha_reserva?: number
   id_cancha?: number
@@ -20,544 +33,322 @@ export interface CanchaReservaRealtimePayload {
   precio_congelado?: number
   descuento_porcentaje?: number
   es_horario_pico?: boolean
-  [key: string]: unknown // Para ignorar columnas extras que traiga Supabase
-}
-
-// Mock de fallback para pruebas y desarrollo universitario desconectado
-const MOCK_TIPOS_CANCHA: CanchaTipo[] = [
-  {
-    id_cancha_tipo: 1,
-    nombre: 'Pádel',
-    descripcion: 'Pistas de césped sintético y cristal templado',
-  },
-  {
-    id_cancha_tipo: 2,
-    nombre: 'Fútbol 5',
-    descripcion: 'Canchas techadas de césped sintético pro',
-  },
-]
-
-const MOCK_CANCHAS: Cancha[] = [
-  {
-    id_cancha: 1,
-    id_sede: 1,
-    id_cancha_tipo: 1,
-    nombre: 'Pádel 1 (Cristal Tech)',
-    costo_base: 8000,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[0],
-  },
-  {
-    id_cancha: 2,
-    id_sede: 1,
-    id_cancha_tipo: 1,
-    nombre: 'Pádel 2 (Panorámica)',
-    costo_base: 8000,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[0],
-  },
-  {
-    id_cancha: 3,
-    id_sede: 1,
-    id_cancha_tipo: 1,
-    nombre: 'Pádel 3 (Cubierta Central)',
-    costo_base: 8500,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[0],
-  },
-  {
-    id_cancha: 4,
-    id_sede: 1,
-    id_cancha_tipo: 2,
-    nombre: 'Fútbol 1 (Estadio Principal)',
-    costo_base: 18000,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[1],
-  },
-  {
-    id_cancha: 5,
-    id_sede: 1,
-    id_cancha_tipo: 2,
-    nombre: 'Fútbol 2 (Techada Norte)',
-    costo_base: 16000,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[1],
-  },
-  // Sede 2
-  {
-    id_cancha: 6,
-    id_sede: 2,
-    id_cancha_tipo: 1,
-    nombre: 'Pádel Costanera 1',
-    costo_base: 8500,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[0],
-  },
-  {
-    id_cancha: 7,
-    id_sede: 2,
-    id_cancha_tipo: 1,
-    nombre: 'Pádel Costanera 2',
-    costo_base: 8500,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[0],
-  },
-  {
-    id_cancha: 8,
-    id_sede: 2,
-    id_cancha_tipo: 2,
-    nombre: 'Fútbol Costanera Río',
-    costo_base: 17000,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[1],
-  },
-  // Sede 3
-  {
-    id_cancha: 9,
-    id_sede: 3,
-    id_cancha_tipo: 1,
-    nombre: 'Pádel Oro Verde',
-    costo_base: 7500,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[0],
-  },
-  {
-    id_cancha: 10,
-    id_sede: 3,
-    id_cancha_tipo: 2,
-    nombre: 'Fútbol Oro Verde',
-    costo_base: 15000,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[1],
-  },
-  {
-    id_cancha: 11,
-    id_sede: 1,
-    id_cancha_tipo: 1,
-    nombre: 'Pádel 4 (Cubierta Central)',
-    costo_base: 8500,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[0],
-  },
-  {
-    id_cancha: 12,
-    id_sede: 1,
-    id_cancha_tipo: 1,
-    nombre: 'Pádel 5 (Cubierta Central)',
-    costo_base: 8500,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[1],
-  },
-  {
-    id_cancha: 13,
-    id_sede: 3,
-    id_cancha_tipo: 2,
-    nombre: 'Fútbol Oro Verde',
-    costo_base: 15000,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[1],
-  },
-  {
-    id_cancha: 14,
-    id_sede: 1,
-    id_cancha_tipo: 1,
-    nombre: 'Pádel 6 (Cubierta Central)',
-    costo_base: 8500,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[0],
-  },
-  {
-    id_cancha: 15,
-    id_sede: 1,
-    id_cancha_tipo: 1,
-    nombre: 'Pádel 7 (Cubierta Central)',
-    costo_base: 8500,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[0],
-  },
-  {
-    id_cancha: 16,
-    id_sede: 1,
-    id_cancha_tipo: 2,
-    nombre: 'Fútbol Oro Verde',
-    costo_base: 15000,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[1],
-  },
-  {
-    id_cancha: 17,
-    id_sede: 1,
-    id_cancha_tipo: 1,
-    nombre: 'Pádel 8 (Cubierta Central)',
-    costo_base: 8500,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[0],
-  },
-  {
-    id_cancha: 18,
-    id_sede: 3,
-    id_cancha_tipo: 2,
-    nombre: 'Fútbol Oro Verde',
-    costo_base: 15000,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[1],
-  },
-  {
-    id_cancha: 19,
-    id_sede: 1,
-    id_cancha_tipo: 1,
-    nombre: 'Pádel 9 (Cubierta Central)',
-    costo_base: 8500,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[0],
-  },
-  {
-    id_cancha: 20,
-    id_sede: 3,
-    id_cancha_tipo: 2,
-    nombre: 'Fútbol Oro Verde',
-    costo_base: 15000,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[1],
-  },
-  {
-    id_cancha: 21,
-    id_sede: 1,
-    id_cancha_tipo: 1,
-    nombre: 'Pádel 10 (Cubierta Central)',
-    costo_base: 8500,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[0],
-  },
-  {
-    id_cancha: 22,
-    id_sede: 1,
-    id_cancha_tipo: 1,
-    nombre: 'Pádel 11 (Cubierta Central)',
-    costo_base: 8500,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[0],
-  },
-  {
-    id_cancha: 23,
-    id_sede: 3,
-    id_cancha_tipo: 2,
-    nombre: 'Fútbol Oro Verde',
-    costo_base: 15000,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[1],
-  },
-  {
-    id_cancha: 24,
-    id_sede: 3,
-    id_cancha_tipo: 2,
-    nombre: 'Fútbol Oro Verde',
-    costo_base: 15000,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[1],
-  },
-  {
-    id_cancha: 25,
-    id_sede: 3,
-    id_cancha_tipo: 2,
-    nombre: 'Fútbol Oro Verde',
-    costo_base: 15000,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[1],
-  },
-  {
-    id_cancha: 26,
-    id_sede: 3,
-    id_cancha_tipo: 2,
-    nombre: 'Fútbol Oro Verde',
-    costo_base: 15000,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[1],
-  },
-  {
-    id_cancha: 27,
-    id_sede: 3,
-    id_cancha_tipo: 2,
-    nombre: 'Fútbol Oro Verde',
-    costo_base: 15000,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[1],
-  },
-  {
-    id_cancha: 28,
-    id_sede: 3,
-    id_cancha_tipo: 2,
-    nombre: 'Fútbol Oro Verde',
-    costo_base: 15000,
-    activa: true,
-    tipo: MOCK_TIPOS_CANCHA[1],
-  },
-]
-
-/**
- * Determina el horario operativo de la sede según el calendario (feriados) y el día de la semana (SedeHorario)
- */
-function calcularHorarioOperativo(
-  idSede: number,
-  fechaStr: string
-): HorarioOperativoDia {
-  const [y, m, d] = fechaStr.split('-').map((v) => parseInt(v, 10))
-  const fechaObj = new Date(y, m - 1, d)
-  const diaSemana = fechaObj.getDay() // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
-
-  // Verificación de feriados y cierres en Calendario / CalendarioSede
-  const mesDia = `${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`
-  if (mesDia === '12-25') {
-    return {
-      abierto: false,
-      hora_apertura: '00:00',
-      hora_cierre: '00:00',
-      motivo_cierre: 'Feriado Nacional: Navidad (Sede Cerrada)',
-    }
-  }
-  if (mesDia === '01-01') {
-    return {
-      abierto: false,
-      hora_apertura: '00:00',
-      hora_cierre: '00:00',
-      motivo_cierre: 'Feriado Nacional: Año Nuevo (Sede Cerrada)',
-    }
-  }
-  if (mesDia === '05-01') {
-    return {
-      abierto: false,
-      hora_apertura: '00:00',
-      hora_cierre: '00:00',
-      motivo_cierre: 'Feriado Nacional: Día del Trabajador (Sede Cerrada)',
-    }
-  }
-
-  // Horario semanal por sede (SedeHorario)
-  if (idSede === 3) {
-    // Sede Oro Verde cierra los domingos
-    if (diaSemana === 0) {
-      return {
-        abierto: false,
-        hora_apertura: '00:00',
-        hora_cierre: '00:00',
-        motivo_cierre: 'Sede cerrada los días domingos',
-      }
-    }
-    if (diaSemana === 6) {
-      return {
-        abierto: true,
-        hora_apertura: '09:00',
-        hora_cierre: '19:00',
-      }
-    }
-    return {
-      abierto: true,
-      hora_apertura: '08:00',
-      hora_cierre: '21:00',
-    }
-  }
-
-  if (idSede === 2) {
-    // Sede Costanera
-    if (diaSemana === 0 || diaSemana === 6) {
-      return {
-        abierto: true,
-        hora_apertura: '08:00',
-        hora_cierre: '20:00',
-      }
-    }
-    return {
-      abierto: true,
-      hora_apertura: '08:00',
-      hora_cierre: '22:00',
-    }
-  }
-
-  // Sede Central (id_sede 1)
-  if (diaSemana === 0) {
-    return {
-      abierto: true,
-      hora_apertura: '09:00',
-      hora_cierre: '20:00',
-    }
-  }
-  if (diaSemana === 6) {
-    return {
-      abierto: true,
-      hora_apertura: '08:00',
-      hora_cierre: '22:00',
-    }
-  }
-  return {
-    abierto: true,
-    hora_apertura: '07:00',
-    hora_cierre: '23:00',
-  }
-}
-
-/**
- * Genera slots dinámicamente según el horario de apertura y cierre de la sede (SedeHorario y Calendario)
- * aplicando la regla de negocio de horario pico (19:00 a 21:00 hs)
- */
-function generarSlotsFallback(cancha: Cancha, fecha: string): TurnoSlot[] {
-  const horario = calcularHorarioOperativo(cancha.id_sede, fecha)
-  if (!horario.abierto) {
-    return []
-  }
-
-  const slots: TurnoSlot[] = []
-  const costo = cancha.costo_base
-  const horaInicioInt = parseInt(horario.hora_apertura.split(':')[0], 10)
-  const horaCierreInt = parseInt(horario.hora_cierre.split(':')[0], 10)
-
-  // Semilla pseudo-determinística según fecha y cancha para simular reservas preexistentes
-  const seed =
-    (fecha.split('-').reduce((acc, part) => acc + parseInt(part, 10), 0) +
-      cancha.id_cancha) %
-    7
-
-  for (let hora = horaInicioInt; hora <= horaCierreInt; hora++) {
-    const horaInicioStr = `${hora.toString().padStart(2, '0')}:00`
-    const horaFinStr = `${(hora + 1).toString().padStart(2, '0')}:00`
-
-    // Regla de Negocio: Horario Pico entre las 19:00 y las 21:00 hs
-    const esPico = hora >= 19 && hora < 21
-    const precio = esPico ? Math.round(costo * 1.2) : costo
-
-    let estado: TurnoSlot['estado'] = 'DISPONIBLE'
-
-    // Generar algunas ocupaciones realistas para visualización
-    if ((hora + seed) % 5 === 0) {
-      estado = 'RESERVADO'
-    } else if (cancha.id_cancha === 3 && hora === 14) {
-      // Simular un mantenimiento
-      estado = 'MANTENIMIENTO'
-    }
-
-    slots.push({
-      hora_inicio: horaInicioStr,
-      hora_fin: horaFinStr,
-      estado,
-      es_horario_pico: esPico,
-      precio_estimado: precio,
-    })
-  }
-
-  return slots
+  [key: string]: unknown
 }
 
 export const canchasService = {
   /**
-   * Consulta el horario operativo de una sede para una fecha específica
+   * Consulta el horario operativo de una sede para una fecha específica,
+   * delegando en el sedeStore para unificar la fuente de datos y el uso de su caché central.
    */
   async getHorarioOperativo(
     idSede: number,
     fecha: string
-  ): Promise<HorarioOperativoDia> {
-    try {
-      const response = await http.get<HorarioOperativoDia>(
-        `/sedes/${idSede}/horario-operativo`,
-        {
-          params: { fecha },
-        }
-      )
-      return response.data
-    } catch {
-      return calcularHorarioOperativo(idSede, fecha)
-    }
+  ): Promise<HorarioOperativo> {
+    const sedeStore = useSedeStore()
+    return await sedeStore.obtenerHorarioOperativo(idSede, fecha)
   },
 
+  // -------------------------------------------------------------
+  // Delegación a canchasTiposService (Fachada Retrocompatible)
+  // -------------------------------------------------------------
+  async getTiposCancha(inactivos?: boolean): Promise<CanchaTipo[]> {
+    return canchasTiposService.getTiposCancha(inactivos)
+  },
+
+  async getCanchasTipos(inactivos?: boolean): Promise<CanchaTipo[]> {
+    return canchasTiposService.getCanchasTipos(inactivos)
+  },
+
+  async crearTipoCancha(descripcion: string): Promise<CanchaTipo> {
+    return canchasTiposService.crearTipoCancha(descripcion)
+  },
+
+  async crearCanchaTipo(descripcion: string): Promise<CanchaTipo> {
+    return canchasTiposService.crearCanchaTipo(descripcion)
+  },
+
+  async actualizarTipoCancha(
+    id: number,
+    datos: ActualizarCanchaTipoDto
+  ): Promise<CanchaTipo> {
+    return canchasTiposService.actualizarTipoCancha(id, datos)
+  },
+
+  async actualizarCanchaTipo(
+    id: number,
+    datos: ActualizarCanchaTipoDto
+  ): Promise<CanchaTipo> {
+    return canchasTiposService.actualizarCanchaTipo(id, datos)
+  },
+
+  async reactivarTipoCancha(id: number): Promise<CanchaTipo> {
+    return canchasTiposService.reactivarTipoCancha(id)
+  },
+
+  async eliminarTipoCancha(id: number): Promise<void> {
+    return canchasTiposService.eliminarTipoCancha(id)
+  },
+
+  // -------------------------------------------------------------
+  // CRUD de Canchas
+  // -------------------------------------------------------------
   /**
-   * Obtiene la lista de tipos de disciplinas deportivas
+   * Obtiene la lista completa de canchas con filtros opcionales (sede, tipo, disponible)
    */
-  async getTiposCancha(): Promise<CanchaTipo[]> {
-    /* NOTA: Necesito el endpoint andando en backend
+  async getCanchas(filtros?: {
+    id_sede?: number
+    sedeId?: number
+    id_cancha_tipo?: number
+    activo?: boolean
+    disponible?: boolean
+  }): Promise<Cancha[]> {
     try {
-      const response = await http.get('/canchas/tipos')
-      return response.data
-    } catch {
-      return MOCK_TIPOS_CANCHA
+      const params = new URLSearchParams()
+      const sede = filtros?.sedeId ?? filtros?.id_sede
+      if (sede) params.append('sedeId', String(sede))
+
+      const queryString = params.toString() ? `?${params.toString()}` : ''
+      const response = await http.get(`/canchas${queryString}`)
+      if (Array.isArray(response.data)) {
+        return response.data
+      }
+    } catch (err) {
+      console.warn('Error al consultar /canchas en el backend:', err)
     }
-    */
-    return MOCK_TIPOS_CANCHA
+    return []
   },
 
   /**
-   * Obtiene las canchas asociadas a una sede específica
+   * Obtiene las canchas asociadas a una sede específica desde el backend.
    */
   async getCanchasPorSede(idSede: number): Promise<Cancha[]> {
-    try {
-      const response = await http.get(`/canchas?sedeId=${idSede}`)
-      return response.data
-    } catch {
-      return MOCK_CANCHAS.filter((c) => c.id_sede === idSede && c.activa)
-    }
+    return this.getCanchas({ sedeId: idSede })
   },
 
   /**
+   * Da de alta una nueva cancha en el backend
+   */
+  async crearCancha(dto: CrearCanchaDto): Promise<Cancha> {
+    const response = await http.post<Cancha>('/canchas', dto)
+    return response.data
+  },
+
+  /**
+   * Actualiza los atributos de una cancha existente
+   */
+  async actualizarCancha(
+    id: number,
+    dto: ActualizarCanchaDto
+  ): Promise<Cancha> {
+    const response = await http.patch<Cancha>(`/canchas/${id}`, dto)
+    return response.data
+  },
+
+  /**
+   * Elimina una cancha (baja lógica) en el backend
+   */
+  async eliminarCancha(id: number): Promise<void> {
+    await http.delete(`/canchas/${id}`)
+  },
+
+  // -------------------------------------------------------------
+  // Delegación a mantenimientosService (Fachada Retrocompatible)
+  // -------------------------------------------------------------
+  async getMantenimientos(
+    filtros?: FiltrosMantenimiento
+  ): Promise<MantenimientoResponseDto[]> {
+    return mantenimientosService.getMantenimientos(filtros)
+  },
+
+  async programarMantenimiento(
+    idCancha: number,
+    dto: CrearMantenimientoDto
+  ): Promise<MantenimientoResponseDto> {
+    return mantenimientosService.programarMantenimiento(idCancha, dto)
+  },
+
+  async crearMantenimiento(
+    idCancha: number,
+    dto: CrearMantenimientoDto
+  ): Promise<MantenimientoResponseDto> {
+    return mantenimientosService.crearMantenimiento(idCancha, dto)
+  },
+
+  async actualizarMantenimiento(
+    idMantenimiento: number,
+    dto: ActualizarMantenimientoDto
+  ): Promise<MantenimientoResponseDto> {
+    return mantenimientosService.actualizarMantenimiento(idMantenimiento, dto)
+  },
+
+  async eliminarMantenimiento(idMantenimiento: number): Promise<void> {
+    return mantenimientosService.eliminarMantenimiento(idMantenimiento)
+  },
+
+  // -------------------------------------------------------------
+  // Disponibilidad y Slots (con Adapter)
+  // -------------------------------------------------------------
+  /**
    * Consulta la grilla horaria de disponibilidad para una cancha y fecha
-   * según el endpoint GET /canchas/:id/disponibilidad?fecha=YYYY-MM-DD
    */
   async getDisponibilidad(
     idCancha: number,
-    fecha: string
+    fecha: string,
+    costoBase?: number,
+    esSocio: boolean = true,
+    nombreCancha?: string
   ): Promise<DisponibilidadCanchaResponse> {
+    const costo =
+      costoBase && !isNaN(costoBase) && costoBase > 0 ? costoBase : 8000
+    const nombre = nombreCancha || `Cancha #${idCancha}`
+
     try {
       const response = await http.get(`/canchas/${idCancha}/disponibilidad`, {
         params: { fecha },
       })
       const data = response.data
 
-      // NestJS devuelve el arreglo directo: [ { horaInicio, horaFin, estado }, ... ]
-      const rawSlots: Array<{
-        horaInicio?: string
-        hora_inicio?: string
-        horaFin?: string
-        hora_fin?: string
-        estado: TurnoSlot['estado']
-        es_horario_pico?: boolean
-        precio_estimado?: number
-      }> = Array.isArray(data)
+      const rawSlots = Array.isArray(data)
         ? data
         : Array.isArray(data?.slots)
           ? data.slots
           : []
 
-      const slots: TurnoSlot[] = rawSlots.map((s) => {
-        const horaInicio = s.hora_inicio || s.horaInicio || '08:00'
-        const horaFin = s.hora_fin || s.horaFin || '09:00'
-        const horaNum = parseInt(horaInicio.split(':')[0], 10)
-        const esPico = horaNum >= 19 && horaNum < 21
-        return {
-          hora_inicio: horaInicio,
-          hora_fin: horaFin,
-          estado: s.estado,
-          es_horario_pico: s.es_horario_pico ?? esPico,
-          precio_estimado: s.precio_estimado ?? 15000,
+      const slots: TurnoSlot[] = []
+      for (const s of rawSlots) {
+        const slot = normalizarSlotBackend(s, idCancha, fecha, costo, esSocio)
+        if (slot) {
+          slots.push(slot)
         }
-      })
+      }
 
       return {
         id_cancha: idCancha,
-        nombre_cancha: '',
+        nombre_cancha: nombre,
         fecha,
         slots,
       }
-    } catch {
-      const cancha =
-        MOCK_CANCHAS.find((c) => c.id_cancha === idCancha) || MOCK_CANCHAS[0]
+    } catch (err) {
+      console.error(
+        `[canchasService] Error al consultar disponibilidad de cancha #${idCancha}:`,
+        err
+      )
       return {
         id_cancha: idCancha,
-        nombre_cancha: cancha.nombre,
+        nombre_cancha: nombre,
         fecha,
-        slots: generarSlotsFallback(cancha, fecha),
+        slots: [],
       }
     }
   },
 
   /**
+   * Consulta la disponibilidad en lote para las canchas de una sede (Opción A).
+   * Consume el endpoint optimizado GET /canchas/disponibilidad sin fallbacks ni datos simulados.
+   */
+  async getDisponibilidadPorSede(
+    idSede: number,
+    fecha: string,
+    canchas?: Cancha[],
+    esSocio: boolean = true,
+    tipoId?: number
+  ): Promise<DisponibilidadSedeMap> {
+    const response = await http.get<
+      CanchaDisponibilidadBackendDto[] | GrillaDisponibilidadBackendResponse
+    >('/canchas/disponibilidad', {
+      params: {
+        sedeId: idSede,
+        fecha,
+        ...(tipoId ? { tipoId } : {}),
+      },
+    })
+
+    const sedeStore = useSedeStore()
+    const key = `${idSede}_${fecha}`
+    let itemsCanchas: CanchaDisponibilidadBackendDto[] = []
+
+    // Normalizar la respuesta: la API del backend es la única fuente de verdad
+    if (Array.isArray(response.data)) {
+      itemsCanchas = response.data
+    } else if (response.data && typeof response.data === 'object') {
+      const dataObj = response.data as GrillaDisponibilidadBackendResponse
+      if (dataObj.horario) {
+        sedeStore.guardarHorarioEnCache(idSede, fecha, dataObj.horario)
+      }
+      if (Array.isArray(dataObj.canchas)) {
+        itemsCanchas = dataObj.canchas
+      }
+    }
+
+    // Si la sede está cerrada según el backend (Calendario / SedeHorario) y no tiene horario especial, no se generan turnos
+    const horarioActual = sedeStore.horariosCache[key]
+    if (
+      horarioActual &&
+      !horarioActual.abierto &&
+      !horarioActual.es_horario_especial
+    ) {
+      return {}
+    }
+
+    const mapa: DisponibilidadSedeMap = {}
+
+    for (const item of itemsCanchas) {
+      if (!item || typeof item.id_cancha !== 'number') {
+        continue
+      }
+
+      const id = item.id_cancha
+      const canchaReferencia = canchas?.find((c) => c.id_cancha === id)
+      const costo = Number(item.costo_base ?? canchaReferencia?.costo_base ?? 0)
+
+      const rawSlots = Array.isArray(item.slots) ? item.slots : []
+      const slotsProcesados: TurnoSlot[] = []
+
+      for (const s of rawSlots) {
+        const slot = normalizarSlotBackend(s, id, fecha, costo, esSocio)
+        if (slot) {
+          slotsProcesados.push(slot)
+        }
+      }
+
+      mapa[id] = slotsProcesados
+    }
+
+    return mapa
+  },
+
+  // -------------------------------------------------------------
+  // Supabase Realtime
+  // -------------------------------------------------------------
+  /**
+   * Suscribe en tiempo real al canal Supabase Broadcast de la sede actual (`canchas:sede:${idSede}`)
+   */
+  suscribirTurnoReservado(
+    idSede: number,
+    onTurnoReservado: (payload: TurnoReservadoPayload) => void
+  ): () => void {
+    const channelName = `canchas:sede:${idSede}`
+    const channel = supabase
+      .channel(channelName)
+      .on<TurnoReservadoPayload>(
+        'broadcast',
+        { event: 'turno_reservado' },
+        (res) => {
+          if (res?.payload) {
+            onTurnoReservado(res.payload)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  },
+
+  /**
    * Suscribe en tiempo real a Supabase Realtime para cambios en la tabla cancha_reserva
-   * Se dispara cuando otro usuario reserva o cancela un turno concurrentemente
    */
   suscribirCambiosDisponibilidad(
     idCancha: number,
