@@ -2,10 +2,11 @@
 
 Esta bitácora cubre mi trabajo en el repositorio frontend y la planificación y el seguimiento que hice como líder técnico del 01/10 al 14/10. Lo que hice en el backend está en `docs/bitacoras/LOG-Aguero.md` del repositorio backend.
 
+Las horas de cada entrada son estimadas: no las fuimos registrando, así que, como pidió el profesor, las calculé a partir de la estimación de las tarjetas de Trello y de los commits de cada sesión.
+
 ## Sprint 4 — Unidad IV — Semana del 2026-09-28
 
-### 2026-10-01 · <horas> h
-<!-- PARA COMPLETAR: «TL Tarea 1 - Organización y Seguimiento del Frontend» estimaba 4 h y «TL Tarea 2 - Revisión e Integración de los Módulos Frontend», 3 h, para todas las sesiones de TL (01/10, 08/10 y 14/10). Borrar este comentario. -->
+### 2026-10-01 · 3 h
 
 **Actividad**
 Como líder técnico organicé el comienzo del desarrollo en Vue:
@@ -33,8 +34,7 @@ Sin commits: la planificación quedó en el tablero de Trello (las 23 tarjetas s
 
 ## Sprint 5 — Unidad IV — Semana del 2026-10-05
 
-### 2026-10-08 · <horas> h
-<!-- PARA COMPLETAR: la tarjeta «Frontend E1 Tarea 4 - Pantalla de Reporte de Ingresos por Sede» estimaba 4 h. Borrar este comentario. -->
+### 2026-10-08 · 5 h
 
 **Actividad**
 - Empecé la pantalla del reporte de ingresos, con filtros de fechas, sede y concepto.
@@ -61,8 +61,7 @@ Verificación: typecheck, lint y build aprobados.
 
 ---
 
-### 2026-10-08 · <horas> h
-<!-- PARA COMPLETAR: sesión de líder técnico (ver la estimación de TL en la entrada del 01/10). Borrar este comentario. -->
+### 2026-10-08 · 2 h
 
 **Actividad**
 Como líder técnico:
@@ -102,8 +101,7 @@ Como líder técnico:
 
 ## Sprint 5 — Unidad IV — Semana del 2026-10-12
 
-### 2026-10-14 · <horas> h
-<!-- PARA COMPLETAR: la tarjeta «Frontend E1 Tarea 5 - Pantalla de Ocupación y Reservas por Sede» estimaba 4 h. Borrar este comentario. -->
+### 2026-10-14 · 3 h
 
 **Actividad**
 Tarea: pantalla de ocupación y reservas por sede.
@@ -131,8 +129,7 @@ Verificación: build y lint aprobados y 5 pruebas aprobadas.
 
 ---
 
-### 2026-10-14 · <horas> h
-<!-- PARA COMPLETAR: la tarjeta «Frontend E1 Tarea 6 - Integración del Panel de Gerencia» estimaba 3 h. Borrar este comentario. -->
+### 2026-10-14 · 2 h
 
 **Actividad**
 Tarea: integración del panel de gerencia.
@@ -157,8 +154,7 @@ La aceptación integrada necesita la corrección del backend y una sesión real;
 
 ---
 
-### 2026-10-14 · <horas> h
-<!-- PARA COMPLETAR: sesión de líder técnico (ver la estimación de TL en la entrada del 01/10). Borrar este comentario. -->
+### 2026-10-14 · 2 h
 
 **Actividad**
 Como líder técnico cerré mis dos semanas:
@@ -200,8 +196,7 @@ Verificación final: en el frontend, build, lint y 11 pruebas aprobados; en el b
 
 ## Sprint 6 — Unidad V — Semana del 2026-10-19
 
-### 2026-10-23 · <horas> h
-<!-- PARA COMPLETAR: la tarjeta «E11-T1: Panel de Gerente, CRUD Sedes/Membresías y Sede Dinámica» estimaba 10 h para backend y frontend (sesiones del 23 y 27/10 en los dos repositorios). Borrar este comentario. -->
+### 2026-10-23 · 3 h
 
 **Actividad**
 Tarea: panel de gerente, CRUD de sedes y membresías y sede dinámica (parte frontend).
@@ -237,8 +232,7 @@ Verificación: 12 archivos y 54 pruebas aprobadas (26 nuevas); typecheck, lint y
 
 ## Sprint 6 — Unidad V — Semana del 2026-10-26
 
-### 2026-10-27 · <horas> h
-<!-- PARA COMPLETAR: correcciones de la revisión, sin tarjeta propia en Trello. Borrar este comentario. -->
+### 2026-10-27 · 0,5 h
 
 **Actividad**
 Tarea: correcciones de la revisión del panel de gerencia.
@@ -259,8 +253,7 @@ Ninguno.
 
 ---
 
-### 2026-10-27 · <horas> h
-<!-- PARA COMPLETAR: parte de «E11-T1» (10 h estimadas para toda la tarea). Borrar este comentario. -->
+### 2026-10-27 · 2,5 h
 
 **Actividad**
 Tarea: CRUD de membresías de cada socio y ajuste de las pantallas de gerencia a la maqueta (parte frontend).
@@ -299,8 +292,7 @@ Ninguno.
 
 ## Sprint 7 — Unidad VI — Semana del 2026-11-09
 
-### 2026-11-10 · <horas> h
-<!-- PARA COMPLETAR: la tarjeta «E14-T1: CRUD de Calendario, Excepciones por Sede y Vista de Gestión» estimaba 10 h para backend y frontend (sesiones del 06/11 en el backend y del 10/11 en el frontend). Borrar este comentario. -->
+### 2026-11-10 · 5 h
 
 **Actividad**
 Tarea: calendario de feriados y excepciones de cada sede para el gerente (parte frontend).
@@ -333,8 +325,7 @@ Verificación: 16 archivos y 110 pruebas aprobadas (18 nuevas); typecheck, lint 
 
 ---
 
-### 2026-11-12 · <horas> h
-<!-- PARA COMPLETAR: la tarjeta «E14-T2: Configuración de Horarios Semanales, Seguridad y Rutas de Gerencia» estimaba 7 h para backend y frontend (sesiones del 12/11 en los dos repositorios). Borrar este comentario. -->
+### 2026-11-12 · 4 h
 
 **Actividad**
 Tarea: horarios semanales de cada sede y orden de las rutas y accesos de gerencia, sedes y reportes (parte frontend).
@@ -369,8 +360,7 @@ Verificación: 22 archivos y 172 pruebas aprobadas (12 nuevas); typecheck, lint 
 
 ## Sprint 8 — Cierre — Semana del 2026-11-16
 
-### 2026-11-18 · <horas> h
-<!-- PARA COMPLETAR: arreglo que pidió el líder técnico, sin tarjeta en Trello. Borrar este comentario. -->
+### 2026-11-18 · 2 h
 
 **Actividad**
 Tarea: arreglar los dos errores del panel de gerencia que informó el líder técnico (parte frontend).
