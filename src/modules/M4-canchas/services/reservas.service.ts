@@ -110,11 +110,14 @@ export const reservasService = {
    */
   async obtenerMisReservasCanchas(): Promise<DetalleReservaCancha[]> {
     try {
-      const response = await http.get<DetalleReservaCancha[]>('/reservas-canchas/mis-reservas')
+      const response = await http.get<DetalleReservaCancha[]>(
+        '/reservas-canchas/mis-reservas'
+      )
       return response.data
     } catch {
       try {
-        const response = await http.get<DetalleReservaCancha[]>('/reservas-canchas')
+        const response =
+          await http.get<DetalleReservaCancha[]>('/reservas-canchas')
         return response.data
       } catch {
         return []

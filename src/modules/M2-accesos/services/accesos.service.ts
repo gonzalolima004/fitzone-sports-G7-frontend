@@ -11,13 +11,22 @@ import type {
 import { useAuthStore } from '@/store/auth'
 import { supabase } from '@/common/utils/supabase'
 
-const OFFLINE_SECRET = import.meta.env.VITE_QR_TOKEN_SECRET
+const OFFLINE_SECRET =
+  (import.meta.env.VITE_QR_TOKEN_SECRET as string | undefined) ||
+  (import.meta.env.VITE_QR_OFFLINE_SECRET as string | undefined) ||
+  ''
 
 async function generarFirmaLocal(
   idUsuario: string,
   idCiudad: number,
   timestamp: number
 ): Promise<string> {
+  if (!OFFLINE_SECRET) {
+    throw new Error(
+      'No se puede generar el QR offline: Falta configurar VITE_QR_TOKEN_SECRET en el entorno.'
+    )
+  }
+
   const enc = new TextEncoder()
   const keyData = enc.encode(OFFLINE_SECRET)
   const messageData = enc.encode(`${idUsuario}:${idCiudad}:${timestamp}`)
@@ -43,10 +52,78 @@ async function generarFirmaLocal(
     .substring(0, 16)
 }
 
+async function generarQrOffline(cause?: unknown): Promise<QrResponseDto> {
+  const authStore = useAuthStore()
+  const usuarioLocal = authStore.usuario as {
+    id?: number
+    estadoMembresia?: string
+    enMora?: boolean
+    id_ciudad?: number | string
+    ciudad?: number | string
+    sede?: { id_ciudad?: number }
+  } | null
+
+  const userId = usuarioLocal?.id
+  if (!userId) {
+    throw new Error(
+      'No se puede generar el QR offline: No hay un usuario autenticado en caché local.',
+      cause ? { cause } : undefined
+    )
+  }
+
+  const estado = (usuarioLocal?.estadoMembresia || '').toUpperCase()
+  const idCiudadSocio =
+    usuarioLocal?.id_ciudad ??
+    usuarioLocal?.sede?.id_ciudad ??
+    usuarioLocal?.ciudad
+
+  if (!idCiudadSocio) {
+    throw new Error(
+      'No se puede generar el QR offline: El usuario no tiene asignada una ciudad válida.',
+      cause ? { cause } : undefined
+    )
+  }
+
+  const estaActiva = estado === 'ACTIVO' || estado === 'ACTIVA'
+  const enMoraReal = estaActiva ? false : usuarioLocal?.enMora === true
+
+  if (!estaActiva || enMoraReal) {
+    throw new Error(
+      'No se puede generar el código QR: El usuario no cuenta con una membresía activa o se encuentra en mora.',
+      cause ? { cause } : undefined
+    )
+  }
+
+  const validSeconds = 60
+  const generatedDate = new Date()
+  const timestamp = Math.floor(generatedDate.getTime() / 1000)
+
+  const signature = await generarFirmaLocal(
+    String(userId),
+    Number(idCiudadSocio),
+    timestamp
+  )
+  const tokenValido = `${userId}.${idCiudadSocio}.${timestamp}.${signature}`
+  const expiresAt = new Date(
+    generatedDate.getTime() + validSeconds * 1000
+  ).toISOString()
+
+  return {
+    token: tokenValido,
+    validSeconds,
+    expiresAt,
+  }
+}
+
 export const accesosService = {
   async obtenerQr(): Promise<QrResponseDto> {
     const authStore = useAuthStore()
     const userId = authStore.usuario?.id
+
+    // Si el navegador reporta estar offline, generamos el QR local sin lanzar request fallido
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      return await generarQrOffline()
+    }
 
     try {
       // 1. Intento principal contra el backend online
@@ -83,53 +160,7 @@ export const accesosService = {
         err.code === 'ERR_NETWORK' ||
         err.message?.includes('Network Error')
       ) {
-        const usuarioLocal = authStore.usuario as {
-          correo?: string
-          id?: number
-          estadoMembresia?: string
-          enMora?: boolean
-          ciudad?: number | string
-        } | null
-        const estado = (usuarioLocal?.estadoMembresia || '').toUpperCase()
-        const idCiudadSocio = usuarioLocal?.ciudad
-
-        if (!idCiudadSocio) {
-          throw new Error(
-            'No se puede generar el QR offline: El usuario no tiene asignada una ciudad válida.',
-            { cause: error }
-          )
-        }
-
-        const estaActiva = estado === 'ACTIVO' || estado === 'ACTIVA'
-        const enMoraReal = estaActiva ? false : usuarioLocal?.enMora === true
-
-        // Si no está activa o está realmente en mora, bloqueamos con su respectivo cause
-        if (!estaActiva || enMoraReal) {
-          throw new Error(
-            'No se puede generar el código QR: El usuario no cuenta con una membresía activa o se encuentra en mora.',
-            { cause: error }
-          )
-        }
-
-        const validSeconds = 60
-        const generatedDate = new Date()
-        const timestamp = Math.floor(generatedDate.getTime() / 1000)
-
-        const signature = await generarFirmaLocal(
-          String(userId),
-          Number(idCiudadSocio),
-          timestamp
-        )
-        const tokenValido = `${userId}.${idCiudadSocio}.${timestamp}.${signature}`
-        const expiresAt = new Date(
-          generatedDate.getTime() + validSeconds * 1000
-        ).toISOString()
-
-        return {
-          token: tokenValido,
-          validSeconds,
-          expiresAt,
-        }
+        return await generarQrOffline(error)
       }
 
       throw error
@@ -153,7 +184,39 @@ export const accesosService = {
     return response.data
   },
 
+  encolarAccesoOffline(
+    tipo: 'INGRESO' | 'EGRESO',
+    idUsuario: number | undefined,
+    idSede: number | undefined
+  ): void {
+    if (idSede == null) return
+    const colaOffline = JSON.parse(
+      localStorage.getItem('fitzone_offline_queue') || '[]'
+    ) as unknown[]
+
+    colaOffline.push({
+      tipo,
+      data: {
+        id_usuario: idUsuario,
+        id_sede: idSede,
+      },
+      timestamp: new Date().toISOString(),
+    })
+    localStorage.setItem('fitzone_offline_queue', JSON.stringify(colaOffline))
+  },
+
   async registrarEgreso(data: RegistrarEgresoRequestDto): Promise<void> {
+    const extraerIdUsuario = (): number | undefined => {
+      if (!data.qrToken) return undefined
+      const partes = data.qrToken.split('.')
+      return partes.length >= 1 ? Number(partes[0]) : undefined
+    }
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine && data.qrToken) {
+      this.encolarAccesoOffline('EGRESO', extraerIdUsuario(), data.id_sede)
+      return
+    }
+
     try {
       await http.post('/accesos/registrar-egreso', data)
     } catch (error: unknown) {
@@ -167,30 +230,7 @@ export const accesosService = {
         err.code === 'ERR_NETWORK' ||
         err.message?.includes('Network Error')
       ) {
-        let idUsuario: number | undefined = undefined
-        if (data.qrToken) {
-          const partes = data.qrToken.split('.')
-          if (partes.length >= 1) {
-            idUsuario = Number(partes[0])
-          }
-        }
-
-        const colaOffline = JSON.parse(
-          localStorage.getItem('fitzone_offline_queue') || '[]'
-        ) as unknown[]
-
-        colaOffline.push({
-          tipo: 'EGRESO',
-          data: {
-            id_usuario: idUsuario,
-            id_sede: data.id_sede,
-          },
-          timestamp: new Date().toISOString(),
-        })
-        localStorage.setItem(
-          'fitzone_offline_queue',
-          JSON.stringify(colaOffline)
-        )
+        this.encolarAccesoOffline('EGRESO', extraerIdUsuario(), data.id_sede)
         return
       }
       throw error

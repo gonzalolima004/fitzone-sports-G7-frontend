@@ -19,6 +19,21 @@ const avatarError = ref(false)
 onMounted(() => {
   sedeStore.cargarSedes()
   document.addEventListener('click', handleClickOutside)
+
+  if (typeof navigator === 'undefined' || navigator.onLine) {
+    if (['socio', 'recepcionista', 'gerente'].includes(authStore.rol)) {
+      void import('@/modules/M2-accesos/views/CredencialView.vue').catch(
+        () => {}
+      )
+    }
+    if (
+      authStore.rol === 'socio' &&
+      authStore.usuario?.id &&
+      !authStore.usuario?.estadoMembresia
+    ) {
+      void authStore.sincronizarPerfilSocio?.()
+    }
+  }
 })
 
 onUnmounted(() => {
@@ -206,22 +221,22 @@ async function handleLogout() {
                 {{ nombreCompleto }}
               </span>
 
-               <!-- Fotografía o inicial -->
-               <img
-                 v-if="fotoPerfilUrl"
-                 :src="fotoPerfilUrl"
-                 :alt="nombreAMostrar"
-                 referrerpolicy="no-referrer"
-                 class="w-9 h-9 rounded-full object-cover border border-[#202759]/20 shadow-2xs"
-                 data-testid="navbar-user-avatar"
-                 @error="avatarError = true"
-               />
-               <div
-                 v-else
-                 class="w-9 h-9 rounded-full overflow-hidden bg-[#202759]/10 border border-[#202759]/20 flex items-center justify-center text-[#202759] font-bold text-sm select-none"
-               >
-                 <span>{{ inicialUsuario }}</span>
-               </div>
+              <!-- Fotografía o inicial -->
+              <img
+                v-if="fotoPerfilUrl"
+                :src="fotoPerfilUrl"
+                :alt="nombreAMostrar"
+                referrerpolicy="no-referrer"
+                class="w-9 h-9 rounded-full object-cover border border-[#202759]/20 shadow-2xs"
+                data-testid="navbar-user-avatar"
+                @error="avatarError = true"
+              />
+              <div
+                v-else
+                class="w-9 h-9 rounded-full overflow-hidden bg-[#202759]/10 border border-[#202759]/20 flex items-center justify-center text-[#202759] font-bold text-sm select-none"
+              >
+                <span>{{ inicialUsuario }}</span>
+              </div>
 
               <PhCaretDown
                 :size="14"
