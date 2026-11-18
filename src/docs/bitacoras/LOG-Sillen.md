@@ -1,7 +1,8 @@
 ### Matías Sillen Ríos - Frontend Developer
 - **Actividades:** Definición de la estructura de directorios del Frontend (Vue.js) aplicando un enfoque "Feature-Driven", creacion del archivo LOG.md y estandarización del flujo de trabajo colaborativo en Git (Git Flow simplificado y reglas para Pull Requests).
 - **Decisiones:** Se decidió alinear los nombres de los módulos del Frontend (ej. `M1-usuarios`) de forma idéntica al Backend (NestJS) para mantener un Lenguaje Ubicuo. Además, se estableció mantener la lógica transversal (interceptores, utilidades, composables) estrictamente dentro de `src/common`.
-- **Commits vinculados:** `bf9c804` (Organice la estructura del pryecto por modulos, tal como se solicitó en la catedra).
+- **Commits**
+`6222a25` Organice la estructura del pryecto por modulos, tal como se solicitó en la catedra.
 
 ----
 
@@ -25,13 +26,13 @@
 * Advertencias del compilador de TypeScript por el uso de promesas nativas y Vite, solucionadas actualizando el `tsconfig.json` a `ES2022`.
 
 
-* **Commits:**
-* `feat(usuarios): crear servicio http para inicio de sesión`
-* `feat(auth): integrar login con api manteniendo estructura de pinia setup`
-* `feat(usuarios): maquetar pantalla de inicio de sesión con validaciones`
-* `feat(router): proteger rutas del MainLayout con guard de autenticación`
-* `fix(login): corregir redireccion a ruta home tras inicio de sesion`
-* `fix(login): formatear correctamente los mensajes de error de validacion del array de nestjs`
+* **Commits**
+`11332cf` feat(usuarios): crear servicio http para inicio de sesión
+`e5a3c7e` feat(auth): integrar Pinia con onAuthStateChange de Supabase
+`49cb956` feat(usuarios): maquetar pantalla de inicio de sesión con validaciones
+`b5e5dae` feat(router): proteger rutas del MainLayout con guard de autenticación
+`62db854` fix(login): corregir redireccion a ruta home tras inicio de sesion
+`48ad7a3` fix(login): formatear correctamente los mensajes de error de validacion del array de nestjs
 
 ----
 
@@ -55,15 +56,15 @@
 * El DTO del backend rechazaba el registro por tipado estricto, obligando a mapear el `id_sede` como `string` y dividir el nombre completo en el frontend antes de enviar la petición.
 
 
-* **Commits:**
-* `feat(usuarios): crear servicio para registro, edicion y carga de fotos de perfil`
-* `feat(usuarios): maquetar e implementar pantalla de registro aplicando identidad visual`
-* `feat(usuarios): crear pantalla de edicion de perfil de usuario`
-* `feat(router): registrar rutas publica de registro y privada de perfil`
-* `fix(router): extraer ruta de registro del mainlayout para evitar bloqueo del guard y errores de renderizado`
-* `fix(usuarios): agregar foto_url temporal y tipar id_sede como string para cumplir con validacion del DTO`
-* `refactor(usuarios): migrar PerfilView a componentes BaseInput, BaseButton y Toastify`
-* `refactor(usuarios): aplicar shared components e integrar toastify en RegistroView`
+* **Commits**
+`bf092e3` feat(usuarios): crear servicio para registro, edicion y carga de fotos de perfil
+`fa4fb22` feat(usuarios): maquetar e implementar pantalla de registro aplicando identidad visual
+`a4ccb7b` feat(usuarios): crear pantalla de edicion de perfil de usuario
+`3fa7051` feat(router): registrar rutas publica de registro y privada de perfil
+`2e708c9` fix(router): extraer ruta de registro del mainlayout para evitar bloqueo del guard y errores de renderizado
+`a25f954` fix(usuarios): corregir field name del formData a foto para compatibilidad con multer
+`f283586` refactor(usuarios): migrar PerfilView a componentes BaseInput, BaseButton y Toastify
+`65bcfe2` refactor(usuarios): aplicar shared components e integrar toastify en RegistroView
 
 ----
 
@@ -86,8 +87,8 @@
 * Ninguna significativa. La adaptación de la estructura HTML que dependía de clases locales al uso de los nuevos componentes atómicos y utilidades de Tailwind se realizó de forma fluida.
 
 
-* **Commits:**
-* `refactor(login): migrar UI a tailwind, implementar BaseInput/BaseButton e integrar toastify`
+* **Commits**
+`28549f8` refactor(login): migrar UI a tailwind, implementar BaseInput/BaseButton e integrar toastify
 
 ----
 
@@ -106,17 +107,17 @@
 - **Dificultades:**
   - Problemas de renderizado de precios debido a que el ID del plan llegaba como undefined, causando que el frontend siempre seleccionara el primer plan por defecto. Se resolvió enviando la entidad completa.
   - El componente de layout inicial generaba un scroll a nivel de página entera que arrastraba el menú lateral; requirió un reajuste de las clases flexbox y overflow de Tailwind.
-- **Commits:**
-  -  `feat(membresias): mapear endpoints de planes y verificacion de estado`
-  -  `feat(pagos): agregar servicio HTTP para iniciar preferencia de pago`
-  -  `feat(membresias): crear componente reutilizable PlanCard`
-  -  `feat(pagos): maquetar modal de checkout seguro con integracion de metodos`
-  -  `refactor(ui): reemplazar svgs en duro por componentes de phosphor icons en PlanCard.vue`
-  -  `feat(membresias): implementar pantalla de membresías integrando estados, mora y retorno de checkout`
-  -  `fix(membresias): unificar id_membresia_plan en UI y adjuntar token JWT en servicio de pagos`
-  -  `fix(membresias): pasar objeto plan completo al modal para garantizar la visualización del precio correcto`
-  -  `refactor(membresias): enviar objeto plan completo al modal, eliminar css custom y aplicar tailwind estricto`
-  -  `fix(layout): cambiar min-h-screen por h-screen para mantener sidebar fijo y habilitar scroll interno`
+- **Commits**
+  - `0431f8d` feat(pagos): agregar servicio HTTP para iniciar preferencia de pago
+  - `0719ae6` feat(membresias): mapear endpoints de planes y verificacion de estado
+  - `bdc8264` feat(membresias): crear componente reutilizable PlanCard
+  - `528d7b8` feat(pagos): maquetar modal de checkout seguro con integracion de metodos
+  - `f8c60c9` refactor(ui): reemplazar svgs en duro por componentes de phosphor icons en PlanCard.vue
+  - `3ed1710` feat(membresias): implementar pantalla de membresías integrando estados, mora y retorno de checkout
+  - `4499b8a` fix(membresias): unificar id_membresia_plan en UI y adjuntar token JWT en servicio de pagos
+  - `20c6983` fix(membresias): pasar objeto plan completo al modal para garantizar la visualización del precio correcto
+  - `e195170` refactor(membresias): enviar objeto plan completo al modal, eliminar css custom y aplicar tailwind estricto
+  - `c41235a` fix(layout): cambiar min-h-screen por h-screen para mantener sidebar fijo y habilitar scroll interno
 
 ----
 
@@ -146,35 +147,35 @@
 * Manejo del bucle infinito de rutas cuando el usuario se arrepentía de completar el perfil de Google y quería regresar al login normal.
 
 
-* **Commits:**
-* `chore(auth): configurar cliente global de Supabase`
-* `feat(auth): migrar auth.service a Supabase SDK`
-* `feat(auth): integrar Pinia con onAuthStateChange de Supabase`
-* `fix(api): interceptor HTTP utiliza sesión activa de Supabase`
-* `feat(auth): flujo de registro unificado con foto opcional en Supabase`
-* `feat(auth): login integrado con Supabase y enlace a cambio de password`
-* `feat(auth): vista de cambio de contraseña`
-* `fix(router): agregar ruta de cambio de contraseña y aplicar lazy loading a registro`
-* `fix(auth): restaurar enlace a registro en UI de login`
-* `fix(auth): forzar asignación síncrona de sesión en Pinia para evitar condición de carrera en el router`
-* `fix(auth): forzar cierre de sesión síncrono en Pinia para arreglar bloqueo del router`
-* `fix(sidebar): hacer el cierre de sesión asíncrono para prevenir errores de navegación`
-* `fix(auth): traducir errores de Supabase al español en login`
-* `feat(auth): aplicar validación Zod estricta (regex) y traducir errores de Supabase en registro`
-* `fix(auth): traducir errores de Supabase al español en recuperación de contraseña`
-* `fix(router): agregar ruta de cambio de contraseña y aplicar lazy loading a registro`
-* `feat(auth): agregar soporte para signInWithOAuth mediante Google`
-* `feat(api): interceptar error 403 de cuenta no asociada y redirigir a completar perfil`
-* `feat(auth): vista para completar datos de perfil (DNI, Sede) tras login con Google`
-* `chore(router): agregar ruta de completar-perfil para Google OAuth`
-* `feat(auth): agregar botón y lógica de integración visual para login con Google`
-* `feat(auth): añadir verifyLocalProfile para comprobación proactiva de perfil`
-* `fix(router): implementar verificación proactiva de perfil antes de acceder al dashboard`
-* `fix(auth): agregar botón cancelar para abortar registro y purgar sesión de Supabase`
-* `fix(auth): asignar id_rol 4 a perfiles de clientes externos en lugar de dejarlos sin rol`
-* `feat(roles): extender permisos de administrador al rol gerente en vistas y rutas`
-* `feat(auth): aplicar política estricta de contraseñas seguras con Zod`
-* `feat(ui): agregar toggle de visibilidad de contraseña global en BaseInput`
+* **Commits**
+* `4d392f9` chore(auth): configurar cliente global de Supabase
+* `82bcd13` feat(auth): migrar auth.service a Supabase SDK
+* `e5a3c7e` feat(auth): integrar Pinia con onAuthStateChange de Supabase
+* `db7eec9` fix(api): interceptor HTTP utiliza sesión activa de Supabase
+* `ee65382` feat(auth): flujo de registro unificado con foto opcional en Supabase
+* `f0e9f80` feat(auth): login integrado con Supabase y enlace a cambio de password
+* `5a1a120` feat(auth): vista de cambio de contraseña
+* `61f1c1f` fix(router): agregar ruta de cambio de contraseña y aplicar lazy loading a registro
+* `e2fd8de` fix(auth): restaurar enlace a registro en UI de login
+* `2ac1af9` fix(auth): forzar asignación síncrona de sesión en Pinia para evitar condición de carrera en el router
+* `60d9084` fix(auth): forzar cierre de sesión síncrono en Pinia para arreglar bloqueo del router
+* `6f7cc9d` fix(sidebar): hacer el cierre de sesión asíncrono para prevenir errores de navegación
+* `d36ffe9` fix(auth): traducir errores de Supabase al español en login
+* `2ae046c` feat(auth): aplicar validación Zod estricta (regex) y traducir errores de Supabase en registro
+* `94fda06` fix(auth): traducir errores de Supabase al español en recuperación de contraseña
+* `61f1c1f` fix(router): agregar ruta de cambio de contraseña y aplicar lazy loading a registro
+* `be302c8` feat(auth): agregar soporte para signInWithOAuth mediante Google
+* `17dbda4` feat(api): interceptar error 403 de cuenta no asociada y redirigir a completar perfil
+* `7004c00` feat(auth): vista para completar datos de perfil (DNI, Sede) tras login con Google
+* `a4c6800` chore(router): agregar ruta de completar-perfil para Google OAuth
+* `4e758be` feat(auth): agregar botón y lógica de integración visual para login con Google
+* `6afd70e` feat(auth): añadir verifyLocalProfile para comprobación proactiva de perfil
+* `fd3d598` fix(router): implementar verificación proactiva de perfil antes de acceder al dashboard
+* `bb64813` fix(auth): agregar botón cancelar para abortar registro y purgar sesión de Supabase
+* `eeca00e` fix(auth): asignar id_rol 4 a perfiles de clientes externos en lugar de dejarlos sin rol
+* `49b974e` feat(roles): extender permisos de administrador al rol gerente en vistas y rutas
+* `b195719` feat(auth): aplicar política estricta de contraseñas seguras con Zod
+* `7d74a2a` feat(ui): agregar toggle de visibilidad de contraseña global en BaseInput
 
 ----
 
@@ -200,14 +201,14 @@
 * Retrasos intermitentes en la transición de rutas del menú lateral provocados por la eliminación drástica del historial al remover los tokens de la barra de direcciones de forma insegura, lo cual se resolvió correctamente manteniendo el contexto del router.
 
 
-* **Commits:**
-* `fix(auth): corregir cursor de botones interactivos`
-* `fix(auth): mejorar errores, separar campos y retirar opcion de socio`
-* `fix(auth): proteger tokens en interceptor y sanitizar URL de redireccion`
-* `fix(auth): separar nombre/apellido, agregar volver, scroll de panel y medidor de contraseña`
-* `style(auth): centrar logo de FitZone y unificar layout de scroll con registro`
-* `fix(auth): separar campos nombre/apellido y forzar rol externo en autocompletado`
-* `fix(router): preservar history state al limpiar url para evitar demoras en navegacion`
+* **Commits**
+* `901716a` fix(auth): corregir cursor de botones interactivos
+* `2dce948` fix(auth): mejorar errores, separar campos y retirar opcion de socio
+* `2e3db4c` fix(auth): proteger tokens en interceptor y sanitizar URL de redireccion
+* `94208b1` fix(auth): separar nombre/apellido, agregar volver, scroll de panel y medidor de contraseña
+* `0242ea6` style(auth): centrar logo de FitZone y unificar layout de scroll con registro
+* `e53f97a` fix(auth): separar campos nombre/apellido y forzar rol externo en autocompletado
+* `ebc1773` fix(router): preservar history state al limpiar url para evitar demoras en navegacion
 
 ----
 
@@ -230,7 +231,7 @@
 * Al limpiar el fragmento de la URL (`#access_token=...`) para evitar la exposición de credenciales, Vue Router perdía su historial de estado, lo que provocaba advertencias en consola (`history.state seems to have been manually replaced`) y generaba una latencia notoria al navegar entre las distintas pantallas del menú lateral.
 
 
-* **Commits:**
-* `fix(router): restaurar rbac, roles de rutas anidadas e inyectar fix de seguridad y performance`
+* **Commits**
+* `d7c5d46` fix(router): restaurar rbac, roles de rutas anidadas e inyectar fix de seguridad y performance
 
 ----
