@@ -16,8 +16,8 @@
   - Curva de aprendizaje inicial con Vue 3, lo que demandó considerable tiempo inicial de investigación y estudio del framework.
   - Discrepancias con los modelos iniciales de arquitectura,tanto diagramas como los adr y falta de endpoints en el backend para obtener información relevante, así que se tuvo que implementar temporalmente con información hardcodeada u omitirse temporalmente.
 - **Commits:**
-  - `feat(M4): implementar grilla de disponibilidad de canchas y sincronizacion realtime`
-  - `docs(log): registrar avance de e5 tarea 1 en bitacora`
+  - `41a6c8c` `feat(M4): implementar grilla de disponibilidad de canchas y sincronizacion realtime`
+  - `225e112` `docs(log): registrar avance de e5 tarea 1 en bitacora`
 
 ----
 
@@ -42,8 +42,8 @@
   - Sincronización de zonas horarias, la hora local argentina y las marcas de tiempo ISO que esperaba el backend, para evitar que turnos de la tarde o noche se desfasaran o se computaran en días posteriores.
   - Sobrecarga y división del tiempo de desarrollo al tener que asumir tanto el diseño y programación de la arquitectura del backend como la implementación y refinamiento de la interfaz de usuario en el frontend de manera simultánea en una ventana de tiempo acotada.
 - **Commits:**
-  - `feat(M4): implementar confirmacion de reserva de canchas con slots de horarios reales`
-  - `docs(log): actualizar bitacora con tareas de calendario, horario y reservas`
+  - `13bd608` `feat(M4): implementar confirmacion de reserva de canchas con slots de horarios reales`
+  - `50872e8` `docs(log): actualizar bitacora con tareas de calendario, horario y reservas`
 
 ----
 
@@ -61,30 +61,9 @@
   - Gestión de estado y reactividad en Vue 3 con Pinia para garantizar que el rol de socio, la fecha seleccionada y los precios calculados se trasladen de forma transparente y sin desfases horarios hacia el modal y la vista final de pago.
   - Gran inversión de tiempo y pruebas para lograr que la grilla fuera fluida, no realizara peticiones redundantes y muestre precios y disponibilidad de las canchas de forma correcta.
 - **Commits:**
-- `feat(M4): reserva de canchas funcionando y arreglos varios en modulo de canchas, adaptado a cambios backend`
-- `chore: comando format`
-- `docs(log): actualizacion de bitacora`
-
-----
-
-#### 03/11/2026
-#### Marcos Caraballo | Rol: Desarrollador Frontend
-- **Actividades**:
-  - Centralización del horario operativo de sedes en `useSedeStore` mediante `obtenerHorarioOperativo` y caché reactiva en memoria (`horariosCache`), evitando estados locales duplicados en vistas.
-  - Optimización de carga inicial y eliminación de peticiones redundantes en `CanchasView.vue` controlando la ejecución de los `watch()` mediante un flag de inicialización (`inicializado`).
-  - Implementación de deduplicación de promesas en vuelo en `sede.ts` para llamadas concurrentes a `cargarSedes()` y `obtenerHorarioOperativo()`.
-  - Refactorización de `canchas.service.ts` para delegar consultas de horarios operativos a `sedeStore` y sincronizar respuestas por lote (`getDisponibilidadPorSede`) directamente en la caché del store.
-  - Adaptación tipográfica estricta en `canchas.types.ts` extendiendo `HorarioOperativo` de la tienda sin recurrir a `any`.
-- **Decisiones**:
-  - Manejar el horario operativo como propiedad computada en `CanchasView.vue` vinculada a `sedeStore.horariosCache`, garantizando una única fuente de verdad reactiva y evitando peticiones de red al revisitar fechas o sedes.
-  - Controlar las suscripciones reactivas en `CanchasView.vue` para que los observadores de filtros y sede no disparen llamadas en cascada durante el montaje inicial (`onMounted`).
-  - Utilizar un mapa de promesas activas en `useSedeStore` para deduplicar peticiones simultáneas idénticas antes de su resolución.
-- **Dificultades**:
-  - Disparo de múltiples solicitudes HTTP duplicadas al recargar la página en `/canchas` debido a la ejecución simultánea de `onMounted` (en `MainLayout` y `CanchasView`) y la activación anticipada de watchers al resolverse la sede por defecto.
-  - Las peticiones concurrentes a `obtenerHorarioOperativo` antes de que se completara el primer GET causaban fallos en la verificación de caché (`horariosCache.value[key] === undefined`), solucionado mediante caché de promesas en vuelo.
-- **Commits:**
-- `feat(M4): fix de reserva y optimizacion de requests`
-- `feat(pinia): evitar requests redundantes en store`
+- `df5bb64` `feat(M4): reserva de canchas funcionando y arreglos varios en modulo de canchas, adaptado a cambios backend`
+- `0e5f748` `chore: comando format`
+- `bf82fb3` `docs(log): actualizacion de bitacora`
 
 ----
 
@@ -97,49 +76,10 @@
 - **Decisiones**: Ninguna
 - **Dificultades**: Ninguna
 - **Commits:**
-- `refactor(M4): cambios en cancha tipos y nombres de atributos`
-- `feat(M4): crud canchas del gerente funcionando`
-- `feat(M4): baja logica y disponibilidad de canchas`
-- `docs(log): actualizacion de bitacora`
-#### 21/10/2026
-#### Joaquín Ribarola | Rol: Desarrollador Frontend
-
-- **Actividades:**
-  - Creación del módulo utilitario `date-formatter.ts` en `src/common/utils` estandarizando el formateo a `dd/mm/aaaa`, nombres de días y meses en español, y helpers para generación de días de agenda y comparación cronológica de horarios.
-  - Integración en `clases.service.ts` de la interfaz y método para consultar el horario operativo de la sede (`GET /sedes/:id/horario-operativo?fecha=YYYY-MM-DD`).
-  - Incorporación en `clases.service.ts` del método para baja y eliminación de clases grupales (`DELETE /clases/:id`).
-  - Implementación en `ClasesView.vue` de una agenda interactiva: reemplazo de los botones estáticos por una barra de navegación con tira semanal de 7 días, controles de navegación rápida (día y semana) y botón "Hoy".
-  - Limpieza de interfaz: eliminación de la alerta estática de RF-07 y remoción del botón no funcional de calendario para maximizar el área de trabajo y la visualización directa de la grilla de clases.
-  - Conexión de la agenda con el horario operativo del gimnasio/sede, mostrando badge de apertura/cierre y estado visual informativo cuando la sede se encuentra cerrada.
-  - Aplicación de ordenamiento cronológico por horario de inicio para las clases agendadas.
-  - Integración del modelo de periodicidad de clases grupales: soporte de campos `dias_semana` (0=Dom..6=Sáb) y `fecha` puntual en interfaces de servicio, componentes y vistas.
-  - Creación de helpers `formatearDiasSemana` y `coincideFechaClase` en `date-formatter.ts`, con normalización segura ante cadenas ISO para evitar desfases de zona horaria local.
-  - Incorporación en `ClaseCard.vue` de badges contextuales que exhiben los días recurrentes de la clase o su fecha especial de dictado.
-  - Filtrado reactivo en `ClasesView.vue` garantizando que la grilla diaria únicamente muestre las clases que aplican para el día de la semana seleccionado.
-  - Implementación de control reactivo de la ventana de reserva de 48 hs (`obtenerEstadoVentanaReserva`): bloqueo y deshabilitación de la opción de reservar si la clase dista más de 48 horas ("Abre 48 hs antes") o si ya transcurrió ("Clase finalizada"), evitando errores 400 y optimizando la experiencia de usuario.
-  - Implementación del flujo de gestión y administración de clases grupales (CRUD completo) para roles `admin` y `gerente`.
-  - Creación de métodos de servicio `crearClase(data)` y `actualizarClase(id, data)` en `clases.service.ts` con tipados estrictos `CreateClaseRequest` y `UpdateClaseRequest`.
-  - Desarrollo del componente modal `ModalClaseForm.vue` para alta y edición de clases con validaciones completas, capacidad, horarios y selector de periodicidad (días recurrentes o fecha puntual con accesos rápidos).
-  - Incorporación de botón "Nueva Clase" en el encabezado de `ClasesView.vue` y acciones de edición y eliminación en `ClaseCard.vue` condicionadas al rol administrativo.
-  - Implementación de diálogo modal de confirmación de baja lógica (`DELETE /clases/:id`) con feedback mediante notificaciones Toast.
-  - Creación de suite integral de pruebas unitarias (`src/__tests__/date-formatter.spec.ts`, Épica 12 Tarea 2) cubriendo normalización de fechas ISO, prevención de desfase de zona horaria local, formateo en español, periodicidad (`coincideFechaClase`), ordenamiento cronológico y la regla de ventana de reserva de 48 hs.
-- **Decisiones:**
-  - Centralizar el formateo y parseo de fechas en `common/utils/date-formatter.ts` para evitar duplicidad de lógica y prevenir desfases de zona horaria local.
-  - Tipar la respuesta de horario operativo de la sede en `clases.service.ts` para mantener el aislamiento del módulo M3 y desacoplar de `M0-sedes`.
-  - Diseñar un empty state específico y amigable para "Sede Cerrada", evitando confusión en el socio cuando no hay clases por feriado o cierre dominical.
-  - Alinear los índices numéricos de `dias_semana` (0..6) con el estándar de JavaScript `Date.getDay()` y el DTO del backend, formateando su visualización con orden de semana laboral (Lunes a Domingo).
-  - Bloquear en la UI el botón de reserva tanto para clases fuera de la ventana de 48 hs como para clases pasadas, proporcionando feedback contextual claro y defensivo al socio.
-  - Encapsular el formulario de creación/edición en `ModalClaseForm.vue` para mantener la vista principal `ClasesView.vue` concisa y enfocada en la renderización del cronograma.
-  - Restringir la visibilidad de las herramientas mutadoras mediante evaluación reactiva de roles (`admin`/`gerente`) desde `useAuthStore`.
-  - Emplear `vi.useFakeTimers()` y `vi.setSystemTime()` en Vitest para testear de forma determinista y reproducible la ventana de reservas de 48 hs y el bloqueo de clases pasadas sin depender de la hora del entorno de CI.
-- **Dificultades:** Ninguna. Se resolvió la falta de dependencias (`html5-qrcode`) heredadas del último pull de `dev` mediante `npm install`.
-- **Commits:**
-  - `feat(clases): crear date-formatter e integrar servicio de horario operativo de sede`
-  - `feat(clases): implementar selector de calendario interactivo y horario operativo en agenda`
-  - `feat(clases): incorporar periodicidad por dias de la semana y fecha puntual en agenda`
-  - `feat(clases): bloquear reservas fuera de la ventana de 48 hs y clases pasadas`
-  - `feat(clases): implementar gestion CRUD de clases grupales para admin y gerente`
-  - `test(clases): anadir pruebas unitarias para date-formatter, periodicidad y ventana de reserva`
+- `6352c9a` `refactor(M4): cambios en cancha tipos y nombres de atributos`
+- `be37f3e` `feat(M4): crud canchas del gerente funcionando`
+- `271611f` `feat(M4): baja logica y disponibilidad de canchas`
+- `aded083` `docs(log): actualizacion de bitacora`
 
 ----
 
@@ -157,11 +97,11 @@
   - Tuve problemas con el navegador, no funcionaban correctamente las herramientas de desarrollador, tuve que descargar otro para poder probar el código.
   - Ajustes en el parseo y la forma de obtener de horarios locales frente a fechas en formato UTC.
 - **Commits:**
-- `feat(M4): CRUD de cancha tipos funcionando y arreglos de hora local`
-- `refactor(M4): optimizacion de consultas a la API`
-- `fix(M4): eliminacion temporal de supabase realtime`
-- `chore(M4): formato con prettier fix por lint`
-- `docs(log): actualizacion de bitacora`
+- `04bd383` `feat(M4): CRUD de cancha tipos funcionando y arreglos de hora local`
+- `9b1ec6e` `refactor(M4): optimizacion de consultas a la API`
+- `9324ab7` `fix(M4): eliminacion temporal de supabase realtime`
+- `bc9d32b` `chore(M4): formato con prettier fix por lint`
+- `4c7fc9c` `docs(log): actualizacion de bitacora`
 
 ----
 
@@ -180,10 +120,10 @@
   - El método de consulta de mantenimientos silenciaba excepciones capturándolas y devolviendo un array vacío, impidiendo la activación del bloque `catch` y la visualización de los toasts de error.
   - Sincronización del estado del formulario en el modal para limpiar la cancha seleccionada si el usuario cambia a una sede incompatible.
 - **Commits:**
-- `feat(M4): CRUD de mantenimiento dentro de canchas`
-- `chore: agregar gestion de canchas a sidebar`
-- `chore: formato con prettier`
-- `docs(log): actualizacion de bitacora`
+- `5877047` `feat(M4): CRUD de mantenimiento dentro de canchas`
+- `7839eb1` `chore: agregar gestion de canchas a sidebar`
+- `e1ad49f` `chore: formato con prettier`
+- `ba62cec` `docs(log): actualizacion de bitacora`
 
 ----
 
@@ -194,16 +134,18 @@
   - Optimización de carga inicial y eliminación de peticiones redundantes en `CanchasView.vue` controlando la ejecución de los `watch()` mediante un flag de inicialización (`inicializado`).
   - Implementación de deduplicación de promesas en vuelo en `sede.ts` para llamadas concurrentes a `cargarSedes()` y `obtenerHorarioOperativo()`.
   - Refactorización de `canchas.service.ts` para delegar consultas de horarios operativos a `sedeStore` y sincronizar respuestas por lote (`getDisponibilidadPorSede`) directamente en la caché del store.
+  - Adaptación tipográfica estricta en `canchas.types.ts` extendiendo `HorarioOperativo` de la tienda sin recurrir a `any`.
 - **Decisiones**:
   - Manejar el horario operativo como propiedad computada en `CanchasView.vue` vinculada a `sedeStore.horariosCache`, garantizando una única fuente de verdad reactiva y evitando peticiones de red al revisitar fechas o sedes.
   - Controlar las suscripciones reactivas en `CanchasView.vue` para que los observadores de filtros y sede no disparen llamadas en cascada durante el montaje inicial (`onMounted`).
   - Utilizar un mapa de promesas activas en `useSedeStore` para deduplicar peticiones simultáneas idénticas antes de su resolución.
 - **Dificultades**:
   - Disparo de múltiples solicitudes HTTP duplicadas al recargar la página en `/canchas` debido a la ejecución simultánea de `onMounted` (en `MainLayout` y `CanchasView`) y la activación anticipada de watchers al resolverse la sede por defecto.
+  - Las peticiones concurrentes a `obtenerHorarioOperativo` antes de que se completara el primer GET causaban fallos en la verificación de caché (`horariosCache.value[key] === undefined`), solucionado mediante caché de promesas en vuelo.
 - **Commits:**
-- `feat(M4): fix de reserva y optimizacion de requests`
-- `feat(pinia): evitar requests redundantes en store`
-- `docs(log): actualizacion de bitacora`
+- `7c52735` `feat(M4): fix de reserva y optimizacion de requests`
+- `568b3a7` `feat(pinia): evitar requests redundantes en store`
+- `aefb23e` `docs(log): actualizacion de bitacora`
 
 ----
 
@@ -223,27 +165,8 @@
 - **Dificultades**:
   - Manejo de casos de borde en los que el usuario posee rol de socio pero su sede de afiliación es de otra ciudad o su membresía está inactiva, requiriendo adaptar los estados y textos explicativos sin alterar el flujo habitual de reserva.
 - **Commits:**
-- `feat(M4): interfaz y tipo para endpoint cotizar`
-- `docs(log): actualizacion de bitacora`
-
-----
-
-#### 06/11/2026
-#### Marcos Caraballo | Rol: TL - Desarrollador Frontend
-- **Actividades**:
-  - Suscripción en tiempo real vía Supabase Broadcast (`canchas:sede:${idSede}`) para escuchar eventos `turno_reservado`.
-  - Creación del composable `useCanchasRealtime` con gestión reactiva ante cambio de sedes y desuscripción automática al desmontar.
-  - Procesamiento reactivo en `CanchasView`: actualización de slots en la grilla, deselección y cierre forzado del modal ante reservas concurrentes con Toasts de advertencia.
-  - Manejo de colisión HTTP 409 en `ConfirmarReserva` para forzar cierre, marcar slot reservado y notificar conflicto.
-  - Suite de tests unitarios en `canchas-realtime-concurrencia.spec.ts`.
-- **Decisiones**:
-  - Encapsular el ciclo de vida de los canales realtime en un composable desacoplado de la vista.
-- **Dificultades**: Ninguna
-- **Commits:**
-- `feat(M4): nuevo tipo para el canal realtime`
-- `feat(M4): implementar supabase realtime en canchas`
-- `feat(M4): test de canchas realtime para concurrencia`
-- `docs(log): actualizacion de bitacora`
+- `6a1c4c7` `feat(M4): interfaz y tipo para endpoint cotizar`
+- `17f51f2` `docs(log): actualizacion de bitacora`
 
 ----
 
@@ -259,11 +182,30 @@
   - Centralizar y reutilizar la caché de horarios en Pinia aprovechando el payload unificado de disponibilidad para optimizar el consumo de red.
 - **Dificultades**: Ninguna
 - **Commits:**
-- `feat(M4): Eliminacion de fallabacks viejos de prueba`
-- `feat(M4): obtencion correcta del horario en cache`
-- `feat(M4): test de disponibilidad horario`
-- `docs(log): actualizacion de bitacora`
-- `style: uso de prettier para el formato`
+- `8104ed4` `feat(M4): Eliminacion de fallbacks viejos de prueba`
+- `9045ec8` `feat(M4): obtencion correcta del horario en cache`
+- `736b5e0` `feat(M4): test de disponibilidad horario`
+- `37f9bf2` `docs(log): actualizacion de bitacora`
+- `3b25375` `style: uso de prettier para el formato`
+
+----
+
+#### 06/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Frontend
+- **Actividades**:
+  - Suscripción en tiempo real vía Supabase Broadcast (`canchas:sede:${idSede}`) para escuchar eventos `turno_reservado`.
+  - Creación del composable `useCanchasRealtime` con gestión reactiva ante cambio de sedes y desuscripción automática al desmontar.
+  - Procesamiento reactivo en `CanchasView`: actualización de slots en la grilla, deselección y cierre forzado del modal ante reservas concurrentes con Toasts de advertencia.
+  - Manejo de colisión HTTP 409 en `ConfirmarReserva` para forzar cierre, marcar slot reservado y notificar conflicto.
+  - Suite de tests unitarios en `canchas-realtime-concurrencia.spec.ts`.
+- **Decisiones**:
+  - Encapsular el ciclo de vida de los canales realtime en un composable desacoplado de la vista.
+- **Dificultades**: Ninguna
+- **Commits:**
+- `c4e739f` `feat(M4): nuevo tipo para el canal realtime`
+- `872aac0` `feat(M4): implementar supabase realtime en canchas`
+- `167af7a` `feat(M4): test de canchas realtime para concurrencia`
+- `1250726` `docs(log): actualizar bitacora`
 
 ----
 
@@ -276,8 +218,9 @@
   - Utilizar temporalmente los datos directos de `reserva.cancha` para mostrar tarifas más precisas en la interfaz a la espera de la actualización definitiva del backend.
 - **Dificultades**: Ninguna
 - **Commits:**
-- `fix(M4): simplificar desglose de tarifas en detalle de reserva`
-- `docs(log): actualizacion de bitacora`
+- `215abab` `fix(M4): simplificar desglose de tarifas en detalle de reserva`
+- `24c8c04` `fix(M4): obtener precio correcto en detalle reserva view`
+- `721c717` `docs(log): actualizacion de bitacora`
 
 ----
 
@@ -291,11 +234,24 @@
   - Proveer retroalimentación clara mediante avisos en amarillo (`toast.warning`) y marcado de inputs con error.
 - **Dificultades**: Ninguna
 - **Commits:**
-- `fix(M4): corregir calculo en detalle de reserva`
-- `feat(M4): utils de validacion y schemas Zod en M4`
-- `feat(M4): integrar validacion zod y alertas`
-- `feat(M4): tests unitarios para esquemas Zod`
-- `docs(log): actualizacion de bitacora`
+- `83dc0ad` `fix(M4): corregir calculo en detalle de reserva`
+- `9a347c0` `feat(M4): utils de validacion y schemas Zod en M4`
+- `a7fab85` `feat(M4): integrar validacion zod y alertas`
+- `79951f9` `feat(M4): tests unitarios para esquemas Zod`
+- `823092b` `docs(log): actualizacion de bitacora`
+
+----
+
+#### 08/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Frontend
+- **Actividades**:
+  - Implementación de pruebas unitarias y de componentes para el módulo de canchas (`GrillaTurnos.spec.ts` y `CanchasView.spec.ts`) utilizando Vitest, `@vue/test-utils` y Pinia.
+  - Verificación de interacción con slots disponibles, bloqueo en estados reservados/mantenimiento, horarios pasados (`vi.useFakeTimers()`), sede cerrada, manejo de colisión HTTP 409 Conflict y actualización en tiempo real vía Realtime.
+- **Decisiones**:
+  - Priorizar tests deterministas de comportamiento de usuario y manejo de colisiones concurrentes sobre la grilla sin depender del entorno real de red.
+- **Dificultades**: Ninguna
+- **Commits:**
+  - `4abe2a8` `feat(M4): tests de disponibilidad y reservas`
 
 ----
 
@@ -310,11 +266,23 @@
   - Mantener retrocompatibilidad mediante el patrón Facade en `canchasService` para no alterar imports en componentes existentes.
 - **Dificultades**: Ninguna
 - **Commits:**
-  - `refactor(canchas): remover fallback`
-  - `refactor(canchas): utils de horarios y formato`
-  - `refactor(canchas): patron adapter para normalizar slots del backend`
-  - `refactor(canchas): patron fachada para dividir canchas service`
-  - `style: formato con prettier`
-  - `docs(log): actualizacion de bitacora`
+  - `f346f91` `refactor(canchas): remover fallback`
+  - `32a7115` `refactor(canchas): utils de horarios y formato`
+  - `14e0a1d` `refactor(canchas): patron adapter para normalizar slots del backend`
+  - `4a7f95d` `refactor(canchas): patron fachada para dividir canchas service`
+  - `2a55b27` `style: formato con prettier`
+  - `f7e2999` `docs(log): actualizacion de bitacora`
+
+----
+
+#### 11/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Frontend
+- **Actividades**:
+  - Ajuste de tipado en `MembresiaView.vue` y `ResultadoPagoView.vue` validando la existencia del usuario actual antes de invocar `authStore.setPerfilInterno` tras la incorporación del soporte offline en `Usuario`.
+- **Decisiones**:
+  - Aplicar verificación previa sobre `authStore.usuario` para garantizar compatibilidad estricta de TypeScript (`id: number` obligatorio) sin alterar la lógica del store.
+- **Dificultades**: Ninguna
+- **Commits:**
+  - `cc814e3` `fix(auth): asegurar tipado de usuario en setPerfilInterno para membresias y pagos`
 
 ----
