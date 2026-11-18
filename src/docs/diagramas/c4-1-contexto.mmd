@@ -1,0 +1,36 @@
+%% Autor: Marcos Caraballo | Fecha: 2026-11-17 | Versión: 2.1
+flowchart TB
+    classDef person fill:#08427b,stroke:#052e56,color:#ffffff,rx:8,ry:8
+    classDef system fill:#1168bd,stroke:#0b4884,color:#ffffff,rx:8,ry:8
+    classDef ext fill:#666666,stroke:#444444,color:#ffffff,rx:8,ry:8
+
+    subgraph personas [" "]
+        direction LR
+        socio["<b>Socio Activo</b><br/><i>[Persona]</i><br/>Consulta sedes, genera QR dinámico,<br/>reserva clases/canchas y abona"]:::person
+        externo["<b>Cliente Externo</b><br/><i>[Persona]</i><br/>Alquila canchas sin membresía<br/>o en mora (tarifa estándar)"]:::person
+        recepcionista["<b>Recepcionista</b><br/><i>[Persona]</i><br/>Valida accesos QR/DNI (online/offline)<br/>y controla aforo en sede"]:::person
+        gerente["<b>Gerente Central</b><br/><i>[Persona]</i><br/>Gestiona sedes, horarios, clases, canchas,<br/>mantenimientos, planes y reportes globales"]:::person
+    end
+
+    fitzone["<b>Plataforma FitZone Sports</b><br/><i>[Sistema de Software]</i><br/>Gestión integral para cadena de gimnasios:<br/>accesos, clases grupales, canchas, pagos y reportes"]:::system
+
+    subgraph externos [" "]
+        direction LR
+        supabase["<b>Supabase Cloud</b><br/><i>[Sistema Externo]</i><br/>Auth OAuth/JWT, Storage de avatares,<br/>PostgreSQL y Realtime"]:::ext
+        mercadopago["<b>Mercado Pago</b><br/><i>[Sistema Externo]</i><br/>Pasarela Checkout Pro y<br/>notificaciones Webhook"]:::ext
+        mapas["<b>Servicios de Mapas (OSM/Leaflet)</b><br/><i>[Sistema Externo]</i><br/>Teselas cartográficas para<br/>ubicación geográfica de sedes"]:::ext
+    end
+
+    socio -->|"Consulta, genera QR y reserva en"| fitzone
+    externo -->|"Cotiza y alquila canchas en"| fitzone
+    recepcionista -->|"Valida accesos y aforo en"| fitzone
+    gerente -->|"Administra sedes y reportes en"| fitzone
+
+    fitzone -->|"Almacena datos y autentica en"| supabase
+    supabase -->|"Notifica eventos en tiempo real hacia"| fitzone
+    fitzone -->|"Crea preferencias de pago en"| mercadopago
+    mercadopago -->|"Envía confirmaciones de pago hacia"| fitzone
+    fitzone -->|"Obtiene mapas de sucursales desde"| mapas
+
+    style personas fill:transparent,stroke:none
+    style externos fill:transparent,stroke:none
