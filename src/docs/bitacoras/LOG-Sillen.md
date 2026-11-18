@@ -236,3 +236,52 @@
 * `d7c5d46` fix(router): restaurar rbac, roles de rutas anidadas e inyectar fix de seguridad y performance
 
 ----
+
+#### 14/11/2026
+#### Matías Sillén Ríos | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Reorganización completa de `src/router/index.ts` agrupando rutas hijas de `MainLayout` por módulo, incorporando Lazy Loading (`() => import(...)`) en `PerfilView.vue`, completando `meta.roles` en rutas faltantes (`canchas/reservas/:id`), hidratando los datos completos del perfil en `beforeEach` y optimizando `LoginView.vue` para navegar directamente con `rutaPorRol`.
+  - Optimización del interceptor de peticiones en `src/common/api/http.ts` para leer el token activo desde Pinia antes de consultar `supabase.auth.getSession()`, y limpieza de sesión ante respuestas HTTP `401`.
+  - Eliminación del rol hardcodeado `roles: [4]` en `RegistroView.vue` y `CompletarPerfilView.vue`, agregando manejo de compensación ante fallos parciales entre Supabase Auth y el backend local, y persistencia del avatar de Google OAuth al completar el perfil.
+  - Actualización de `src/store/auth.ts`, `MainLayout.vue` y `Sidebar.vue`: eliminación del enlace duplicado `Mi Perfil` del menú lateral, implementación de menú desplegable de usuario en la Navbar mostrando nombre y apellido reales (nunca el correo), fotografía de perfil (Supabase Storage y fallback de Google OAuth con `referrerpolicy="no-referrer"`), iniciales ante error de carga y estado Skeleton.
+  - Ampliación de `PerfilView.vue` y `auth.service.ts`: incorporación de estado Skeleton, campos bloqueados (`email` y `dni`), edición validada con Zod de `nombre`, `apellido` y `telefono` sincronizada en tiempo real con Pinia/Navbar, carga y vista previa de fotografía de perfil (JPG, PNG o WEBP hasta 2 MB) y formulario independiente de cambio de contraseña con reautenticación previa (`reauthenticateWithPassword` + `updatePassword`) en Supabase Auth.
+  - Incorporación de pruebas automatizadas con Vitest en `src/router/__tests__/router.spec.ts` y `src/modules/M1-usuarios/views/__tests__/PerfilView.spec.ts`.
+- **Decisiones:**
+  - Centralizar el acceso a `/perfil` en un menú desplegable de usuario en la Navbar y retirarlo del Sidebar para evitar duplicación de navegación y mantener sincronizado visualmente el avatar y el nombre completo del usuario activo.
+  - Separar en `PerfilView.vue` el formulario de datos personales del formulario de cambio de contraseña, exigiendo reautenticación con la contraseña actual en Supabase Auth antes de aplicar `updateUser`.
+  - Utilizar `referrerpolicy="no-referrer"` y fallback a metadatos de sesión (`avatar_url` / `picture`) para garantizar la visualización confiable de avatares provenientes de cuentas de Google OAuth.
+- **Dificultades:**
+  - Al iniciar sesión con cuentas de Google OAuth, la foto de perfil no se visualizaba porque `CompletarPerfilView.vue` no persistía la URL externa cuando no se subía un archivo local y las etiquetas `<img>` carecían de `referrerpolicy="no-referrer"` frente a la CDN de Google; se resolvió persistiendo la URL en el alta y agregando fallback desde los metadatos de sesión.
+- **Commits:**
+- `232e6e2` fix(router): reorganizar rutas con lazy loading y corregir navegacion
+- `afb2ed5` fix(router): corregir advertencia deprecada de consultas de cliente
+- `46d6383` fix(auth): asignar rol externo dinamicamente en el registro
+- `17e522e` fix(navbar): mostrar nombre real y foto de perfil desde Supabase
+- `a0a6f9f` feat(profile): trasladar acceso a mi perfil desde el sidebar a la navbar
+- `4acc4f5` feat(profile): ampliar vista mi perfil con edicion, avatar y cambio de contrasena
+- `fce0331` test(auth): agregar pruebas unitarias y de integracion de auth y perfil
+- `1a8bfae` fix(navbar): persistir y mostrar avatar de cuenta de Google OAuth
+
+---
+
+#### 14/11/2026
+#### Matías Sillén Ríos | Rol: Desarrollador Frontend
+
+- **Actividades:**
+  - Creación de la vista exclusiva del Dashboard del Socio (`SocioDashboardView.vue`) reutilizando el layout principal (`MainLayout.vue`), tarjetas, badges y componentes `Skeleton` existentes en `src/common/`, mostrando saludo personalizado, resumen de actividad, próximas reservas reales y accesos rápidos.
+  - Implementación de la vista de Historial de Reservas (`HistorialReservasView.vue`) con distinción visual entre reservas de canchas y clases grupales (`@phosphor-icons/vue`), visualización de fechas, horarios, sedes y estados reales persistidos, filtrado por tipo de actividad, paginación y ordenamiento descendente (más recientes primero).
+  - Integración de rutas con carga diferida (Lazy Loading) en `src/router/index.ts` y actualización de navegación en `Sidebar.vue` y `ruta-por-rol.ts`, habilitando el acceso exclusivo a usuarios con rol `socio` y bloqueando mediante `beforeEach` el ingreso directo de usuarios con rol `externo`.
+  - Implementación de estados de interfaz completos (carga con `Skeleton`, historial vacío cuando el socio no posee actividades registradas y manejo de errores de red con opción de reintento) junto con validación de contratos mediante interfaces TypeScript y Zod.
+  - Cobertura de pruebas automatizadas (Vitest / Cypress) validando control de acceso RBAC entre `socio` y `externo`, renderizado de estados visuales y visualización correcta de reservas de canchas y clases grupales.
+- **Decisiones:**
+  - Presentar una vista unificada de historial con filtros por categoría (`Todas`, `Canchas`, `Clases grupales`) e indicadores visuales diferenciados por tipo y estado real, evitando duplicar lógica de consulta y manteniendo consistencia visual en móvil y escritorio.
+  - Centralizar el control de acceso tanto en la visibilidad del menú lateral como en los guards de Vue Router conectados al rol real hidratado desde el backend en Pinia (`useAuthStore`).
+- **Dificultades:**
+  - Evitar saltos visuales o exposición momentánea de componentes del Dashboard antes de confirmar el rol real del usuario tras recargar la página; se resolvió condicionando la navegación a la hidratación previa del perfil en `router.beforeEach` y mostrando estados `Skeleton` durante la carga inicial.
+- **Commits:**
+- `563bb88` feat(router): registrar rutas de dashboard y historial del socio
+- `fc0b819` feat(dashboard): implementar vista de historial y dashboard del socio
+- `61c10c3` fix(gerencia): evitar desbordamiento en PanelGerenciaView
+`
+---
