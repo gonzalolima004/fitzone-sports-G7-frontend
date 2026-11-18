@@ -86,12 +86,11 @@ export const reservasService = {
       return {
         ...data,
         nombre_cancha: data.nombre_cancha || data.cancha?.nombre,
-        tipo_cancha:
-          data.tipo_cancha || data.cancha?.cancha_tipo?.descripcion,
+        tipo_cancha: data.tipo_cancha || data.cancha?.cancha_tipo?.descripcion,
         nombre_sede: data.nombre_sede || data.cancha?.sede?.nombre,
         direccion_sede: data.direccion_sede || data.cancha?.sede?.direccion,
         estado_nombre:
-          data.estado_nombre || data.cancha_reserva_estado?.descripcion,
+          data.estado_nombre || data.cancha_reserva_estado?.descripcion || '',
       }
     } catch (err) {
       console.warn(
@@ -122,11 +121,14 @@ export const reservasService = {
    */
   async obtenerMisReservasCanchas(): Promise<DetalleReservaCancha[]> {
     try {
-      const response = await http.get<DetalleReservaCancha[]>('/reservas-canchas/mis-reservas')
+      const response = await http.get<DetalleReservaCancha[]>(
+        '/reservas-canchas/mis-reservas'
+      )
       return response.data
     } catch {
       try {
-        const response = await http.get<DetalleReservaCancha[]>('/reservas-canchas')
+        const response =
+          await http.get<DetalleReservaCancha[]>('/reservas-canchas')
         return response.data
       } catch {
         return []

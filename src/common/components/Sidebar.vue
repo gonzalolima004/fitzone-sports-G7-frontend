@@ -50,7 +50,12 @@ const gruposGerente: NavGrupo[] = [
   {
     id: 'inicio',
     items: [
-      { nombre: 'Panel de gerencia', ruta: '/gerencia', icono: PhHouse, roles: ['gerente'] },
+      {
+        nombre: 'Panel de gerencia',
+        ruta: '/gerencia',
+        icono: PhHouse,
+        roles: ['gerente'],
+      },
     ],
   },
   {
@@ -58,11 +63,36 @@ const gruposGerente: NavGrupo[] = [
     titulo: 'Operación diaria',
     icono: PhUserCheck,
     items: [
-      { nombre: 'Recepcion', ruta: '/recepcion', icono: PhUserCheck, roles: ['gerente'] },
-      { nombre: 'Accesos y QR', ruta: '/accesos', icono: PhQrCode, roles: ['gerente'] },
-      { nombre: 'Control de Aforo', ruta: '/aforo', icono: PhUsers, roles: ['gerente'] },
-      { nombre: 'Clases Grupales', ruta: '/clases', icono: PhCalendar, roles: ['gerente'] },
-      { nombre: 'Canchas', ruta: '/canchas', icono: PhCourtBasketball, roles: ['gerente'] },
+      {
+        nombre: 'Recepcion',
+        ruta: '/recepcion',
+        icono: PhUserCheck,
+        roles: ['gerente'],
+      },
+      {
+        nombre: 'Accesos y QR',
+        ruta: '/accesos',
+        icono: PhQrCode,
+        roles: ['gerente'],
+      },
+      {
+        nombre: 'Control de Aforo',
+        ruta: '/aforo',
+        icono: PhUsers,
+        roles: ['gerente'],
+      },
+      {
+        nombre: 'Clases Grupales',
+        ruta: '/clases',
+        icono: PhCalendar,
+        roles: ['gerente'],
+      },
+      {
+        nombre: 'Canchas',
+        ruta: '/canchas',
+        icono: PhCourtBasketball,
+        roles: ['gerente'],
+      },
     ],
   },
   {
@@ -70,9 +100,24 @@ const gruposGerente: NavGrupo[] = [
     titulo: 'Socios y planes',
     icono: PhIdentificationCard,
     items: [
-      { nombre: 'Directorio de Usuarios', ruta: '/gerencia/directorio-usuarios', icono: PhAddressBook, roles: ['gerente'] },
-      { nombre: 'Planes', ruta: '/gerencia/planes', icono: PhTag, roles: ['gerente'] },
-      { nombre: 'Membresías de socios', ruta: '/gerencia/membresias', icono: PhMedal, roles: ['gerente'] },
+      {
+        nombre: 'Directorio de Usuarios',
+        ruta: '/gerencia/directorio-usuarios',
+        icono: PhAddressBook,
+        roles: ['gerente'],
+      },
+      {
+        nombre: 'Planes',
+        ruta: '/gerencia/planes',
+        icono: PhTag,
+        roles: ['gerente'],
+      },
+      {
+        nombre: 'Membresías de socios',
+        ruta: '/gerencia/membresias',
+        icono: PhMedal,
+        roles: ['gerente'],
+      },
     ],
   },
   {
@@ -81,8 +126,18 @@ const gruposGerente: NavGrupo[] = [
     icono: PhBuildings,
     items: [
       // Sedes agrupa por pestañas Sedes / Horarios / Calendario.
-      { nombre: 'Sedes y Horarios', ruta: '/gerencia/sedes', icono: PhBuildings, roles: ['gerente'] },
-      { nombre: 'Gestión de Canchas', ruta: '/gerencia/canchas', icono: PhCourtBasketball, roles: ['gerente'] },
+      {
+        nombre: 'Sedes y Horarios',
+        ruta: '/gerencia/sedes',
+        icono: PhBuildings,
+        roles: ['gerente'],
+      },
+      {
+        nombre: 'Gestión de Canchas',
+        ruta: '/gerencia/canchas',
+        icono: PhCourtBasketball,
+        roles: ['gerente'],
+      },
     ],
   },
   {
@@ -90,9 +145,19 @@ const gruposGerente: NavGrupo[] = [
     titulo: 'Finanzas',
     icono: PhCreditCard,
     items: [
-      { nombre: 'Pagos y Facturación', ruta: '/pagos', icono: PhCreditCard, roles: ['gerente'] },
+      {
+        nombre: 'Pagos y Facturación',
+        ruta: '/pagos',
+        icono: PhCreditCard,
+        roles: ['gerente'],
+      },
       // Reportes agrupa por pestañas Ingresos / Ocupación y reservas.
-      { nombre: 'Reportes', ruta: '/gerencia/reportes', icono: PhChartBar, roles: ['gerente'] },
+      {
+        nombre: 'Reportes',
+        ruta: '/gerencia/reportes',
+        icono: PhChartBar,
+        roles: ['gerente'],
+      },
     ],
   },
 ]
@@ -102,20 +167,60 @@ const seccionesEstandar: NavGrupo[] = [
     id: 'operaciones',
     titulo: 'OPERACIONES',
     items: [
-      { nombre: 'Dashboard', ruta: '/socio-dashboard', icono: PhSquaresFour, roles: ['socio'] },
-      { nombre: 'Recepcion', ruta: '/recepcion', icono: PhUserCheck, roles: ['recepcionista'] },
-      { nombre: 'Historial', ruta: '/historial', icono: PhCalendar, roles: ['socio', 'externo'] },
-      { nombre: 'Clases Grupales', ruta: '/clases', icono: PhCalendar, roles: ['socio', 'externo', 'recepcionista'] },
-      { nombre: 'Canchas', ruta: '/canchas', icono: PhCourtBasketball, roles: ['socio', 'externo', 'recepcionista'] },
-      { nombre: 'Accesos y QR', ruta: '/accesos', icono: PhQrCode, roles: ['socio', 'recepcionista'] },
+      {
+        nombre: 'Dashboard',
+        ruta: '/socio-dashboard',
+        icono: PhSquaresFour,
+        roles: ['socio'],
+      },
+      {
+        nombre: 'Recepcion',
+        ruta: '/recepcion',
+        icono: PhUserCheck,
+        roles: ['recepcionista'],
+      },
+      {
+        nombre: 'Historial',
+        ruta: '/historial',
+        icono: PhCalendar,
+        roles: ['socio', 'externo'],
+      },
+      {
+        nombre: 'Clases Grupales',
+        ruta: '/clases',
+        icono: PhCalendar,
+        roles: ['socio', 'externo', 'recepcionista'],
+      },
+      {
+        nombre: 'Canchas',
+        ruta: '/canchas',
+        icono: PhCourtBasketball,
+        roles: ['socio', 'externo', 'recepcionista'],
+      },
+      {
+        nombre: 'Accesos y QR',
+        ruta: '/accesos',
+        icono: PhQrCode,
+        roles: ['socio', 'recepcionista'],
+      },
     ],
   },
   {
     id: 'administracion',
     titulo: 'ADMINISTRACIÓN',
     items: [
-      { nombre: 'Membresías', ruta: '/membresia', icono: PhMedal, roles: ['socio', 'externo', 'recepcionista'] },
-      { nombre: 'Pagos y Facturación', ruta: '/pagos', icono: PhCreditCard, roles: ['socio', 'externo', 'recepcionista'] },
+      {
+        nombre: 'Membresías',
+        ruta: '/membresia',
+        icono: PhMedal,
+        roles: ['socio', 'externo', 'recepcionista'],
+      },
+      {
+        nombre: 'Pagos y Facturación',
+        ruta: '/pagos',
+        icono: PhCreditCard,
+        roles: ['socio', 'externo', 'recepcionista'],
+      },
     ],
   },
 ]
@@ -138,7 +243,8 @@ const rutaActiva = computed(() =>
     .flatMap((grupo) => grupo.items.map((item) => item.ruta))
     .filter(
       (ruta) =>
-        route.path === ruta || (ruta !== '/' && route.path.startsWith(ruta + '/'))
+        route.path === ruta ||
+        (ruta !== '/' && route.path.startsWith(ruta + '/'))
     )
     .reduce(
       (masEspecifica, ruta) =>

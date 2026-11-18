@@ -49,9 +49,7 @@ const sedesFiltradas = computed(() => {
 })
 
 const sedeSeleccionadaEnFiltro = computed(() =>
-  sedesFiltradas.value.some(
-    (s) => s.id_sede === sedeStore.idSedeSeleccionada
-  )
+  sedesFiltradas.value.some((s) => s.id_sede === sedeStore.idSedeSeleccionada)
 )
 
 const valorSelect = computed(() => {
@@ -89,7 +87,9 @@ function limpiarBusqueda() {
         class="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 rounded-full text-xs font-semibold text-[#202759] self-start sm:self-auto"
       >
         Activa: {{ sedeStore.sedeSeleccionada.nombre }}
-        <template v-if="obtenerNombreCiudad(sedeStore.sedeSeleccionada.id_ciudad)">
+        <template
+          v-if="obtenerNombreCiudad(sedeStore.sedeSeleccionada.id_ciudad)"
+        >
           ({{ obtenerNombreCiudad(sedeStore.sedeSeleccionada.id_ciudad) }})
         </template>
       </span>
@@ -192,7 +192,11 @@ function limpiarBusqueda() {
     </div>
 
     <p
-      v-if="busquedaCiudad && sedesFiltradas.length === 0 && sedeStore.sedes.length > 0"
+      v-if="
+        busquedaCiudad &&
+        sedesFiltradas.length === 0 &&
+        sedeStore.sedes.length > 0
+      "
       class="mt-3 text-xs text-slate-500 flex items-center gap-2"
     >
       <span>No se encontraron sedes para esa ciudad.</span>

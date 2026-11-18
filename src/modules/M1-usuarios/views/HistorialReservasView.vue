@@ -42,7 +42,9 @@ async function cargarHistorial() {
   errorMessage.value = null
   try {
     const idSede =
-      sedeStore.sedeSeleccionada?.id_sede ?? sedeStore.idSedeSeleccionada ?? undefined
+      sedeStore.sedeSeleccionada?.id_sede ??
+      sedeStore.idSedeSeleccionada ??
+      undefined
 
     const respuesta = await usuariosService.obtenerHistorial({
       page: page.value,
@@ -141,24 +143,32 @@ onMounted(async () => {
 
 <template>
   <div class="space-y-6">
-    <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <header
+      class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+    >
       <div>
         <h1 class="text-2xl font-bold text-[#202759]">Historial de Reservas</h1>
-        <p v-if="sedeStore.sedeSeleccionada" class="text-sm text-slate-500 mt-0.5">
-          Sede seleccionada: <strong class="text-[#202759]">{{ sedeStore.sedeSeleccionada.nombre }}</strong>
+        <p
+          v-if="sedeStore.sedeSeleccionada"
+          class="text-sm text-slate-500 mt-0.5"
+        >
+          Sede seleccionada:
+          <strong class="text-[#202759]">{{
+            sedeStore.sedeSeleccionada.nombre
+          }}</strong>
         </p>
       </div>
       <div class="flex bg-slate-100 p-1 rounded-xl">
         <button
-          v-for="f in (['Todas', 'Canchas', 'Clases'] as FiltroTipo[])"
+          v-for="f in ['Todas', 'Canchas', 'Clases'] as FiltroTipo[]"
           :key="f"
-          @click="seleccionarFiltro(f)"
           :class="[
             'px-4 py-2 text-sm font-bold rounded-lg transition-all cursor-pointer',
             filtro === f
               ? 'bg-white text-[#202759] shadow-sm'
               : 'text-slate-500 hover:text-[#202759]',
           ]"
+          @click="seleccionarFiltro(f)"
         >
           {{ f }}
         </button>
@@ -172,14 +182,18 @@ onMounted(async () => {
     <div v-else-if="errorMessage" class="text-center py-10 space-y-4">
       <PhWarningCircle :size="48" class="mx-auto text-red-400" />
       <p class="text-red-700">{{ errorMessage }}</p>
-      <BaseButton variant="outline" @click="cargarHistorial">Reintentar</BaseButton>
+      <BaseButton variant="outline" @click="cargarHistorial"
+        >Reintentar</BaseButton
+      >
     </div>
 
     <div
       v-else-if="actividades.length === 0"
       class="bg-white rounded-2xl border border-slate-200 shadow-sm px-6 py-12 text-center"
     >
-      <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4 text-[#202759]">
+      <div
+        class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4 text-[#202759]"
+      >
         <PhCourtBasketball
           v-if="filtro === 'Canchas'"
           :size="28"
@@ -188,13 +202,15 @@ onMounted(async () => {
         />
         <PhCalendar v-else :size="28" weight="bold" />
       </div>
-      <h2 class="text-lg font-bold text-[#202759]">
-        Sin reservas registradas
-      </h2>
+      <h2 class="text-lg font-bold text-[#202759]">Sin reservas registradas</h2>
       <p class="text-sm text-slate-500 mt-1 max-w-md mx-auto">
         No tenés reservas
         <span v-if="filtro !== 'Todas'">de {{ filtro.toLowerCase() }}</span>
-        en <strong class="text-slate-700">{{ sedeStore.sedeSeleccionada?.nombre || 'esta sede' }}</strong>.
+        en
+        <strong class="text-slate-700">{{
+          sedeStore.sedeSeleccionada?.nombre || 'esta sede'
+        }}</strong
+        >.
       </p>
       <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
         <BaseButton
@@ -225,8 +241,15 @@ onMounted(async () => {
         class="bg-white p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm"
       >
         <div class="flex items-center gap-4">
-          <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-[#202759] shrink-0">
-            <PhCourtBasketball v-if="act.tipo === 'cancha'" :size="24" weight="bold" class="text-[#F96167]" />
+          <div
+            class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-[#202759] shrink-0"
+          >
+            <PhCourtBasketball
+              v-if="act.tipo === 'cancha'"
+              :size="24"
+              weight="bold"
+              class="text-[#F96167]"
+            />
             <PhCalendar v-else :size="24" weight="bold" />
           </div>
           <div>
@@ -234,14 +257,21 @@ onMounted(async () => {
               <h3 class="text-base font-bold text-[#202759]">
                 {{ act.titulo }}
               </h3>
-              <span class="px-2 py-0.5 rounded-md text-[11px] font-semibold uppercase tracking-wide bg-slate-100 text-slate-600">
+              <span
+                class="px-2 py-0.5 rounded-md text-[11px] font-semibold uppercase tracking-wide bg-slate-100 text-slate-600"
+              >
                 {{ act.tipo === 'cancha' ? 'Cancha' : 'Clase' }}
               </span>
             </div>
-            <p v-if="act.subtitulo" class="text-sm font-medium text-slate-700 mt-0.5">
+            <p
+              v-if="act.subtitulo"
+              class="text-sm font-medium text-slate-700 mt-0.5"
+            >
               {{ act.subtitulo }}
             </p>
-            <p class="inline-flex items-center gap-1.5 text-sm text-slate-600 mt-1.5">
+            <p
+              class="inline-flex items-center gap-1.5 text-sm text-slate-600 mt-1.5"
+            >
               <PhClock :size="15" class="text-slate-400 shrink-0" />
               {{ formatearFechaHora(act.fecha_inicio, act.fecha_fin) }}
             </p>
@@ -250,7 +280,10 @@ onMounted(async () => {
 
         <div class="flex flex-col sm:items-end gap-1 shrink-0 pl-16 sm:pl-0">
           <div class="flex items-center gap-2">
-            <span v-if="act.precio != null" class="text-sm font-bold text-[#202759]">
+            <span
+              v-if="act.precio != null"
+              class="text-sm font-bold text-[#202759]"
+            >
               ${{ act.precio.toLocaleString('es-AR') }}
             </span>
             <span
@@ -272,7 +305,12 @@ onMounted(async () => {
         v-if="totalPaginas > 1"
         class="flex items-center justify-between pt-4 border-t border-slate-200 text-sm text-slate-600"
       >
-        <span>Página {{ page }} de {{ totalPaginas }} ({{ totalRegistros }} reservas)</span>
+        <span
+          >Página {{ page }} de {{ totalPaginas }} ({{
+            totalRegistros
+          }}
+          reservas)</span
+        >
         <div class="flex gap-2">
           <BaseButton
             variant="outline"

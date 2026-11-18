@@ -51,7 +51,9 @@ vi.mock('@/store/sede', () => ({
 vi.mock('../../services/usuarios.service', () => ({
   usuariosService: {
     actualizarPerfil: vi.fn(async () => ({ success: true })),
-    subirFotoPerfil: vi.fn(async () => ({ foto_url: 'https://example.com/avatar.jpg' })),
+    subirFotoPerfil: vi.fn(async () => ({
+      foto_url: 'https://example.com/avatar.jpg',
+    })),
   },
 }))
 
@@ -117,7 +119,8 @@ describe('PerfilView.vue - Edición de Perfil, Restricciones y Seguridad', () =>
     )
 
     // Garantizar que 'email' y 'dni' no están en el objeto enviado
-    const callPayload = vi.mocked(usuariosService.actualizarPerfil).mock.calls[0][1]
+    const callPayload = vi.mocked(usuariosService.actualizarPerfil).mock
+      .calls[0][1]
     expect(callPayload).not.toHaveProperty('email')
     expect(callPayload).not.toHaveProperty('dni')
   })
@@ -150,7 +153,9 @@ describe('PerfilView.vue - Edición de Perfil, Restricciones y Seguridad', () =>
       telefono: '+5491198765432',
     })
 
-    expect(toast.success).toHaveBeenCalledWith('Datos personales actualizados correctamente.')
+    expect(toast.success).toHaveBeenCalledWith(
+      'Datos personales actualizados correctamente.'
+    )
   })
 
   it('ejecuta reauthenticateWithPassword seguido de updatePassword al cambiar la contraseña con éxito', async () => {
@@ -179,17 +184,22 @@ describe('PerfilView.vue - Edición de Perfil, Restricciones y Seguridad', () =>
     expect(authService.updatePassword).toHaveBeenCalledTimes(1)
     expect(authService.updatePassword).toHaveBeenCalledWith('PasswordNuevo456!')
 
-    expect(toast.success).toHaveBeenCalledWith('¡Contraseña actualizada con éxito!')
+    expect(toast.success).toHaveBeenCalledWith(
+      '¡Contraseña actualizada con éxito!'
+    )
   })
 
   it('renderiza la imagen de perfil con referrerpolicy="no-referrer"', async () => {
-    mockAuthStore.usuario.foto_url = 'https://lh3.googleusercontent.com/a-/avatar.jpg'
+    mockAuthStore.usuario.foto_url =
+      'https://lh3.googleusercontent.com/a-/avatar.jpg'
     const wrapper = mount(PerfilView)
     await flushPromises()
 
     const avatarImg = wrapper.find('[data-testid="perfil-avatar-img"]')
     expect(avatarImg.exists()).toBe(true)
     expect(avatarImg.attributes('referrerpolicy')).toBe('no-referrer')
-    expect(avatarImg.attributes('src')).toBe('https://lh3.googleusercontent.com/a-/avatar.jpg')
+    expect(avatarImg.attributes('src')).toBe(
+      'https://lh3.googleusercontent.com/a-/avatar.jpg'
+    )
   })
 })
