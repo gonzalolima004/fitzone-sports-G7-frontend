@@ -43,7 +43,36 @@ export interface HistorialResponse {
   }
 }
 
+export interface MembresiaResumen {
+  id_membresia: number
+  plan: string
+  estado: string
+  fecha_inicio: string
+  fecha_fin: string
+  dias_restantes: number
+  renovacion_automatica: boolean
+}
+
+export interface SocioDashboardResponse {
+  membresia: MembresiaResumen | null
+  totales: {
+    total_canchas: number
+    total_clases: number
+    total_actividades: number
+    proximas_confirmadas: number
+  }
+  proximas_actividades: ItemHistorial[]
+}
+
 export const usuariosService = {
+  async obtenerDashboard(id_sede?: number): Promise<SocioDashboardResponse> {
+    const response = await apiClient.get<SocioDashboardResponse>(
+      '/usuarios/me/dashboard',
+      { params: id_sede ? { id_sede } : {} }
+    )
+    return response.data
+  },
+
   async obtenerHistorial(
     params?: HistorialQueryParams
   ): Promise<HistorialResponse> {

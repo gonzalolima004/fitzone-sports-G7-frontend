@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import {
   PhCalendar,
@@ -8,14 +8,13 @@ import {
   PhQrCode,
   PhArrowRight,
   PhCheckCircle,
+  PhClock,
   PhBuildings,
   PhMedal,
 } from '@phosphor-icons/vue'
 import { useAuthStore } from '@/store/auth'
 import { useSedeStore } from '@/store/sede'
-import { clasesService, type MiReservaClaseResponse } from '@/modules/M3-clases-grupales/services/clases.service'
-import { reservasService } from '@/modules/M4-canchas/services/reservas.service'
-import type { DetalleReservaCancha } from '@/modules/M4-canchas/types/canchas.types'
+import { usuariosService, type SocioDashboardResponse } from '../services/usuarios.service'
 import BaseButton from '@/common/components/BaseButton.vue'
 import BaseSkeleton from '@/common/components/BaseSkeleton.vue'
 import { toast } from '@/common/utils/toast'
@@ -25,8 +24,7 @@ const sedeStore = useSedeStore()
 
 const isLoading = ref(true)
 const errorMessage = ref<string | null>(null)
-const misClases = ref<MiReservaClaseResponse[]>([])
-const misCanchas = ref<DetalleReservaCancha[]>([])
+const dashboard = ref<SocioDashboardResponse | null>(null)
 
 const nombreUsuario = computed(() => {
   const n = authStore.usuario?.nombre?.trim()
@@ -36,42 +34,54 @@ const nombreUsuario = computed(() => {
   return 'Socio FitZone'
 })
 
-const totalReservasClases = computed(() => misClases.value.length)
-const totalReservasCanchas = computed(() => misCanchas.value.length)
+const totalReservasClases = computed(() => dashboard.value?.totales.total_clases ?? 0)
+const totalReservasCanchas = computed(() => dashboard.value?.totales.total_canchas ?? 0)
+const membresia = computed(() => dashboard.value?.membresia ?? null)
+const membresiaActiva = computed(() => membresia.value?.estado?.toLowerCase().includes('activa') ?? false)
 
-const proximasActividades = computed(() => {
-  const combinadas = [
-    ...misClases.value.map(c => ({
-      id: `clase-${c.id_clase_reserva}`,
-      tipo: 'Clase Grupal' as const,
-      titulo: c.nombre_clase || 'Clase Grupal FitZone',
-      fecha: c.fecha_inicio,
-      sede: sedeStore.sedeSeleccionada?.nombre || 'Sede FitZone',
-      estado: c.estado || 'Confirmada',
-    })),
-    ...misCanchas.value.map(can => ({
-      id: `cancha-${can.id_cancha_reserva}`,
-      tipo: 'Reserva de Cancha' as const,
-      titulo: can.nombre_cancha || can.tipo_cancha || 'Cancha Deportiva',
-      fecha: can.fecha_inicio,
-      sede: can.nombre_sede || sedeStore.sedeSeleccionada?.nombre || 'Sede FitZone',
-      estado: can.estado_nombre || 'Confirmada',
-    })),
-  ]
+const proximasActividades = computed(() =>
+  (dashboard.value?.proximas_actividades ?? []).map(a => ({
+    id: a.id,
+    tipo: a.tipo === 'cancha' ? ('Reserva de Cancha' as const) : ('Clase Grupal' as const),
+    titulo: a.titulo,
+    subtitulo: a.subtitulo,
+    fechaInicio: a.fecha_inicio,
+    fechaFin: a.fecha_fin,
+    sede: a.sede?.nombre || sedeStore.sedeSeleccionada?.nombre || 'Sede FitZone',
+    estado: a.estado,
+  }))
+)
 
-  return combinadas.sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime()).slice(0, 5)
-})
+function formatearFechaHora(fechaInicio: string, fechaFin: string): string {
+  const inicio = new Date(fechaInicio)
+  const fin = new Date(fechaFin)
+  const fecha = inicio.toLocaleDateString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+  const horaInicio = inicio.toLocaleTimeString('es-AR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+  const horaFin = fin.toLocaleTimeString('es-AR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+  return `${fecha} · ${horaInicio} - ${horaFin}`
+}
+
+let inicializado = false
 
 async function cargarDatosDashboard() {
   isLoading.value = true
   errorMessage.value = null
   try {
-    const [clasesRes, canchasRes] = await Promise.all([
-      clasesService.obtenerMisReservas().catch(() => []),
-      reservasService.obtenerMisReservasCanchas().catch(() => []),
-    ])
-    misClases.value = clasesRes
-    misCanchas.value = canchasRes
+    const idSede =
+      sedeStore.sedeSeleccionada?.id_sede ?? sedeStore.idSedeSeleccionada ?? undefined
+    dashboard.value = await usuariosService.obtenerDashboard(idSede)
   } catch (error: unknown) {
     console.error('Error al cargar dashboard del socio:', error)
     errorMessage.value = 'No se pudieron cargar tus actividades recientes.'
@@ -81,13 +91,22 @@ async function cargarDatosDashboard() {
   }
 }
 
+watch(
+  () => [sedeStore.idSedeSeleccionada, sedeStore.versionContexto],
+  () => {
+    if (inicializado) {
+      cargarDatosDashboard()
+    }
+  }
+)
+
 onMounted(async () => {
   if (!sedeStore.sedes.length) {
     await sedeStore.cargarSedes()
   }
+  inicializado = true
   await cargarDatosDashboard()
-})
-</script>
+})</script>
 
 <template>
   <div class="space-y-8">
@@ -143,7 +162,7 @@ onMounted(async () => {
             <PhCalendar :size="24" weight="bold" />
           </div>
           <div>
-            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Clases Reservadas</p>
+            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Clases Reservadas (histórico)</p>
             <h3 class="text-2xl font-extrabold text-[#202759] mt-0.5">{{ totalReservasClases }}</h3>
           </div>
         </div>
@@ -153,7 +172,7 @@ onMounted(async () => {
             <PhCourtBasketball :size="24" weight="bold" />
           </div>
           <div>
-            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Canchas Reservadas</p>
+            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Canchas Reservadas (histórico)</p>
             <h3 class="text-2xl font-extrabold text-[#202759] mt-0.5">{{ totalReservasCanchas }}</h3>
           </div>
         </div>
@@ -164,7 +183,7 @@ onMounted(async () => {
           </div>
           <div>
             <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Estado Membresía</p>
-            <h3 class="text-lg font-extrabold text-emerald-600 mt-0.5">Activa / Al Día</h3>
+            <h3 class="text-lg font-extrabold mt-0.5" :class="membresiaActiva ? 'text-emerald-600' : 'text-amber-600'">{{ membresia ? `${membresia.estado} · ${membresia.dias_restantes} días` : 'Sin membresía' }}</h3>
           </div>
         </div>
       </div>
@@ -237,13 +256,16 @@ onMounted(async () => {
                   <span class="text-xs font-bold px-2 py-0.5 rounded-md bg-[#202759]/10 text-[#202759]">
                     {{ act.tipo }}
                   </span>
-                  <span class="text-xs font-medium text-emerald-600 flex items-center gap-1">
-                    <PhCheckCircle :size="14" weight="bold" /> {{ act.estado }}
+                  <span class="text-xs font-medium flex items-center gap-1" :class="act.estado.toLowerCase().includes('confirm') ? 'text-emerald-600' : 'text-amber-600'">
+                    <PhCheckCircle v-if="act.estado.toLowerCase().includes('confirm')" :size="14" weight="bold" />
+                    <PhClock v-else :size="14" weight="bold" />
+                    {{ act.estado }}
                   </span>
                 </div>
                 <h4 class="font-bold text-[#202759] text-base mt-1">{{ act.titulo }}</h4>
+                <p v-if="act.subtitulo" class="text-xs font-medium text-slate-600 mt-0.5">{{ act.subtitulo }}</p>
                 <p class="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
-                  <span>📅 {{ new Date(act.fecha).toLocaleString() }}</span>
+                  <span class="inline-flex items-center gap-1"><PhClock :size="12" /> {{ formatearFechaHora(act.fechaInicio, act.fechaFin) }}</span>
                   <span>•</span>
                   <span class="flex items-center gap-1"><PhBuildings :size="12" /> {{ act.sede }}</span>
                 </p>

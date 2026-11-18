@@ -42,7 +42,7 @@ async function cargarHistorial() {
   errorMessage.value = null
   try {
     const idSede =
-      sedeStore.idSedeSeleccionada ?? sedeStore.sedeSeleccionada?.id_sede ?? undefined
+      sedeStore.sedeSeleccionada?.id_sede ?? sedeStore.idSedeSeleccionada ?? undefined
 
     const respuesta = await usuariosService.obtenerHistorial({
       page: page.value,
@@ -119,9 +119,12 @@ function formatearFechaHora(fechaInicio: string, fechaFin: string): string {
   return `${fecha} · ${horaInicio} - ${horaFin}`
 }
 
+let inicializado = false
+
 watch(
   () => [sedeStore.idSedeSeleccionada, sedeStore.versionContexto],
   () => {
+    if (!inicializado) return
     page.value = 1
     cargarHistorial()
   }
@@ -131,6 +134,7 @@ onMounted(async () => {
   if (sedeStore.sedes.length === 0) {
     await sedeStore.cargarSedes()
   }
+  inicializado = true
   await cargarHistorial()
 })
 </script>
