@@ -314,3 +314,18 @@
   - `f209a81` `fix: vista obsoleta unificada en recepcion`
 
 ----
+
+#### 19/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Frontend
+- **Actividades**:
+  - Incorporación de `@vitest/coverage-v8` en `package.json` (`devDependencies`) y del script `test:cov` (`vitest run --coverage`) para habilitar la ejecución de cobertura y la generación de reportes locales en `/coverage`.
+  - Creación de pruebas unitarias para vistas, componentes y utilidades sin cobertura o con cobertura parcial (`IndicadorAforo.spec.ts`, `RecepcionView.spec.ts`, `CredencialView.spec.ts`, `SocioDashboardView.spec.ts`, `SelectorDeSede.spec.ts`, `BaseSkeleton.spec.ts`, `ClaseCard.spec.ts`) y ampliación de suites en `auth.spec.ts`, `sede.spec.ts`, `canchas.service.spec.ts`, `MainLayout.spec.ts`, `accesos.service.spec.ts`, `ValidacionAcceso.spec.ts`, `useAforo.spec.ts` y `router.spec.ts` para reforzar la cobertura en branches y funciones hacia el umbral del 80%.
+- **Decisiones**:
+  - Priorizar pruebas sobre archivos ya incluidos en el reporte de cobertura y vistas en 0% (`CredencialView.vue`, `SocioDashboardView.vue`, `RecepcionView.vue`, `IndicadorAforo.vue`), manteniendo tipado estricto en TypeScript y sin alterar código productivo.
+- **Dificultades**:
+  - La configuración de cobertura y el script no se encontraban en `package.json` tras el merge previo de tests; se diagnosticó la dependencia faltante (`@vitest/coverage-v8`) y se restauró el script antes de completar las suites faltantes.
+- **Commits:**
+  - `b6ce582` `tests: dependencia y script faltante de cobertura`
+  - `718857a` `tests: agregar tests que faltaban en accesos dashboard stores router y canchas`
+
+----

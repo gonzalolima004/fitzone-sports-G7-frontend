@@ -13,6 +13,7 @@ export default tseslint.config(
       '.agent/**',
       '.gemini/**',
       '.agents/**',
+      'coverage/**',
     ],
   },
   js.configs.recommended,

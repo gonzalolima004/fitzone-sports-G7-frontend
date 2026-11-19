@@ -10,7 +10,8 @@
     "format": "prettier --write .",
     "lint": "eslint .",
     "typecheck": "vue-tsc -b",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:cov": "vitest run --coverage"
   },
   "dependencies": {
     "@phosphor-icons/vue": "^2.2.1",
@@ -33,6 +34,7 @@
     "@types/jsdom": "^30",
     "@types/node": "^24.13.3",
     "@vitejs/plugin-vue": "^6.0.8",
+    "@vitest/coverage-v8": "5.0.5",
     "@vue/devtools-api": "^8.2.1",
     "@vue/test-utils": "^2.5.1",
     "@vue/tsconfig": "^0.9.1",
