@@ -301,3 +301,16 @@
   - `de79287` `docs(log): inclusion de hash cortos y limpieza de bitacora`
 
 ----
+
+#### 18/11/2026
+#### Marcos Caraballo | Rol: TL - Desarrollador Frontend
+- **Actividades**:
+  - Eliminación del ítem duplicado `Control de Aforo` (`/aforo`) y del *import* sin uso `PhUsers` en `Sidebar.vue`, manteniendo únicamente `Recepcion`.
+  - Redirección de la ruta `/aforo` hacia `/recepcion` en `src/router/index.ts` y eliminación del archivo obsoleto `AforoView.vue` (preservando `useAforo.ts` e `IndicadorAforo.vue`, ya integrados dentro de `RecepcionView.vue`).
+- **Decisiones**:
+  - Conservar una redirección desde `/aforo` a `/recepcion` para mantener retrocompatibilidad de URL sin duplicar vistas ni mantener código muerto.
+- **Dificultades**: Ninguna
+- **Commits:**
+  - `f209a81` `fix: vista obsoleta unificada en recepcion`
+
+----

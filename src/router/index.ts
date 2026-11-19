@@ -153,12 +153,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: 'aforo',
-        name: 'aforo',
-        component: () => import('../modules/M2-accesos/views/AforoView.vue'),
-        meta: {
-          requiresAuth: true,
-          roles: ['gerente'],
-        },
+        redirect: '/recepcion',
       },
 
       {
