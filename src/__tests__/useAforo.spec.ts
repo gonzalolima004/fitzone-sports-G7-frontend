@@ -137,6 +137,9 @@ describe('useAforo composable (M2-accesos)', () => {
       'Se perdió la conexión en tiempo real con el servidor.'
     )
 
+    capturedOnStatus?.('TIMED_OUT')
+    expect(datosDesactualizados.value).toBe(true)
+
     capturedOnStatus?.('SUBSCRIBED')
     expect(datosDesactualizados.value).toBe(false)
     expect(error.value).toBeNull()
@@ -154,7 +157,6 @@ describe('useAforo composable (M2-accesos)', () => {
       aforoMaximo: 100,
     } as never)
 
-    // Sin iniciarEscuchaTiempoReal para evitar conflictos de autolimpieza de listeners en el stub
     const { online, datosDesactualizados, error } = useAforo(1)
 
     const offlineListeners = eventListeners['offline'] || []

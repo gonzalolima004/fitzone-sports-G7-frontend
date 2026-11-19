@@ -173,4 +173,134 @@ describe('auth.ts - Store Complete Coverage', () => {
     )
     expect(colaRestante).toHaveLength(0)
   })
+
+  it('sincronizarColaOffline maneja cola vacía, elementos inválidos y errores manteniendo pendientes', async () => {
+    await sincronizarColaOffline()
+    expect(http.post).not.toHaveBeenCalled()
+
+    localStorage.setItem('fitzone_offline_queue', JSON.stringify([]))
+    await sincronizarColaOffline()
+    expect(http.post).not.toHaveBeenCalled()
+
+    const colaMixta = [
+      { tipo: 'INGRESO' },
+      {
+        tipo: 'EGRESO',
+        data: { id_usuario: 2, id_sede: 3 },
+        timestamp: '2026-11-19T01:00:00Z',
+      },
+    ]
+    localStorage.setItem('fitzone_offline_queue', JSON.stringify(colaMixta))
+    vi.mocked(http.post).mockRejectedValueOnce(new Error('Offline'))
+
+    await sincronizarColaOffline()
+    const pendientes = JSON.parse(
+      localStorage.getItem('fitzone_offline_queue') || '[]'
+    ) as unknown[]
+    expect(pendientes).toHaveLength(1)
+
+    window.dispatchEvent(new Event('online'))
+  })
+
+  it('cubre login, avatar_url de sesión, JSON corrupto en initialize, perfil null y actualización parcial', async () => {
+    vi.mocked(authService.login).mockResolvedValue({
+      session: {
+        access_token: 'tok-login',
+        user: {
+          id: 'u1',
+          user_metadata: { avatar_url: ' https://img/a.png ' },
+        },
+      },
+    } as never)
+
+    const store = useAuthStore()
+    await store.login({ email: 'a@b.com', password: '123' } as never)
+    expect(store.token).toBe('tok-login')
+
+    vi.mocked(authService.login).mockResolvedValue({ session: null } as never)
+    await store.login({ email: 'a@b.com', password: '123' } as never)
+
+    localStorage.setItem('fitzone_user_perfil', '{bad-json')
+    vi.stubGlobal('navigator', { onLine: false })
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      data: {
+        session: {
+          access_token: 'tok-login',
+          user: {
+            id: 'u1',
+            user_metadata: { avatar_url: ' https://img/a.png ' },
+          },
+        } as never,
+      },
+      error: null,
+    })
+    await store.initialize()
+
+    store.actualizarDatosUsuario({ nombre: 'Ignorado' })
+    expect(store.usuario).toBeNull()
+
+    store.setPerfilInterno({
+      id: 5,
+      nombre: 'Mario',
+      id_ciudad: 1,
+      estadoMembresia: 'ACTIVA',
+      enMora: false,
+    })
+    expect(store.usuario?.foto_url).toBe('https://img/a.png')
+
+    store.setPerfilInterno({ id: 5, nombre: 'Mario', rol: 'socio' })
+    expect(store.usuario?.id_ciudad).toBe(1)
+    expect(store.usuario?.estadoMembresia).toBe('ACTIVA')
+    expect(store.usuario?.enMora).toBe(false)
+
+    store.actualizarDatosUsuario({ apellido: 'López' })
+    expect(store.usuario?.apellido).toBe('López')
+
+    store.setPerfilInterno({ id: 9, nombre: 'Otro' })
+    expect(store.usuario?.id_ciudad).toBeUndefined()
+
+    vi.mocked(authService.verifyLocalProfile).mockResolvedValue({} as never)
+    const nullResult = await store.cargarPerfilLocal()
+    expect(nullResult).toBeNull()
+
+    vi.mocked(authService.verifyLocalProfile).mockResolvedValue({
+      user: { id_usuario: 9, nombre: 'Ext', rol: undefined, roles: [] },
+    } as never)
+    await store.cargarPerfilLocal()
+    expect(store.rol).toBe('externo')
+
+    vi.stubGlobal('navigator', { onLine: true })
+  })
+
+  it('cubre sincronizarPerfilSocio con arreglo vacío, membresía inactiva y catch de error', async () => {
+    const store = useAuthStore()
+    await store.sincronizarPerfilSocio()
+    expect(accesosService.obtenerPerfilSocio).not.toHaveBeenCalled()
+
+    store.setPerfilInterno({ id: 77, nombre: 'Pedro', rol: 'socio' })
+    vi.mocked(accesosService.obtenerPerfilSocio).mockResolvedValueOnce({
+      socioId: 77,
+      nombre: 'Pedro',
+      membresia: [{ membresia_estado: { descripcion: 'suspendida' } }],
+    } as never)
+    await store.sincronizarPerfilSocio()
+    expect(store.usuario?.estadoMembresia).toBe('SUSPENDIDA')
+    expect(store.usuario?.enMora).toBe(true)
+
+    vi.mocked(accesosService.obtenerPerfilSocio).mockResolvedValueOnce({
+      socioId: 77,
+      nombre: 'Pedro',
+      membresia: [],
+    } as never)
+    await store.sincronizarPerfilSocio()
+    expect(store.usuario?.estadoMembresia).toBe('INACTIVA')
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.mocked(accesosService.obtenerPerfilSocio).mockRejectedValueOnce(
+      new Error('Fallo red')
+    )
+    await store.sincronizarPerfilSocio()
+    expect(warnSpy).toHaveBeenCalled()
+    warnSpy.mockRestore()
+  })
 })
