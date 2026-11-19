@@ -31,3 +31,5 @@ dist-ssr
 .gemini/
 .impeccable/
 
+#Para la cobertura
+/coverage
