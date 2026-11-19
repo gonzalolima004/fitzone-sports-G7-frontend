@@ -11,10 +11,10 @@
   -
 - **Dificultades:** Ninguna.
 - **Commits:**
-  - `feat(M2): interfases de qrResponse y appiError`
-  - `feat(M2): crear componente de QR`
-  - `feat(M2): implementar servicio y composable para QR`
-  - `feat(M2): bitacora y arreglos`
+  - `5e29d5c` feat(M2): interfases de qrResponse y appiError
+  - `350c189` feat(M2): crear componente de QR
+  - `47bb1c8` feat(M2): implementar servicio y composable para QR
+  - `866333f` feat(M2): bitacora y arreglos
 
 ----
 
@@ -31,9 +31,9 @@
   - Implementar un mecanismo de control de estado (isLoadingIngreso y bandera de escaneo activo) para evitar múltiples disparos simultáneos y condiciones de carrera al escanear con la cámara.
 - **Dificultades:** Conflictos temporales de lecturas múltiples por segundo desde la cámara web (captura de fotogramas repetidos en paralelo), resueltos bloqueando el lector inmediatamente al detectar un código válido antes de invocar la API..
 - **Commits:**
-  - `feat(M2): crear vista de recepcion y componente de validacion de acceso`
-  - `feat(M2): metodos service accesos e interfaces actualizacion`
-  - `feat(M2): actualizacion credencial`
+  - `c22666e` feat(M2): crear vista de recepcion y componente de validacion de acceso
+  - `fcc87a1` feat(M2): metodos service accesos e interfaces actualizacion
+  - `e1fd8b2` feat(M2): actualizacion credencial
 
 ----
 
@@ -56,13 +56,13 @@
   
 - **Dificultades:** Ninguna.
 - **Commits:**
-  - `feat(M2): creacion de componente Indicador aforo`
-  - `feat(M2): creacion del composables useAforo`
-  - `feat(M2): actualizacion de accesos.service se agrega funcion obtener aforo`
-  - `feat(M2): actualizacion composable, importaciones y nombre de tipos`
-  -`feat(M2): actualizacion accesos.types creacion de una nueva interfaz`
-  -`feat(M2): creacion vista aforoView`
-  -`feat(M2): actualizacion bitacora`
+  - `943acf8` feat(M2): creacion de componente Indicador aforo
+  - `42dc7b5` feat(M2): creacion del composables useAforo
+  - `df535ba` feat(M2): actualizacion de accesos.service se agrega funcion obtener aforo
+  - `4f6b5af` feat(M2): actualizacion composable, importaciones y nombre de tipos
+  - `d038aca` feat(M2): actualizacion accesos.types creacion de una nueva interfaz
+  - `233f730` feat(M2): creacion vista aforoView
+  - `929d7a1` feat(M2): actualizacion bitacora
 
 ----
 
@@ -79,10 +79,10 @@
   -
 - **Dificultades:** Ninguna.
 - **Commits:**
-  - `feat(M2): interfases de qrResponse y appiError`
-  - `feat(M2): crear componente de QR`
-  - `feat(M2): implementar servicio y composable para QR`
-  - `feat(M2): bitacora y arreglos`
+  - `5e29d5c` feat(M2): interfases de qrResponse y appiError
+  - `350c189` feat(M2): crear componente de QR
+  - `47bb1c8` feat(M2): implementar servicio y composable para QR
+  - `866333f` feat(M2): bitacora y arreglos
 
 ----
 
@@ -99,9 +99,9 @@
   - Implementar un mecanismo de control de estado (isLoadingIngreso y bandera de escaneo activo) para evitar múltiples disparos simultáneos y condiciones de carrera al escanear con la cámara.
 - **Dificultades:** Conflictos temporales de lecturas múltiples por segundo desde la cámara web (captura de fotogramas repetidos en paralelo), resueltos bloqueando el lector inmediatamente al detectar un código válido antes de invocar la API..
 - **Commits:**
-  - `feat(M2): crear vista de recepcion y componente de validacion de acceso`
-  - `feat(M2): metodos service accesos e interfaces actualizacion`
-  - `feat(M2): actualizacion credencial`
+  - `c22666e` feat(M2): crear vista de recepcion y componente de validacion de acceso
+  - `fcc87a1` feat(M2): metodos service accesos e interfaces actualizacion
+  - `e1fd8b2` feat(M2): actualizacion credencial
 
 ----
 
@@ -124,12 +124,31 @@
   
 - **Dificultades:** Ninguna.
 - **Commits:**
-  - `feat(M2): creacion de componente Indicador aforo`
-  - `feat(M2): creacion del composables useAforo`
-  - `feat(M2): actualizacion de accesos.service se agrega funcion obtener aforo`
-  - `feat(M2): actualizacion composable, importaciones y nombre de tipos`
-  -`feat(M2): actualizacion accesos.types creacion de una nueva interfaz`
-  -`feat(M2): creacion vista aforoView`
-  -`feat(M2): actualizacion bitacora`
+  - `943acf8` feat(M2): creacion de componente Indicador aforo
+  - `42dc7b5` feat(M2): creacion del composables useAforo
+  - `df535ba` feat(M2): actualizacion de accesos.service se agrega funcion obtener aforo
+  - `4f6b5af` feat(M2): actualizacion composable, importaciones y nombre de tipos
+  - `d038aca` feat(M2): actualizacion accesos.types creacion de una nueva interfaz
+  - `233f730` feat(M2): creacion vista aforoView
+  - `929d7a1` feat(M2): actualizacion bitacora
 
 ----
+# Bitacora - Vialle Angelina - Rol: Diseñador de arquitectura
+## Sprint 8 — Unidad Cierre - Semana del 2026-11-16
+
+### 2026-11-18 . 4 h
+
+**Actividad**
+Estandaricé la estructura y el formato de los Registros de Decisión Arquitectónica (ADR) del frontend para alinearlos con la plantilla exigida en el Anexo B de los lineamientos de entrega. Además, redacté e incorporé dos nuevos ADR correspondientes a las decisiones arquitectónicas del frontend la estrategia offline del control de acceso y sincronizacion.
+
+**Decisión**
+Decidí respetar estrictamente el formato tabular y las secciones de la plantilla oficial en todos los ADR para garantizar uniformidad en el dossier final. Respecto al funcionamiento offline en el frontend, definí qué subconjunto de datos y credenciales se almacenan localmente para permitir la validación en sede ante caída de red, cómo se genera el QR dinámico desde el portal del socio sin depender de conectividad continua y qué criterios de reconciliación aplica el terminal al restablecerse la conexión con el servidor central.
+
+**Problema o bloqueo**
+Al revisar la carpeta `docs/adr/` de cara al checklist de autoevaluación, detecté que los ADR previos del frontend presentaban inconsistencias de formato respecto de los campos obligatorios solicitados para el dossier (especialmente en la tabla comparativa de alternativas consideradas y la explicitación de deuda asumida). Lo resolví auditando y reestructurando cada archivo Markdown del frontend antes de sumar los nuevos registros del frontend, asegurando homogeneidad para la exportación final al PDF.
+
+**Commits**
+* `880b46d` docs(adr): adrs del frontend
+* `e09d590` fix(adr): arreglo formato documentos 
+
+
