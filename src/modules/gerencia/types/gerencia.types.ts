@@ -16,13 +16,6 @@ export interface SedePayload {
   id_ciudad: number
 }
 
-/** Aforo de una sede tal como lo devuelve GET /accesos/aforo/:id. */
-export interface AforoSede {
-  idSede: number
-  aforoActual: number
-  aforoMaximo: number
-}
-
 /** Cancha tal como la devuelve GET /canchas (solo los campos que se usan). */
 export interface CanchaResumen {
   id_cancha: number
@@ -111,6 +104,12 @@ export interface UsuarioListado extends SocioResumen {
   sede?: { id_sede: number; nombre: string } | null
   roles?: Array<{ id_rol: number; nombre: string }>
   usuario_rol?: Array<{ rol: { id_rol: number; nombre: string } }>
+}
+
+/** Una página de GET /usuarios, que devuelve el listado paginado. */
+export interface PaginaUsuarios {
+  data: UsuarioListado[]
+  meta: { total: number; page: number; lastPage: number }
 }
 
 /** Usuario preparado para el panel: datos básicos, sede y si es socio. */

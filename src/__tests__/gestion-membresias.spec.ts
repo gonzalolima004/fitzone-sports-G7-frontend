@@ -127,19 +127,30 @@ const MEMBRESIAS: MembresiaSocio[] = [
   membresia(14, MARTIN, 1, 3, '2026-10-10', '2099-11-10'),
 ]
 
+/** Página de GET /usuarios, que devuelve el listado paginado. */
+function paginaDeUsuarios(usuarios: UsuarioListado[], page = 1, lastPage = 1) {
+  return { data: usuarios, meta: { total: usuarios.length, page, lastPage } }
+}
+
+/** Respuestas por URL; las páginas de usuarios después de la 1 llevan ?page=N. */
 function servidor(respuestas: Record<string, unknown> = {}) {
   const datos: Record<string, unknown> = {
     '/membresias': MEMBRESIAS,
     '/membresias/estados': ESTADOS,
     '/planes': PLANES,
-    '/usuarios': USUARIOS,
+    '/usuarios': paginaDeUsuarios(USUARIOS),
     ...respuestas,
   }
-  vi.mocked(http.get).mockImplementation(async (url: string) => {
-    const respuesta = datos[url]
-    if (respuesta instanceof Error) throw respuesta
-    return { data: respuesta }
-  })
+  vi.mocked(http.get).mockImplementation(
+    async (url: string, config?: { params?: unknown }) => {
+      const { page: pagina = 1 } = (config?.params ?? {}) as { page?: number }
+      const clave =
+        url === '/usuarios' && pagina > 1 ? `${url}?page=${pagina}` : url
+      const respuesta = datos[clave]
+      if (respuesta instanceof Error) throw respuesta
+      return { data: respuesta }
+    }
+  )
 }
 
 async function montar() {
@@ -169,7 +180,9 @@ describe('Membresías de socios (panel de gerencia)', () => {
 
     expect(http.get).toHaveBeenCalledWith('/membresias')
     expect(http.get).toHaveBeenCalledWith('/membresias/estados')
-    expect(http.get).toHaveBeenCalledWith('/usuarios')
+    expect(http.get).toHaveBeenCalledWith('/usuarios', {
+      params: { page: 1, limit: 100 },
+    })
 
     const listado = filas(wrapper)
     expect(listado.map((fila) => fila.find('th').text())).toEqual([
@@ -194,6 +207,20 @@ describe('Membresías de socios (panel de gerencia)', () => {
     expect(wrapper.get('[data-testid="total-2"]').text()).toBe('1')
     expect(wrapper.get('[data-testid="total-3"]').text()).toBe('1')
     expect(wrapper.get('[data-testid="total-sin-membresia"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="total-socios"]').text()).toBe('5 socios')
+  })
+
+  it('junta todas las páginas del listado de usuarios', async () => {
+    servidor({
+      '/usuarios': paginaDeUsuarios(USUARIOS.slice(0, 3), 1, 2),
+      '/usuarios?page=2': paginaDeUsuarios(USUARIOS.slice(3), 2, 2),
+    })
+    const wrapper = await montar()
+
+    expect(http.get).toHaveBeenCalledWith('/usuarios', {
+      params: { page: 2, limit: 100 },
+    })
+    expect(filas(wrapper)).toHaveLength(5)
     expect(wrapper.get('[data-testid="total-socios"]').text()).toBe('5 socios')
   })
 

@@ -3,10 +3,20 @@ import type {
   EstadoMembresia,
   MembresiaAltaPayload,
   MembresiaSocio,
+  PaginaUsuarios,
   UsuarioGestion,
-  UsuarioListado,
 } from '../types/gerencia.types'
 import { aUsuarioGestion } from '../utils/membresias'
+
+/** Usuarios por pedido al recorrer el listado paginado de GET /usuarios. */
+export const USUARIOS_POR_PAGINA = 100
+
+async function pedirPaginaDeUsuarios(page: number): Promise<PaginaUsuarios> {
+  const { data } = await http.get<PaginaUsuarios>('/usuarios', {
+    params: { page, limit: USUARIOS_POR_PAGINA },
+  })
+  return data
+}
 
 /**
  * Consumo de la API de membresías de los socios (M1-usuarios) para el panel
@@ -26,10 +36,21 @@ export const membresiasService = {
     return data
   },
 
-  /** Usuarios con su sede y si tienen rol socio (GET /usuarios de M1). */
+  /**
+   * Usuarios activos con su sede y si tienen rol socio (GET /usuarios de M1).
+   * El listado viene paginado: se pide la primera página y, si hay más, el
+   * resto en paralelo.
+   */
   async listarUsuarios(): Promise<UsuarioGestion[]> {
-    const { data } = await http.get<UsuarioListado[]>('/usuarios')
-    return data.map(aUsuarioGestion)
+    const primera = await pedirPaginaDeUsuarios(1)
+    const restantes = await Promise.all(
+      Array.from({ length: Math.max(primera.meta.lastPage - 1, 0) }, (_, i) =>
+        pedirPaginaDeUsuarios(i + 2)
+      )
+    )
+    return [primera, ...restantes]
+      .flatMap((pagina) => pagina.data)
+      .map(aUsuarioGestion)
   },
 
   /** Alta: el backend calcula el vencimiento y pasa a Suspendida la activa anterior. */

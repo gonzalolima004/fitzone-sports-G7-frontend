@@ -11,13 +11,13 @@ import http from '@/common/api/http'
 import GerenciaDashboardView from '@/modules/gerencia/views/GerenciaDashboardView.vue'
 import { RUTA_POR_ROL } from '@/common/guards/ruta-por-rol'
 import type {
-  AforoSede,
   Ciudad,
-  EstadoMembresia,
-  MembresiaSocio,
   SedeGestion,
-  UsuarioListado,
 } from '@/modules/gerencia/types/gerencia.types'
+import type {
+  ReporteAforo,
+  ReporteSociosActivos,
+} from '@/modules/M6-reportes/services/reportes.service'
 
 vi.mock('@/common/api/http', () => ({
   default: { get: vi.fn() },
@@ -59,84 +59,26 @@ const CIUDADES: Ciudad[] = [
   { id_ciudad: 2, nombre: 'Santa Fe', activo: true },
 ]
 
-const aforo = (idSede: number, aforoActual: number): AforoSede => ({
-  idSede,
-  aforoActual,
-  aforoMaximo: SEDES.find((sede) => sede.id_sede === idSede)?.aforo_maximo ?? 0,
-})
-
-const usuario = (
-  id_usuario: number,
-  nombre: string,
-  id_sede: number | null,
-  rol = 'socio'
-): UsuarioListado => ({
-  id_usuario,
-  nombre,
-  apellido: 'Prueba',
-  dni: String(30000000 + id_usuario),
-  email: `${nombre.toLowerCase()}@test.local`,
-  id_sede,
-  roles: [{ id_rol: rol === 'socio' ? 1 : 3, nombre: rol }],
-})
-
-const SOFIA = usuario(1, 'Sofia', 1)
-const VICTOR = usuario(2, 'Victor', 2)
-const CARLA = usuario(3, 'Carla', 2)
-const MARTIN = usuario(4, 'Martin', 1)
-const ANA = usuario(5, 'Ana', 3)
-const USUARIOS = [
-  SOFIA,
-  VICTOR,
-  CARLA,
-  MARTIN,
-  ANA,
-  usuario(6, 'Gerardo', null, 'gerente'),
-]
-
-const ESTADOS: Record<string, EstadoMembresia> = {
-  Activa: { id_membresia_estado: 1, descripcion: 'Activa' },
-  Vencida: { id_membresia_estado: 2, descripcion: 'Vencida' },
-  Suspendida: { id_membresia_estado: 3, descripcion: 'Suspendida' },
+// Socios activos según el backend: 2 en Centro, 1 en Norte y 1 en Sur.
+const SOCIOS_ACTIVOS: ReporteSociosActivos = {
+  fecha: HOY,
+  total_socios_activos: 4,
+  sedes: [
+    { id_sede: 1, nombre_sede: 'Centro', socios_activos: 2 },
+    { id_sede: 2, nombre_sede: 'Norte', socios_activos: 1 },
+    { id_sede: 3, nombre_sede: 'Sur', socios_activos: 1 },
+  ],
 }
 
-function membresia(
-  id_membresia: number,
-  titular: UsuarioListado,
-  estado: keyof typeof ESTADOS,
-  fecha_fin: string
-): MembresiaSocio {
-  return {
-    id_membresia,
-    fecha_inicio: '2026-01-01T00:00:00.000Z',
-    fecha_fin: `${fecha_fin}T00:00:00.000Z`,
-    renovacion_automatica: false,
-    id_usuario: titular.id_usuario,
-    id_membresia_plan: 1,
-    id_membresia_estado: ESTADOS[estado].id_membresia_estado,
-    membresia_plan: {
-      id_membresia_plan: 1,
-      nombre: 'Plan Mensual',
-      duracion_dias: 30,
-      precio: 25000,
-    },
-    membresia_estado: ESTADOS[estado],
-    usuario: titular,
-  }
+const AFORO: ReporteAforo = {
+  total_aforo_actual: 151,
+  total_aforo_maximo: 230,
+  sedes: [
+    { id_sede: 1, nombre_sede: 'Centro', aforo_actual: 45, aforo_maximo: 100 },
+    { id_sede: 2, nombre_sede: 'Norte', aforo_actual: 46, aforo_maximo: 50 },
+    { id_sede: 3, nombre_sede: 'Sur', aforo_actual: 60, aforo_maximo: 80 },
+  ],
 }
-
-// Socios activos: Sofía y Martín (Centro), Carla (Norte) y Ana (Sur).
-const MEMBRESIAS: MembresiaSocio[] = [
-  membresia(10, SOFIA, 'Activa', '2099-11-01'),
-  // Figura activa pero venció ayer: no cuenta.
-  membresia(11, VICTOR, 'Activa', '2026-10-26'),
-  membresia(12, CARLA, 'Suspendida', '2026-08-01'),
-  membresia(13, CARLA, 'Activa', '2099-12-15'),
-  membresia(14, MARTIN, 'Activa', '2099-11-10'),
-  // Vence hoy: sigue vigente.
-  membresia(15, ANA, 'Activa', HOY),
-  membresia(16, ANA, 'Vencida', '2026-09-27'),
-]
 
 function ocupacion(
   fecha_desde: string,
@@ -162,11 +104,8 @@ function ocupacion(
 const RESPUESTAS: Record<string, unknown> = {
   '/sedes': SEDES,
   '/ciudades': CIUDADES,
-  '/accesos/aforo/1': aforo(1, 45),
-  '/accesos/aforo/2': aforo(2, 46),
-  '/accesos/aforo/3': aforo(3, 60),
-  '/membresias': MEMBRESIAS,
-  '/usuarios': USUARIOS,
+  '/reportes/aforo': AFORO,
+  '/reportes/socios-activos': SOCIOS_ACTIVOS,
   '/reportes/ingresos': {
     fecha_desde: INICIO_DE_MES,
     fecha_hasta: HOY,
@@ -263,7 +202,11 @@ describe('Dashboard del gerente', () => {
     expect(http.get).toHaveBeenCalledWith('/reportes/ocupacion', {
       params: { fecha_desde: HOY, fecha_hasta: HOY },
     })
-    // Socios con membresía activa y vigente; reservas de hoy: 3+4+2+1;
+    expect(http.get).toHaveBeenCalledWith('/reportes/socios-activos', {
+      params: { fecha: HOY },
+    })
+    expect(http.get).toHaveBeenCalledWith('/reportes/aforo')
+    // Socios activos que informa el backend; reservas de hoy: 3+4+2+1;
     // aforo simultáneo: 45+46+60.
     expect(indicadores(wrapper)).toEqual({
       'Socios activos': '4',
@@ -277,6 +220,22 @@ describe('Dashboard del gerente', () => {
     )
   })
 
+  it('pide el aforo y los socios activos una sola vez, sin importar cuántas sedes haya', async () => {
+    servidor()
+    await montar()
+
+    const urls = vi.mocked(http.get).mock.calls.map(([url]) => url)
+    expect(urls.filter((url) => url.startsWith('/accesos/aforo'))).toEqual([])
+    expect(urls).not.toContain('/usuarios')
+    expect(urls).not.toContain('/membresias')
+    expect(urls.filter((url) => url === '/reportes/aforo')).toHaveLength(1)
+    expect(
+      urls.filter((url) => url === '/reportes/socios-activos')
+    ).toHaveLength(1)
+    // Sedes, ciudades, aforo, socios activos, ingresos y ocupación (hoy y mes).
+    expect(urls).toHaveLength(7)
+  })
+
   it('arma el rendimiento del mes de cada sede', async () => {
     servidor()
     const wrapper = await montar()
@@ -284,7 +243,6 @@ describe('Dashboard del gerente', () => {
     expect(http.get).toHaveBeenCalledWith('/reportes/ocupacion', {
       params: { fecha_desde: INICIO_DE_MES, fecha_hasta: HOY },
     })
-    expect(http.get).toHaveBeenCalledWith('/accesos/aforo/3')
     // Ordenadas por nombre, con su ciudad debajo.
     expect(filas(wrapper)).toEqual([
       {
@@ -373,28 +331,35 @@ describe('Dashboard del gerente', () => {
     expect(filas(wrapper).map((fila) => fila.socios)).toEqual(['2', '1', '1'])
   })
 
-  it('si una sede no informa su aforo, suma las demás y la marca con un guion', async () => {
-    servidor({ '/accesos/aforo/3': undefined })
+  it('si una sede no figura en el aforo, suma las demás y la marca con un guion', async () => {
+    servidor({
+      '/reportes/aforo': {
+        total_aforo_actual: 91,
+        total_aforo_maximo: 150,
+        sedes: AFORO.sedes.slice(0, 2),
+      },
+    })
     const wrapper = await montar()
 
     expect(indicadores(wrapper)['Aforo simultáneo']).toBe('91')
     expect(filas(wrapper)[2].aforo).toBe('— / 80')
   })
 
-  it('si ninguna sede informa su aforo, el indicador queda no disponible', async () => {
-    servidor({
-      '/accesos/aforo/1': undefined,
-      '/accesos/aforo/2': undefined,
-      '/accesos/aforo/3': undefined,
-    })
+  it('si el aforo no responde, el indicador queda no disponible y la tabla muestra guiones', async () => {
+    servidor({ '/reportes/aforo': undefined })
     const wrapper = await montar()
 
     expect(indicadores(wrapper)['Aforo simultáneo']).toBe('No disponible')
-    expect(wrapper.findAll('[data-testid="fila-rendimiento"]')).toHaveLength(3)
+    expect(filas(wrapper).map((fila) => fila.aforo)).toEqual([
+      '— / 100',
+      '— / 50',
+      '— / 80',
+    ])
+    expect(indicadores(wrapper)['Socios activos']).toBe('4')
   })
 
-  it('si las membresías no cargan, no muestra socios activos', async () => {
-    servidor({ '/membresias': undefined })
+  it('si los socios activos no cargan, no los muestra', async () => {
+    servidor({ '/reportes/socios-activos': undefined })
     const wrapper = await montar()
 
     expect(indicadores(wrapper)['Socios activos']).toBe('No disponible')
@@ -412,16 +377,23 @@ describe('Dashboard del gerente', () => {
     expect(wrapper.get('[role="alert"]').text()).toBe(
       'No se pudieron cargar las sedes.'
     )
+    // El aforo ya no depende de la lista de sedes: el indicador se ve igual.
     expect(indicadores(wrapper)).toMatchObject({
       'Socios activos': '4',
       'Reservas de hoy': '10',
-      'Aforo simultáneo': 'No disponible',
+      'Aforo simultáneo': '151',
     })
-    expect(http.get).not.toHaveBeenCalledWith('/accesos/aforo/1')
   })
 
   it('sin sedes activas muestra la tabla vacía', async () => {
-    servidor({ '/sedes': [] })
+    servidor({
+      '/sedes': [],
+      '/reportes/aforo': {
+        total_aforo_actual: 0,
+        total_aforo_maximo: 0,
+        sedes: [],
+      },
+    })
     const wrapper = await montar()
 
     expect(wrapper.text()).toContain('Todavía no hay sedes activas.')
