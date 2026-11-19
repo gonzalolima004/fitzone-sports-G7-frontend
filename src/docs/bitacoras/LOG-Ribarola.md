@@ -10,7 +10,7 @@
   - Utilizar un diseño premium con micro-animaciones en TailwindCSS respetando estrictamente la estética de la maqueta (RF-07).
 - **Dificultades:** Ninguna.
 - **Commits:**
-  - `feat(clases): crea interfaz y filtros de agenda (US-04-01)`
+  - `c143833` `feat(clases): crea interfaz y filtros de agenda (US-04-01)`
 
 ----
 
@@ -28,8 +28,8 @@
   - Utilizar un enfoque optimista y enriquecido para los estados visuales (esqueletos de carga) en lugar de spinners genéricos, para cumplir con los requerimientos de diseño premium.
 - **Dificultades:** Ninguna (Se resolvió un problema menor del compilador TS actualizando el `tsconfig.app.json` con `target: ES2022`).
 - **Commits:**
-  - `feat(clases): conecta api y define tipados para consultar catálogo (E4 Tarea 1.2)`
-  - `feat(clases): implementa componente ClaseCard con UI responsiva (E4 Tarea 1.3 y 1.4)`
+  - `fda5aa8` `feat(clases): conecta api y define tipados para consultar catálogo (E4 Tarea 1.2)`
+  - `6dcd686` `feat(clases): implementa componente ClaseCard con UI responsiva (E4 Tarea 1.3 y 1.4)`
 
 ----
 
@@ -47,8 +47,8 @@
   - Ejecutar la recarga de clases luego de intentar una reserva (incluso si falla) para garantizar que, si dos usuarios compiten por el último cupo, el que pierda vea inmediatamente que la clase pasó a estado "COMPLETO".
 - **Dificultades:** Ninguna.
 - **Commits:**
-  - `feat(clases): implementa reservar clases`
-  - `feat(clases): implementa cancelacion de clases`
+  - `36ad9b0` `feat(clases): implementa reservar clases`
+  - `7e42721` `feat(clases): implementa cancelacion de clases`
   - `feat(clases): UI errores backend y refresh de cupos (Tareas 2.3 y 2.4)`
 
 ----
@@ -65,8 +65,8 @@
   - El modal de reserva ahora cambia su botón por un estado visual inactivo "En Lista de Espera" evitando llamadas duplicadas al backend de forma robusta en la UI.
 - **Dificultades:** Ninguna.
 - **Commits:**
-  - `feat(clases): inscripcion a lista de espera`
-  - `feat(clases): integracion notificaciones vacantes supabase realtime`
+  - `cdbf56c` `feat(clases): inscripcion a lista de espera`
+  - `3d5c198` `feat(clases): integracion notificaciones vacantes supabase realtime`
 
 ----
 
@@ -89,10 +89,10 @@
   - Sincronizar bidireccionalmente las claves `'token'` y `'fitzone_token'` tanto en el cliente Axios (`http.ts`) como en `useAuthStore` para evitar errores 401 y rebotes de redirección cuando la sesión del usuario está activa.
 - **Dificultades:** Ninguna.
 - **Commits:**
-  - `feat(clases): actualizar clases.service con contratos reales de agenda y reservas`
-  - `feat(clases): adaptar ClaseCard para datos reales de agenda y lista de espera`
-  - `feat(clases): conectar agenda y estado de reservas del usuario por fecha`
-  - `fix(auth): sincronizar lectura y guardado de token jwt entre http y auth store`
+  - `9b5bf30` `feat(clases): actualizar clases.service con contratos reales de agenda y reservas`
+  - `bdc8264` `feat(clases): adaptar ClaseCard para datos reales de agenda y lista de espera`
+  - `64c31ec` `feat(clases): conectar agenda y estado de reservas del usuario por fecha`
+  - `783702c` `fix(auth): sincronizar lectura y guardado de token jwt entre http y auth store`
 
 ----
 
@@ -128,12 +128,12 @@
   - Emplear `vi.useFakeTimers()` y `vi.setSystemTime()` en Vitest para testear de forma determinista y reproducible la ventana de reservas de 48 hs y el bloqueo de clases pasadas sin depender de la hora del entorno de CI.
 - **Dificultades:** Ninguna. Se resolvió la falta de dependencias (`html5-qrcode`) heredadas del último pull de `dev` mediante `npm install`.
 - **Commits:**
-  - `feat(clases): crear date-formatter e integrar servicio de horario operativo de sede`
-  - `feat(clases): implementar selector de calendario interactivo y horario operativo en agenda`
-  - `feat(clases): incorporar periodicidad por dias de la semana y fecha puntual en agenda`
-  - `feat(clases): bloquear reservas fuera de la ventana de 48 hs y clases pasadas`
-  - `feat(clases): implementar gestion CRUD de clases grupales para admin y gerente`
-  - `test(clases): anadir pruebas unitarias para date-formatter, periodicidad y ventana de reserva`
+  - `bc2edf3` `feat(clases): crear date-formatter e integrar servicio de horario operativo de sede`
+  - `42c301b` `feat(clases): implementar selector de calendario interactivo y horario operativo en agenda`
+  - `4e8eb5a` `feat(clases): incorporar periodicidad por dias de la semana y fecha puntual en agenda`
+  - `e54fc3f` `feat(clases): bloquear reservas fuera de la ventana de 48 hs y clases pasadas`
+  - `df43b98` `feat(clases): implementar gestion CRUD de clases grupales para admin y gerente`
+  - `6b0f429` `test(clases): anadir pruebas unitarias para date-formatter, periodicidad y ventana de reserva`
 
 ----
 
@@ -154,8 +154,8 @@
 - **Dificultades:**
   - El backend devolvía el historial completo de reservas del socio sin discriminar las canceladas (`where: { id_usuario }`), lo que provocaba que el frontend interpretara erróneamente cualquier reserva histórica como una reserva activa concurrente.
 - **Commits:**
-  - `fix(clases): corregir estado de reservas canceladas en agenda y resolver errores de router`
-  - `feat(clases): optimizar flujo de concurrencia de reservas y notificacion de lista de espera`
+  - `1b64913` `fix(clases): corregir estado de reservas canceladas en agenda y resolver errores de router`
+  - `f59ca66` `feat(clases): optimizar flujo de concurrencia de reservas y notificacion de lista de espera`
   
 ----
 
@@ -180,7 +180,7 @@
 - **Dificultades:** Ninguna.
 - **Verificación:** 14 suites y 92 pruebas aprobadas al 100%. Typecheck (`vue-tsc -b`), linter (`eslint .`), formateo (`prettier`) y build de producción (`vite build`) exitosos sin errores ni advertencias.
 - **Commits:**
-  - `feat(clases): permitir visualizacion a clientes externos y restringir reservas por estado de membresia`
+  - `6c4f2f0` `feat(clases): permitir visualizacion a clientes externos y restringir reservas por estado de membresia`
   - `feat(clases): restringir reservas e inscripciones a sedes de la misma ciudad del socio`
 
 ----
@@ -266,6 +266,6 @@
 - **Dificultades:** Ninguna.
 - **Verificación:** Pipeline de validación completo exitoso: formateo (`npm run format`), linter (`npm run lint`), tipado (`npm run typecheck`), compilación de producción (`npm run build`) y tests (`npm run test`) con 26 suites y 193 pruebas aprobadas al 100%.
 - **Commits:**
-  - `ci(docker): configurar dockerfile multi-stage build, nginx para spa y dockerignore`
+  - `aa2c644` `ci(docker): configurar dockerfile multi-stage build, nginx para spa y dockerignore`
 
 ----
