@@ -1,6 +1,5 @@
 import http from '@/common/api/http'
 import type {
-  AforoSede,
   CanchaResumen,
   Ciudad,
   SedeGestion,
@@ -44,12 +43,6 @@ export const sedesService = {
 
   async crearCiudad(nombre: string): Promise<Ciudad> {
     const { data } = await http.post<Ciudad>('/ciudades', { nombre })
-    return data
-  },
-
-  /** Aforo actual y máximo de una sede (GET /accesos/aforo/:id de M2). */
-  async obtenerAforo(idSede: number): Promise<AforoSede> {
-    const { data } = await http.get<AforoSede>(`/accesos/aforo/${idSede}`)
     return data
   },
 

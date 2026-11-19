@@ -22,15 +22,15 @@ import {
   obtenerFechaLocalISO,
 } from '@/common/utils/date-formatter'
 import {
+  obtenerAforo,
   obtenerIngresos,
   obtenerOcupacion,
+  obtenerSociosActivos,
 } from '@/modules/M6-reportes/services/reportes.service'
 import EncabezadoGerencia from '../components/EncabezadoGerencia.vue'
 import IndicadorGerencia from '../components/IndicadorGerencia.vue'
-import { membresiasService } from '../services/membresias.service'
 import { sedesService } from '../services/sedes.service'
 import { formatearMoneda } from '../utils/formato'
-import { tieneEstado } from '../utils/membresias'
 import type { Ciudad, SedeGestion } from '../types/gerencia.types'
 
 const hoy = new Date()
@@ -187,19 +187,18 @@ function claseOcupacion(porcentaje: number): string {
   return 'bg-emerald-50 text-emerald-700 border-emerald-200'
 }
 
+/** Aforo actual de todas las sedes con un solo pedido (GET /reportes/aforo). */
 async function cargarAforo() {
-  const resultados = await Promise.allSettled(
-    sedes.value.map((sede) => sedesService.obtenerAforo(sede.id_sede))
-  )
-  const porSede = new Map<number, number>()
-  resultados.forEach((resultado, indice) => {
-    if (resultado.status === 'fulfilled') {
-      porSede.set(sedes.value[indice].id_sede, resultado.value.aforoActual)
-    }
-  })
-  aforoPorSede.value = porSede
-  errorAforo.value = sedes.value.length > 0 && porSede.size === 0
-  cargandoAforo.value = false
+  try {
+    const reporte = await obtenerAforo()
+    aforoPorSede.value = new Map(
+      reporte.sedes.map((sede) => [sede.id_sede, sede.aforo_actual])
+    )
+  } catch {
+    errorAforo.value = true
+  } finally {
+    cargandoAforo.value = false
+  }
 }
 
 async function cargarSedes() {
@@ -212,43 +211,22 @@ async function cargarSedes() {
     ciudades.value = listaCiudades
   } catch {
     errorSedes.value = true
-    errorAforo.value = true
-    cargandoAforo.value = false
-    return
   } finally {
     cargandoSedes.value = false
   }
-  await cargarAforo()
 }
 
-/** Socios con una membresía activa y vigente, en total y por sede de origen. */
+/**
+ * Socios con una membresía activa y vigente hoy, en total y por sede de
+ * origen. Los cuenta el backend en una consulta (GET /reportes/socios-activos).
+ */
 async function cargarSociosActivos() {
   try {
-    const [membresias, usuarios] = await Promise.all([
-      membresiasService.listar(),
-      membresiasService.listarUsuarios(),
-    ])
-    const activos = new Set(
-      membresias
-        .filter(
-          (membresia) =>
-            tieneEstado(membresia, 'activa') &&
-            membresia.fecha_fin.slice(0, 10) >= fechaHoy
-        )
-        .map((membresia) => membresia.id_usuario)
+    const reporte = await obtenerSociosActivos({ fecha: fechaHoy })
+    sociosActivos.value = reporte.total_socios_activos
+    sociosActivosPorSede.value = new Map(
+      reporte.sedes.map((sede) => [sede.id_sede, sede.socios_activos])
     )
-    const sedePorUsuario = new Map(
-      usuarios.map((usuario) => [usuario.id_usuario, usuario.id_sede])
-    )
-    const porSede = new Map<number, number>()
-    for (const idUsuario of activos) {
-      const idSede = sedePorUsuario.get(idUsuario)
-      if (idSede != null) {
-        porSede.set(idSede, (porSede.get(idSede) ?? 0) + 1)
-      }
-    }
-    sociosActivos.value = activos.size
-    sociosActivosPorSede.value = porSede
   } catch {
     errorSocios.value = true
   } finally {
@@ -313,6 +291,7 @@ async function cargarReservasDelMes() {
 onMounted(() => {
   void Promise.allSettled([
     cargarSedes(),
+    cargarAforo(),
     cargarSociosActivos(),
     cargarIngresosDelMes(),
     cargarReservasDeHoy(),

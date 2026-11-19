@@ -8,7 +8,6 @@ import {
   PhQrCode,
   PhCreditCard,
   PhChartBar,
-  PhUsers,
   PhMedal,
   PhSignOut,
   PhX,
@@ -73,12 +72,6 @@ const gruposGerente: NavGrupo[] = [
         nombre: 'Accesos y QR',
         ruta: '/accesos',
         icono: PhQrCode,
-        roles: ['gerente'],
-      },
-      {
-        nombre: 'Control de Aforo',
-        ruta: '/aforo',
-        icono: PhUsers,
         roles: ['gerente'],
       },
       {

@@ -6,7 +6,7 @@ import { PESTANAS_REPORTES } from '@/modules/gerencia/utils/navegacion'
 </script>
 
 <template>
-  <div class="space-y-6 max-w-6xl mx-auto">
+  <div class="space-y-6 max-w-6xl mx-auto w-full overflow-x-hidden">
     <EncabezadoGerencia
       titulo="Reportes de gerencia"
       descripcion="Revisá los ingresos y la actividad de las sedes."
