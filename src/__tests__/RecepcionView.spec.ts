@@ -73,10 +73,13 @@ describe('RecepcionView.vue', () => {
     mount(RecepcionView, {
       global: {
         stubs: {
-          ValidacionAcceso: { template: '<div data-testid="validacion-stub" />' },
+          ValidacionAcceso: {
+            template: '<div data-testid="validacion-stub" />',
+          },
           IndicadorAforo: {
             props: ['actual', 'maximo'],
-            template: '<div data-testid="aforo-stub">{{ actual }}/{{ maximo }}</div>',
+            template:
+              '<div data-testid="aforo-stub">{{ actual }}/{{ maximo }}</div>',
           },
           BaseSkeleton: { template: '<div data-testid="skeleton-stub" />' },
         },

@@ -101,7 +101,9 @@ describe('SelectorDeSede.vue', () => {
 
     await input.setValue('Entre Rios')
     expect(wrapper.find('select').text()).toContain('Sede Concordia')
-    expect(wrapper.find('select').text()).toContain('Selecciona una sede (1 encontradas)')
+    expect(wrapper.find('select').text()).toContain(
+      'Selecciona una sede (1 encontradas)'
+    )
 
     await wrapper.find('button[title="Limpiar búsqueda"]').trigger('click')
     expect((input.element as HTMLInputElement).value).toBe('')
@@ -116,7 +118,9 @@ describe('SelectorDeSede.vue', () => {
     expect(wrapper.text()).toContain('No se encontraron sedes para esa ciudad.')
     expect(wrapper.find('select').attributes('disabled')).toBeDefined()
 
-    await wrapper.find('button:not([title="Limpiar búsqueda"])').trigger('click')
+    await wrapper
+      .find('button:not([title="Limpiar búsqueda"])')
+      .trigger('click')
     expect(wrapper.findAll('select option')).toHaveLength(3)
   })
 

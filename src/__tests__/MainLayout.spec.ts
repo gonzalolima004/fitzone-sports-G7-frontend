@@ -113,7 +113,9 @@ describe('MainLayout.vue', () => {
       hora_cierre: '18:00',
       es_horario_especial: true,
     } as never
-    ;(mockAuthStore as unknown as { sincronizarPerfilSocio?: () => void }).sincronizarPerfilSocio = vi.fn()
+    ;(
+      mockAuthStore as unknown as { sincronizarPerfilSocio?: () => void }
+    ).sincronizarPerfilSocio = vi.fn()
     ;(mockAuthStore.usuario as unknown as { id?: number }).id = 12
 
     const wrapper = mount(MainLayout, {

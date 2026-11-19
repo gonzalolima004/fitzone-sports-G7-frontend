@@ -17,7 +17,9 @@ vi.mock('@/common/utils/date-formatter', () => ({
   obtenerEstadoCancelacionReserva: vi.fn(),
 }))
 
-const baseClase = (overrides: Partial<ClaseCardProps> = {}): ClaseCardProps => ({
+const baseClase = (
+  overrides: Partial<ClaseCardProps> = {}
+): ClaseCardProps => ({
   id: 10,
   nombre: 'Spinning Extremo',
   tipo: 'SPINNING',
@@ -110,7 +112,9 @@ describe('ClaseCard.vue', () => {
         enListaEspera: 3,
       })
     )
-    expect(wConEspera.text()).toContain('3 socios en lista de espera actualmente.')
+    expect(wConEspera.text()).toContain(
+      '3 socios en lista de espera actualmente.'
+    )
     await wConEspera
       .findAll('button')
       .find((b) => b.text().includes('Anotarme en Lista de Espera'))

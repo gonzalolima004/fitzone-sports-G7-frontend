@@ -7,7 +7,10 @@ import { accesosService } from '@/modules/M2-accesos/services/accesos.service'
 import { useQr } from '@/modules/M2-accesos/composables/useQr'
 import { useAuthStore } from '@/store/auth'
 import { useSedeStore } from '@/store/sede'
-import type { QrResponseDto, SocioPerfilDto } from '@/modules/M2-accesos/types/accesos.types'
+import type {
+  QrResponseDto,
+  SocioPerfilDto,
+} from '@/modules/M2-accesos/types/accesos.types'
 
 vi.mock('@/modules/M2-accesos/services/accesos.service', () => ({
   accesosService: {
@@ -61,7 +64,11 @@ describe('CredencialView.vue', () => {
   }
 
   let sedeStoreMock: {
-    sedeSeleccionada: { id_sede: number; nombre: string; id_ciudad?: number } | null
+    sedeSeleccionada: {
+      id_sede: number
+      nombre: string
+      id_ciudad?: number
+    } | null
     cargarSedes: typeof cargarSedesMock
   }
 

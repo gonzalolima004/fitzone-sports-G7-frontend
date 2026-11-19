@@ -373,7 +373,9 @@ describe('ValidacionAcceso.vue - Full Coverage', () => {
       .findAll('button')
       .find((b) => b.text().trim() === 'Registrar Egreso')
     await btnAccionEgreso?.trigger('click')
-    expect(wrapper.text()).toContain('Debe ingresar un DNI para registrar la salida.')
+    expect(wrapper.text()).toContain(
+      'Debe ingresar un DNI para registrar la salida.'
+    )
 
     await wrapper
       .findComponent({ name: 'BaseInput' })

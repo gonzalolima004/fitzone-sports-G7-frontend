@@ -120,7 +120,9 @@ describe('SocioDashboardView.vue', () => {
     vi.mocked(usuariosService.obtenerDashboard).mockResolvedValue(mockDashboard)
 
     const wrapper = mountView()
-    expect(wrapper.findAll('[data-testid="skeleton"]').length).toBeGreaterThan(0)
+    expect(wrapper.findAll('[data-testid="skeleton"]').length).toBeGreaterThan(
+      0
+    )
 
     await flushPromises()
 
@@ -178,7 +180,9 @@ describe('SocioDashboardView.vue', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    expect(toast.error).toHaveBeenCalledWith('Error al sincronizar el dashboard.')
+    expect(toast.error).toHaveBeenCalledWith(
+      'Error al sincronizar el dashboard.'
+    )
     expect(wrapper.text()).toContain(
       'No se pudieron cargar tus actividades recientes.'
     )

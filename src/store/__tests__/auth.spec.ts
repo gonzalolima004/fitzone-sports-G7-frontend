@@ -206,7 +206,10 @@ describe('auth.ts - Store Complete Coverage', () => {
     vi.mocked(authService.login).mockResolvedValue({
       session: {
         access_token: 'tok-login',
-        user: { id: 'u1', user_metadata: { avatar_url: ' https://img/a.png ' } },
+        user: {
+          id: 'u1',
+          user_metadata: { avatar_url: ' https://img/a.png ' },
+        },
       },
     } as never)
 
@@ -223,7 +226,10 @@ describe('auth.ts - Store Complete Coverage', () => {
       data: {
         session: {
           access_token: 'tok-login',
-          user: { id: 'u1', user_metadata: { avatar_url: ' https://img/a.png ' } },
+          user: {
+            id: 'u1',
+            user_metadata: { avatar_url: ' https://img/a.png ' },
+          },
         } as never,
       },
       error: null,
@@ -233,7 +239,13 @@ describe('auth.ts - Store Complete Coverage', () => {
     store.actualizarDatosUsuario({ nombre: 'Ignorado' })
     expect(store.usuario).toBeNull()
 
-    store.setPerfilInterno({ id: 5, nombre: 'Mario', id_ciudad: 1, estadoMembresia: 'ACTIVA', enMora: false })
+    store.setPerfilInterno({
+      id: 5,
+      nombre: 'Mario',
+      id_ciudad: 1,
+      estadoMembresia: 'ACTIVA',
+      enMora: false,
+    })
     expect(store.usuario?.foto_url).toBe('https://img/a.png')
 
     store.setPerfilInterno({ id: 5, nombre: 'Mario', rol: 'socio' })

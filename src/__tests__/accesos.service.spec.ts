@@ -306,12 +306,16 @@ describe('accesosService (M2-accesos)', () => {
       vi.mocked(http.get).mockResolvedValueOnce({ data: { socioId: 5 } })
       expect(await accesosService.obtenerPerfilSocio(5)).toEqual({ socioId: 5 })
 
-      vi.mocked(http.post).mockResolvedValueOnce({ data: { exito: true, mensaje: 'OK' } })
+      vi.mocked(http.post).mockResolvedValueOnce({
+        data: { exito: true, mensaje: 'OK' },
+      })
       expect(
         await accesosService.validarAcceso({ qrToken: 't', id_sede: 1 })
       ).toEqual({ exito: true, mensaje: 'OK' })
 
-      vi.mocked(http.get).mockResolvedValueOnce({ data: { aforoActual: 2, aforoMaximo: 10 } })
+      vi.mocked(http.get).mockResolvedValueOnce({
+        data: { aforoActual: 2, aforoMaximo: 10 },
+      })
       expect(await accesosService.obtenerAforo(1)).toEqual({
         aforoActual: 2,
         aforoMaximo: 10,
@@ -333,7 +337,12 @@ describe('accesosService (M2-accesos)', () => {
       )
 
       vi.mocked(useAuthStore).mockReturnValue({
-        usuario: { id: 1, sede: { id_ciudad: 2 }, estadoMembresia: 'VENCIDA', enMora: true },
+        usuario: {
+          id: 1,
+          sede: { id_ciudad: 2 },
+          estadoMembresia: 'VENCIDA',
+          enMora: true,
+        },
       } as never)
       await expect(accesosService.obtenerQr()).rejects.toThrow(
         'membresía activa o se encuentra en mora'

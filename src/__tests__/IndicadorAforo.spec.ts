@@ -9,7 +9,9 @@ describe('IndicadorAforo.vue', () => {
 
     expect(wrapper.text()).toContain('0% Ocupación')
     expect(wrapper.text()).toContain('/ 100 personas permitidas')
-    expect(wrapper.html()).toContain('text-[#202759] bg-slate-50 border-slate-200')
+    expect(wrapper.html()).toContain(
+      'text-[#202759] bg-slate-50 border-slate-200'
+    )
     expect(wrapper.text()).not.toContain('capacidad máxima')
   })
 
@@ -28,7 +30,9 @@ describe('IndicadorAforo.vue', () => {
     })
 
     expect(wrapper.text()).toContain('80% Ocupación')
-    expect(wrapper.html()).toContain('text-amber-600 bg-amber-50 border-amber-200')
+    expect(wrapper.html()).toContain(
+      'text-amber-600 bg-amber-50 border-amber-200'
+    )
     expect(wrapper.text()).not.toContain('capacidad máxima')
   })
 
@@ -38,7 +42,9 @@ describe('IndicadorAforo.vue', () => {
     })
 
     expect(wrapper.text()).toContain('110% Ocupación')
-    expect(wrapper.html()).toContain('text-[#F96167] bg-rose-50 border-rose-200')
+    expect(wrapper.html()).toContain(
+      'text-[#F96167] bg-rose-50 border-rose-200'
+    )
     expect(wrapper.html()).toContain('bg-[#F96167]')
     expect(wrapper.html()).toContain('width: 100%')
     expect(wrapper.text()).toContain(

@@ -92,18 +92,24 @@ describe('canchas.service.ts', () => {
     }
     const respuestaBackend = { id_cancha: 10, ...nuevaCanchaDto }
     vi.mocked(http.post).mockResolvedValue({ data: respuestaBackend })
-    vi.mocked(http.patch).mockResolvedValue({ data: { ...respuestaBackend, nombre: 'Editada' } })
+    vi.mocked(http.patch).mockResolvedValue({
+      data: { ...respuestaBackend, nombre: 'Editada' },
+    })
     vi.mocked(http.delete).mockResolvedValue({ data: {} })
 
     const creada = await canchasService.crearCancha(
       nuevaCanchaDto as Parameters<typeof canchasService.crearCancha>[0]
     )
-    const editada = await canchasService.actualizarCancha(10, { nombre: 'Editada' })
+    const editada = await canchasService.actualizarCancha(10, {
+      nombre: 'Editada',
+    })
     await canchasService.eliminarCancha(5)
 
     expect(http.post).toHaveBeenCalledWith('/canchas', nuevaCanchaDto)
     expect(creada).toEqual(respuestaBackend)
-    expect(http.patch).toHaveBeenCalledWith('/canchas/10', { nombre: 'Editada' })
+    expect(http.patch).toHaveBeenCalledWith('/canchas/10', {
+      nombre: 'Editada',
+    })
     expect(editada.nombre).toBe('Editada')
     expect(http.delete).toHaveBeenCalledWith('/canchas/5')
   })
@@ -112,7 +118,11 @@ describe('canchas.service.ts', () => {
     const sedeStore = useSedeStore()
     const spyHorario = vi
       .spyOn(sedeStore, 'obtenerHorarioOperativo')
-      .mockResolvedValue({ abierto: true, hora_apertura: '08:00', hora_cierre: '22:00' })
+      .mockResolvedValue({
+        abierto: true,
+        hora_apertura: '08:00',
+        hora_cierre: '22:00',
+      })
 
     await canchasService.getHorarioOperativo(1, '2026-11-19')
     expect(spyHorario).toHaveBeenCalledWith(1, '2026-11-19')
@@ -136,7 +146,9 @@ describe('canchas.service.ts', () => {
     await canchasService.actualizarMantenimiento(2, {} as never)
     await canchasService.eliminarMantenimiento(2)
 
-    expect(mantenimientosService.getMantenimientos).toHaveBeenCalledWith({ canchaId: 1 })
+    expect(mantenimientosService.getMantenimientos).toHaveBeenCalledWith({
+      canchaId: 1,
+    })
     expect(mantenimientosService.eliminarMantenimiento).toHaveBeenCalledWith(2)
   })
 
@@ -144,14 +156,25 @@ describe('canchas.service.ts', () => {
     vi.mocked(http.get).mockResolvedValueOnce({
       data: [{ horaInicio: '09:00', horaFin: '10:00', estado: 'disponible' }],
     })
-    const disp1 = await canchasService.getDisponibilidad(3, '2026-11-19', 0, true)
+    const disp1 = await canchasService.getDisponibilidad(
+      3,
+      '2026-11-19',
+      0,
+      true
+    )
     expect(disp1.nombre_cancha).toBe('Cancha #3')
     expect(disp1.slots).toHaveLength(1)
 
     vi.mocked(http.get).mockResolvedValueOnce({
       data: { slots: [null] },
     })
-    const disp2 = await canchasService.getDisponibilidad(3, '2026-11-19', 5000, false, 'Central')
+    const disp2 = await canchasService.getDisponibilidad(
+      3,
+      '2026-11-19',
+      5000,
+      false,
+      'Central'
+    )
     expect(disp2.nombre_cancha).toBe('Central')
     expect(disp2.slots).toEqual([])
 
@@ -163,11 +186,21 @@ describe('canchas.service.ts', () => {
 
     vi.mocked(http.get).mockResolvedValueOnce({
       data: {
-        horario: { abierto: false, hora_apertura: '08:00', hora_cierre: '22:00' },
+        horario: {
+          abierto: false,
+          hora_apertura: '08:00',
+          hora_cierre: '22:00',
+        },
         canchas: [{ id_cancha: 1, slots: [] }],
       },
     })
-    const cerrado = await canchasService.getDisponibilidadPorSede(1, '2026-11-19', undefined, true, 2)
+    const cerrado = await canchasService.getDisponibilidadPorSede(
+      1,
+      '2026-11-19',
+      undefined,
+      true,
+      2
+    )
     expect(cerrado).toEqual({})
 
     vi.mocked(http.get).mockResolvedValueOnce({
@@ -175,7 +208,9 @@ describe('canchas.service.ts', () => {
         null,
         {
           id_cancha: 7,
-          slots: [{ horaInicio: '10:00', horaFin: '11:00', estado: 'disponible' }],
+          slots: [
+            { horaInicio: '10:00', horaFin: '11:00', estado: 'disponible' },
+          ],
         },
       ],
     })
@@ -192,7 +227,9 @@ describe('canchas.service.ts', () => {
     const onCambio = vi.fn()
 
     const unsub1 = canchasService.suscribirTurnoReservado(1, onTurno)
-    const cbBroadcast = mockChannel.on.mock.calls[0][2] as (res: { payload?: unknown }) => void
+    const cbBroadcast = mockChannel.on.mock.calls[0][2] as (res: {
+      payload?: unknown
+    }) => void
     cbBroadcast({ payload: { id_cancha: 1 } })
     expect(onTurno).toHaveBeenCalledWith({ id_cancha: 1 })
     unsub1()
