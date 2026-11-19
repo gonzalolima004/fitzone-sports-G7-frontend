@@ -1,4 +1,6 @@
-%% Autor: Marcos Caraballo | Fecha: 2026-11-16 | Versión: 1.0
+%% Autor: Marcos Caraballo | Fecha: 2026-11-19 | Versión: 1.1
+%% Nota: Todas las PK (incluida usuario_rol PK,FK) generan un UNIQUE INDEX *_pkey (btree) implícito en PostgreSQL.
+%% Los 6 índices/restricciones UNIQUE de negocio declarados están explicitados como UK/IDX (btree).
 erDiagram
     ciudad {
         int id_ciudad PK
@@ -17,8 +19,8 @@ erDiagram
 
     sede_horario {
         int id_sede_horario PK
-        int id_sede FK "UK uq_sede_dia"
-        int dia_semana "UK uq_sede_dia"
+        int id_sede FK "UK/IDX uq_sede_dia (btree)"
+        int dia_semana "UK/IDX uq_sede_dia (btree)"
         string hora_apertura
         string hora_cierre
         boolean cerrado
@@ -26,15 +28,15 @@ erDiagram
 
     calendario {
         int id_calendario PK
-        date fecha UK
+        date fecha UK "IDX calendario_fecha_key (btree)"
         string descripcion
         boolean es_feriado
     }
 
     calendario_sede {
         int id_calendario_sede PK
-        int id_sede FK "UK uq_sede_calendario"
-        int id_calendario FK "UK uq_sede_calendario"
+        int id_sede FK "UK/IDX uq_sede_calendario (btree)"
+        int id_calendario FK "UK/IDX uq_sede_calendario (btree)"
         boolean cerrado
         string motivo
     }
@@ -53,8 +55,8 @@ erDiagram
         int id_usuario PK
         int id_sede FK
         int id_usuario_estado FK
-        string dni UK
-        string email UK
+        string dni UK "IDX usuario_dni_key (btree)"
+        string email UK "IDX usuario_email_key (btree)"
         string nombre
         string apellido
         string telefono
@@ -125,10 +127,10 @@ erDiagram
 
     cancha_reserva {
         int id_cancha_reserva PK
-        int id_cancha FK "Bloqueo FOR UPDATE RN-02"
+        int id_cancha FK "UK/IDX un_turno_por_hora (btree) - Bloqueo FOR UPDATE RN-02"
         int id_usuario FK
         int id_cancha_reserva_estado FK
-        datetime fecha_inicio
+        datetime fecha_inicio "UK/IDX un_turno_por_hora (btree)"
         datetime fecha_fin
         decimal precio_congelado
         decimal descuento_porcentaje
