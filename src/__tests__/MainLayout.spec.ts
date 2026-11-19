@@ -105,4 +105,57 @@ describe('MainLayout.vue', () => {
     expect(mockAuthStore.logout).toHaveBeenCalled()
     expect(pushSpy).toHaveBeenCalledWith('/login')
   })
+
+  it('cubre horario especial, sede cerrada, error de avatar, click fuera y estados de sesión', async () => {
+    mockSedeStore.horarioOperativoActual = {
+      abierto: true,
+      hora_apertura: '09:00',
+      hora_cierre: '18:00',
+      es_horario_especial: true,
+    } as never
+    ;(mockAuthStore as unknown as { sincronizarPerfilSocio?: () => void }).sincronizarPerfilSocio = vi.fn()
+    ;(mockAuthStore.usuario as unknown as { id?: number }).id = 12
+
+    const wrapper = mount(MainLayout, {
+      global: { plugins: [router] },
+    })
+
+    expect(wrapper.text()).toContain('Horario Especial')
+    const avatar = wrapper.find('[data-testid="navbar-user-avatar"]')
+    await avatar.trigger('error')
+    expect(wrapper.text()).toContain('J')
+
+    await wrapper.find('button[title="Abrir menú"]').trigger('click')
+    await wrapper.find('.fixed.inset-0').trigger('click')
+    expect(wrapper.find('.fixed.inset-0').exists()).toBe(false)
+
+    await wrapper.find('button[title="Abrir menú de usuario"]').trigger('click')
+    expect(wrapper.text()).toContain('Mi perfil')
+    document.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).not.toContain('Conectado como')
+
+    wrapper.unmount()
+
+    mockSedeStore.horarioOperativoActual = {
+      abierto: false,
+      hora_apertura: '00:00',
+      hora_cierre: '00:00',
+    } as never
+    mockAuthStore.isAuthenticated = false
+    mockAuthStore.cargandoPerfil = false
+
+    const wrapperNoAuth = mount(MainLayout, {
+      global: { plugins: [router] },
+    })
+    expect(wrapperNoAuth.text()).toContain('Sede Cerrada')
+    expect(wrapperNoAuth.text()).toContain('Iniciar sesión')
+
+    mockAuthStore.cargandoPerfil = true
+    mockAuthStore.usuario = null as never
+    const wrapperSkeleton = mount(MainLayout, {
+      global: { plugins: [router] },
+    })
+    expect(wrapperSkeleton.find('.animate-pulse').exists()).toBe(true)
+  })
 })

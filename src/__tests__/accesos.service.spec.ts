@@ -292,5 +292,74 @@ describe('accesosService (M2-accesos)', () => {
       desuscribir()
       expect(mockRemoveChannel).toHaveBeenCalledWith(mockChannel)
     })
+
+    it('permite suscribirse sin onStatusChange y con payload', () => {
+      const onCambio = vi.fn()
+      accesosService.suscribirCambiosAforo(9, onCambio)
+      const statusHandler = mockSubscribe.mock.calls[0][0]
+      expect(() => statusHandler('SUBSCRIBED')).not.toThrow()
+    })
+  })
+
+  describe('cobertura adicional de ramas offline, perfiles y egresos', () => {
+    it('cubre obtenerPerfilSocio, validarAcceso y obtenerAforo', async () => {
+      vi.mocked(http.get).mockResolvedValueOnce({ data: { socioId: 5 } })
+      expect(await accesosService.obtenerPerfilSocio(5)).toEqual({ socioId: 5 })
+
+      vi.mocked(http.post).mockResolvedValueOnce({ data: { exito: true, mensaje: 'OK' } })
+      expect(
+        await accesosService.validarAcceso({ qrToken: 't', id_sede: 1 })
+      ).toEqual({ exito: true, mensaje: 'OK' })
+
+      vi.mocked(http.get).mockResolvedValueOnce({ data: { aforoActual: 2, aforoMaximo: 10 } })
+      expect(await accesosService.obtenerAforo(1)).toEqual({
+        aforoActual: 2,
+        aforoMaximo: 10,
+      })
+    })
+
+    it('cubre generarQrOffline por sede.id_ciudad, sin usuario, sin ciudad, en mora y error HTTP no-red', async () => {
+      vi.stubGlobal('navigator', { onLine: false })
+      vi.mocked(useAuthStore).mockReturnValue({ usuario: null } as never)
+      await expect(accesosService.obtenerQr()).rejects.toThrow(
+        'No hay un usuario autenticado'
+      )
+
+      vi.mocked(useAuthStore).mockReturnValue({
+        usuario: { id: 1, estadoMembresia: 'ACTIVA' },
+      } as never)
+      await expect(accesosService.obtenerQr()).rejects.toThrow(
+        'no tiene asignada una ciudad válida'
+      )
+
+      vi.mocked(useAuthStore).mockReturnValue({
+        usuario: { id: 1, sede: { id_ciudad: 2 }, estadoMembresia: 'VENCIDA', enMora: true },
+      } as never)
+      await expect(accesosService.obtenerQr()).rejects.toThrow(
+        'membresía activa o se encuentra en mora'
+      )
+
+      vi.mocked(useAuthStore).mockReturnValue({
+        usuario: { id: 1, sede: { id_ciudad: 2 }, estadoMembresia: 'ACTIVO' },
+      } as never)
+      vi.stubGlobal('navigator', { onLine: true })
+      vi.mocked(http.get).mockRejectedValueOnce({ response: { status: 403 } })
+      await expect(accesosService.obtenerQr()).rejects.toEqual({
+        response: { status: 403 },
+      })
+    })
+
+    it('encolarAccesoOffline ignora idSede undefined y registrarEgreso funciona por DNI sin token', async () => {
+      accesosService.encolarAccesoOffline('INGRESO', 1, undefined)
+      expect(localStorageMock['fitzone_offline_queue']).toBeUndefined()
+
+      vi.stubGlobal('navigator', { onLine: true })
+      vi.mocked(http.post).mockResolvedValueOnce({ data: {} })
+      await accesosService.registrarEgreso({ dni: '30111222', id_sede: 1 })
+      expect(http.post).toHaveBeenCalledWith('/accesos/registrar-egreso', {
+        dni: '30111222',
+        id_sede: 1,
+      })
+    })
   })
 })

@@ -328,4 +328,107 @@ describe('ValidacionAcceso.vue - Full Coverage', () => {
       '¡Salida (Egreso) registrada correctamente!'
     )
   })
+
+  it('cubre validación por DNI, falta de sede, errores array/detail/genéricos y modo offline inválido', async () => {
+    const wrapper = mount(ValidacionAcceso)
+    const btnDni = wrapper
+      .findAll('button')
+      .find((b) => b.text().includes('Por DNI del Usuario'))
+    await btnDni?.trigger('click')
+
+    const btnAccion = wrapper
+      .findAll('button')
+      .find((b) => b.text().trim() === 'Validar Ingreso')
+    await btnAccion?.trigger('click')
+    expect(wrapper.text()).toContain('Debe ingresar un DNI válido')
+
+    const inputDni = wrapper.findComponent({ name: 'BaseInput' })
+    await inputDni.vm.$emit('update:modelValue', '30111222')
+    vi.mocked(accesosService.validarAcceso).mockResolvedValueOnce({
+      exito: true,
+      mensaje: 'Ingreso por DNI aprobado',
+      socio: { id: 9, nombre: 'Ana', apellido: 'Gómez', dni: '30111222' },
+    })
+    await btnAccion?.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(accesosService.validarAcceso).toHaveBeenCalledWith({
+      dni: '30111222',
+      id_sede: 1,
+    })
+    expect(wrapper.text()).toContain('Ingreso por DNI aprobado')
+
+    mockSedeStore.idSedeSeleccionada = null as unknown as number
+    await inputDni.vm.$emit('update:modelValue', '30111222')
+    await btnAccion?.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).toContain('No se ha seleccionado una sede válida.')
+
+    const btnEgreso = wrapper
+      .findAll('button')
+      .find((b) => b.text().includes('Registrar Egreso (Salida)'))
+    await btnEgreso?.trigger('click')
+    await btnDni?.trigger('click')
+
+    const btnAccionEgreso = wrapper
+      .findAll('button')
+      .find((b) => b.text().trim() === 'Registrar Egreso')
+    await btnAccionEgreso?.trigger('click')
+    expect(wrapper.text()).toContain('Debe ingresar un DNI para registrar la salida.')
+
+    await wrapper
+      .findComponent({ name: 'BaseInput' })
+      .vm.$emit('update:modelValue', '30111222')
+    await btnAccionEgreso?.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).toContain(
+      'Debe seleccionar una sede activa antes de registrar el egreso.'
+    )
+
+    mockSedeStore.idSedeSeleccionada = 1
+    vi.mocked(accesosService.registrarEgreso).mockRejectedValueOnce({
+      isAxiosError: true,
+      response: { data: { detail: 'No posee ingreso previo' } },
+    })
+    vi.spyOn(axios, 'isAxiosError').mockReturnValueOnce(true)
+    await wrapper
+      .findComponent({ name: 'BaseInput' })
+      .vm.$emit('update:modelValue', '30111222')
+    await btnAccionEgreso?.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).toContain('No posee ingreso previo')
+  })
+
+  it('cubre errores HTTP (message array / no-Error) y error de validación offline', async () => {
+    const wrapper = mount(ValidacionAcceso)
+    const input = wrapper.findComponent({ name: 'BaseInput' })
+    const btn = wrapper
+      .findAll('button')
+      .find((b) => b.text().trim() === 'Validar Ingreso')
+
+    vi.spyOn(axios, 'isAxiosError').mockReturnValue(true)
+    vi.mocked(accesosService.validarAcceso).mockRejectedValueOnce({
+      isAxiosError: true,
+      response: { data: { message: ['Token expirado', 'Renovar QR'] } },
+    })
+    await input.vm.$emit('update:modelValue', 'tok-1')
+    await btn?.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).toContain('Token expirado. Renovar QR')
+
+    vi.spyOn(axios, 'isAxiosError').mockReturnValue(false)
+    vi.mocked(accesosService.validarAcceso).mockRejectedValueOnce('unknown')
+    await input.vm.$emit('update:modelValue', 'tok-2')
+    await btn?.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).toContain(
+      'Ocurrió un error inesperado al procesar la solicitud.'
+    )
+
+    vi.stubGlobal('navigator', { onLine: false })
+    await input.vm.$emit('update:modelValue', 'invalido')
+    await btn?.trigger('click')
+    await new Promise((r) => setTimeout(r, 20))
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).toContain('[Offline]')
+  })
 })

@@ -54,6 +54,8 @@ vi.mock('@/common/api/supabase', () => ({
   },
 }))
 
+import { authService } from '@/modules/M1-usuarios/services/auth.service'
+
 describe('Router Configuration & Navigation Guards', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
@@ -162,5 +164,57 @@ describe('Router Configuration & Navigation Guards', () => {
     )
     expect(mockAuthStore.marcarPerfilVerificado).toHaveBeenCalledWith(true)
     expect(router.currentRoute.value.path).toBe('/perfil')
+  })
+
+  it('inicializa authStore si no está inicializado, limpia hash access_token y redirige según rol desde login/registro', async () => {
+    mockAuthStore.isInitialized = false
+    mockAuthStore.isAuthenticated = true
+    mockAuthStore.perfilVerificado = true
+    window.history.replaceState({}, '', '/login#access_token=abc')
+
+    mockAuthStore.rol = 'gerente'
+    await router.push('/login')
+    expect(mockAuthStore.initialize).toHaveBeenCalled()
+    expect(router.currentRoute.value.path).toBe('/gerencia')
+
+    mockAuthStore.rol = 'recepcionista'
+    await router.push('/registro')
+    expect(router.currentRoute.value.path).toBe('/recepcion')
+
+    mockAuthStore.rol = 'socio'
+    await router.push('/login')
+    expect(router.currentRoute.value.path).toBe('/socio-dashboard')
+  })
+
+  it('permite navegar offline con perfil local en caché y cierra sesión ante error no-red al verificar perfil', async () => {
+    mockAuthStore.isInitialized = true
+    mockAuthStore.isAuthenticated = true
+    mockAuthStore.perfilVerificado = false
+    mockAuthStore.rol = 'socio'
+    mockAuthStore.usuario = { id: 10, rol: 'socio' }
+
+    vi.stubGlobal('navigator', { onLine: false })
+    await router.push('/perfil')
+    expect(authService.verifyLocalProfile).not.toHaveBeenCalled()
+    expect(router.currentRoute.value.path).toBe('/perfil')
+
+    vi.stubGlobal('navigator', { onLine: true })
+    vi.mocked(authService.verifyLocalProfile).mockRejectedValueOnce({
+      code: 'ERR_NETWORK',
+      message: 'Network Error',
+    })
+    await router.push('/accesos')
+    expect(router.currentRoute.value.path).toBe('/accesos')
+
+    mockAuthStore.usuario = null
+    mockAuthStore.logout.mockImplementationOnce(async () => {
+      mockAuthStore.isAuthenticated = false
+    })
+    vi.mocked(authService.verifyLocalProfile).mockRejectedValueOnce({
+      response: { status: 401 },
+    })
+    await router.push('/canchas')
+    expect(mockAuthStore.logout).toHaveBeenCalled()
+    expect(router.currentRoute.value.name).toBe('login')
   })
 })
